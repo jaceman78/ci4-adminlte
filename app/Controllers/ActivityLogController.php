@@ -19,7 +19,7 @@ class ActivityLogController extends BaseController
     {
         $this->activityLogModel = new ActivityLogModel();
         // Carregar o helper se não estiver no Autoload.php
-        helper("LogHelper"); 
+
     }
 
     /**
@@ -28,7 +28,7 @@ class ActivityLogController extends BaseController
     public function index()
     {
         // Log de acesso à página de logs
-        log_activity(
+        \log_activity(
             get_current_user_id(),
             'logs',
             'view_page',
@@ -73,7 +73,7 @@ class ActivityLogController extends BaseController
         $data = $this->activityLogModel->getDataTableData($draw, $start, $length, $search, $order, $columns, $filters);
 
         // Log de visualização de dados da DataTable
-        log_activity(
+        \log_activity(
             get_current_user_id(),
             'logs',
             'view_datatable',
@@ -105,7 +105,7 @@ class ActivityLogController extends BaseController
         }
 
         // Log de visualização de log individual
-        log_activity(
+        \log_activity(
             get_current_user_id(),
             'logs',
             'view_details',
@@ -144,7 +144,7 @@ class ActivityLogController extends BaseController
         $stats = $this->activityLogModel->getLogStats();
 
         // Log de visualização de estatísticas
-        log_activity(
+        \log_activity(
             get_current_user_id(),
             'logs',
             'view_stats',
@@ -161,7 +161,7 @@ class ActivityLogController extends BaseController
     {
         // Apenas administradores podem exportar
         if (session()->get('level') < 9) {
-            log_permission_denied('logs', 'export');
+            \log_permission_denied('logs', 'export');
             return $this->failForbidden('Não tem permissão para exportar logs.');
         }
 
@@ -215,7 +215,7 @@ class ActivityLogController extends BaseController
         fclose($output);
 
         // Log de exportação
-        log_export_activity('logs', 'CSV', count($logs));
+        \log_export_activity('logs', 'CSV', count($logs));
 
         exit();
     }
@@ -231,7 +231,7 @@ class ActivityLogController extends BaseController
 
         // Apenas administradores podem eliminar logs
         if (session()->get('level') < 9) {
-            log_permission_denied('logs', 'delete');
+            \log_permission_denied('logs', 'delete');
             return $this->failForbidden('Não tem permissão para eliminar logs.');
         }
 
@@ -246,7 +246,7 @@ class ActivityLogController extends BaseController
 
         if ($this->activityLogModel->delete($id)) {
             // Log da própria eliminação do log
-            log_activity(
+            \log_activity(
                 get_current_user_id(),
                 'logs',
                 'delete',
@@ -270,7 +270,7 @@ class ActivityLogController extends BaseController
 
         // Apenas administradores podem limpar logs
         if (session()->get('level') < 9) {
-            log_permission_denied('logs', 'clean');
+            \log_permission_denied('logs', 'clean');
             return $this->failForbidden('Não tem permissão para limpar logs antigos.');
         }
 
@@ -283,7 +283,7 @@ class ActivityLogController extends BaseController
         $count = $this->activityLogModel->cleanOldLogs($days);
 
         // Log da limpeza de logs
-        log_activity(
+        \log_activity(
             get_current_user_id(),
             'logs',
             'clean',
