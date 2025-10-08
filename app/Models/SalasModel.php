@@ -285,7 +285,7 @@ class SalasModel extends Model
         
         $rules = $this->validationRules;
         
-        // Ajustar a regra de validação do código da sala dinamicamente
+        // Ajustar a regra de validação do código da sala dinamicamente 
         // Verificar unicidade do código dentro da mesma escola
         $codigoRule = 'required|max_length[50]';
         

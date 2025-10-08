@@ -1,4 +1,4 @@
-<?php
+<?php 
 
 namespace App\Models;
 
@@ -86,7 +86,7 @@ class ActivityLogModel extends Model
      */
     public function getLogsWithUser($limit = 50, $offset = 0)
     {
-        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+        return $this->select('logs_atividade.*, user.oauth_id')
                     ->join('user', 'user.id = logs_atividade.user_id', 'left')
                     ->orderBy('logs_atividade.criado_em', 'DESC')
                     ->findAll($limit, $offset);
@@ -97,7 +97,7 @@ class ActivityLogModel extends Model
      */
     public function getLogsByUser($userId, $limit = 50, $offset = 0)
     {
-        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email, user.oauth_id')
                     ->join('user', 'user.id = logs_atividade.user_id', 'left')
                     ->where('logs_atividade.user_id', $userId)
                     ->orderBy('logs_atividade.criado_em', 'DESC')
@@ -109,7 +109,7 @@ class ActivityLogModel extends Model
      */
     public function getLogsByModule($modulo, $limit = 50, $offset = 0)
     {
-        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email, user.oauth_id')
                     ->join('user', 'user.id = logs_atividade.user_id', 'left')
                     ->where('logs_atividade.modulo', $modulo)
                     ->orderBy('logs_atividade.criado_em', 'DESC')
@@ -121,7 +121,7 @@ class ActivityLogModel extends Model
      */
     public function getLogsByAction($acao, $limit = 50, $offset = 0)
     {
-        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email, user.oauth_id')
                     ->join('user', 'user.id = logs_atividade.user_id', 'left')
                     ->where('logs_atividade.acao', $acao)
                     ->orderBy('logs_atividade.criado_em', 'DESC')
@@ -133,7 +133,7 @@ class ActivityLogModel extends Model
      */
     public function getLogsByDateRange($startDate, $endDate, $limit = 50, $offset = 0)
     {
-        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email, user.oauth_id')
                     ->join('user', 'user.id = logs_atividade.user_id', 'left')
                     ->where('logs_atividade.criado_em >=', $startDate)
                     ->where('logs_atividade.criado_em <=', $endDate)
@@ -146,7 +146,7 @@ class ActivityLogModel extends Model
      */
     public function searchLogs($search, $limit = 50, $offset = 0)
     {
-        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email, user.oauth_id')
                     ->join('user', 'user.id = logs_atividade.user_id', 'left')
                     ->groupStart()
                         ->like('logs_atividade.descricao', $search)
@@ -164,7 +164,7 @@ class ActivityLogModel extends Model
      */
     public function getDataTableData($start = 0, $length = 10, $search = '', $orderColumn = 'criado_em', $orderDir = 'desc', $filters = [])
     {
-        $builder = $this->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+        $builder = $this->select('logs_atividade.*, user.name as user_name, user.email as user_email, user.oauth_id')
                        ->join('user', 'user.id = logs_atividade.user_id', 'left');
 
         // Aplicar filtros
@@ -286,7 +286,7 @@ class ActivityLogModel extends Model
      */
     public function getRecentLogs($limit = 10)
     {
-        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email, user.oauth_id')
                     ->join('user', 'user.id = logs_atividade.user_id', 'left')
                     ->orderBy('logs_atividade.criado_em', 'DESC')
                     ->limit($limit)
@@ -307,7 +307,7 @@ class ActivityLogModel extends Model
      */
     public function getLogsByRecord($modulo, $registroId, $limit = 50)
     {
-        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+        return $this->select('logs_atividade.*, user.name as user_name, user.email as user_email, user.oauth_id')
                     ->join('user', 'user.id = logs_atividade.user_id', 'left')
                     ->where('logs_atividade.modulo', $modulo)
                     ->where('logs_atividade.registro_id', $registroId)
@@ -356,7 +356,7 @@ class ActivityLogModel extends Model
      */
     public function exportToCSV($filters = [])
     {
-        $builder = $this->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+        $builder = $this->select('logs_atividade.*, user.name as user_name, user.email as user_email, user.oauth_id')
                        ->join('user', 'user.id = logs_atividade.user_id', 'left');
 
         // Aplicar filtros se fornecidos

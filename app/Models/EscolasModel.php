@@ -240,9 +240,9 @@ class EscolasModel extends Model
     public function validateEscolaData($data, $id = null)
     {
         $validation = \Config\Services::validation();
-        
+
         $rules = $this->validationRules;
-        
+
         // Ajustar a regra de validação do nome dinamicamente
         $nomeRule = 'required|max_length[150]';
         if ($id) {
@@ -255,14 +255,16 @@ class EscolasModel extends Model
         $rules['nome'] = $nomeRule;
 
         $validation->setRules($rules);
-        
+
+        $this->validation = $validation; // Save validation instance for controller access
+
         if (!$validation->run($data)) {
             return [
                 'success' => false,
                 'errors' => $validation->getErrors()
             ];
         }
-        
+
         return ['success' => true];
     }
 

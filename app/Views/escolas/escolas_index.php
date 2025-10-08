@@ -1,5 +1,4 @@
 <?= $this->extend('layout/master') ?>
-
 <?= $this->section('pageHeader') ?>
 <div class="row mb-2">
     <div class="col-sm-6">
@@ -188,6 +187,26 @@
         </div>
     </div>
 </div>
+
+<!-- Danger Modal de Confirmação -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="confirmDeleteModalLabel"><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminação</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        Tem a certeza que deseja eliminar esta escola?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <?= $this->section('scripts') ?>
 <script>
 $(document).ready(function() {
@@ -334,11 +353,19 @@ function editEscolaFromView() {
     }, 300);
 }
 
+// Variável para guardar ID da escola a eliminar
+let escolaToDelete = null;
+
 // Função para eliminar escola
 function deleteEscola(id) {
-    if (confirm('Tem a certeza que deseja eliminar esta escola?')) {
+    escolaToDelete = id;
+    $('#confirmDeleteModal').modal('show');
+}
+
+$('#confirmDeleteBtn').on('click', function() {
+    if (escolaToDelete) {
         $.ajax({
-            url: '<?= base_url('escolas/delete') ?>/' + id,
+            url: '<?= base_url('escolas/delete') ?>/' + escolaToDelete,
             type: 'POST',
             success: function(response) {
                 if (response.success) {
@@ -350,10 +377,14 @@ function deleteEscola(id) {
             },
             error: function() {
                 showToast('error', 'Erro ao eliminar escola');
+            },
+            complete: function() {
+                $('#confirmDeleteModal').modal('hide');
+                escolaToDelete = null;
             }
         });
     }
-}
+});
 
 // Função para exportar CSV
 function exportCSV() {
@@ -446,6 +477,12 @@ function formatDate(dateString) {
         hour: '2-digit',
         minute: '2-digit'
     });
+}
+
+// Função para abrir modal de equipamentos
+function openEquipamentoModal() {
+    var modal = new bootstrap.Modal(document.getElementById('equipamentoModal'));
+    modal.show();
 }
 </script>
 <?= $this->endSection() ?>

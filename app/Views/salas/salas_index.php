@@ -51,7 +51,8 @@
             <div class="card-header">
                 <h3 class="card-title">Lista de Salas - <span id="escolaNomeHeader"></span></h3>
                 <div class="card-tools">
-                    <button type="button" class="btn btn-primary btn-sm" onclick="openCreateModal()" id="novaSalaBtn">
+                    <!-- Botão para criar nova sala -->
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#salaModal" onclick="openCreateModal()" id="novaSalaBtn">
                         <i class="fas fa-plus"></i> Nova Sala
                     </button>
                     <button type="button" class="btn btn-success btn-sm" onclick="exportCSV()" id="exportBtn">
@@ -343,7 +344,7 @@ function loadEscolas() {
     });
 }
 
-// Função para inicializar DataTable
+// Função para inicializar DataTable 
 function initializeDataTable() {
     if (table) {
         table.destroy();

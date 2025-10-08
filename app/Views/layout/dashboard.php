@@ -78,6 +78,20 @@
                   </div>
                 </div> 
 
+                
+                <br>
+                <div class="col-lg-3 col-6">
+                  <!--begin::Small Box-->
+                  <div class="small-box bg-primary">
+                    <div class="inner">
+                      <h3>75</h3>
+                      <p>Testando Nível</p>
+                       <p><?= session()->get("LoggedUserData")['name'] ?? ""; ?><br>
+                       <?= session()->get("LoggedUserData")['level'] ?? ""; ?></p>
+                    </div>
+                    <div class="icon"><i class="bi bi-people"></i></div>
+                    <a href="#" class="small-box-footer">More info <i class="bi bi-arrow-right-circle"></i></a>
+                  </div>
 
 </div>
                   <!--end::Small Box-->

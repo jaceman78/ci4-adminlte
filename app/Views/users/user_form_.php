@@ -52,10 +52,11 @@
                 <label for="level" class="form-label">Nível de Acesso</label>
                 <select class="form-select" id="level" name="level" required>
                     <option value="0" <?= (isset($user['level']) && $user['level'] == 0) ? 'selected' : '' ?>>Utilizador</option>
-                    <option value="1" <?= (isset($user['level']) && $user['level'] == 1) ? 'selected' : '' ?>>Editor</option>
-                    <option value="2" <?= (isset($user['level']) && $user['level'] == 2) ? 'selected' : '' ?>>Moderador</option>
-                    <option value="3" <?= (isset($user['level']) && $user['level'] == 3) ? 'selected' : '' ?>>Administrador</option>
-                    <option value="4" <?= (isset($user['level']) && $user['level'] == 4) ? 'selected' : '' ?>>Super Admin</option>
+                    <option value="1" <?= (isset($user['level']) && $user['level'] == 1) ? 'selected' : '' ?>>Professor</option>
+                    <option value="2" <?= (isset($user['level']) && $user['level'] == 2) ? 'selected' : '' ?>>Professor CP</option>
+                    <option value="3" <?= (isset($user['level']) && $user['level'] == 3) ? 'selected' : '' ?>>Moderador</option>
+                    <option value="4" <?= (isset($user['level']) && $user['level'] == 4) ? 'selected' : '' ?>>Administrador</option>
+                    <option value="9" <?= (isset($user['level']) && $user['level'] == 9) ? 'selected' : '' ?>>Super Admin</option>
                 </select>
             </div>
         </div>

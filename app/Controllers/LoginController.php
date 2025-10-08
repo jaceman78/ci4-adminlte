@@ -1,4 +1,4 @@
-<?php
+<?php 
 
 namespace App\Controllers;
 
@@ -26,11 +26,14 @@ class LoginController extends BaseController
         $this->googleClient->setRedirectUri(getenv('GOOGLE_REDIRECT_URI'));
         $this->googleClient->addScope('email');
         $this->googleClient->addScope('profile');
+      
+
     }
 
     public function index()
     {
         if (session()->get('LoggedUserData')) {
+            
             return redirect()->to('layout/dashboard');
         }
 
@@ -71,7 +74,8 @@ class LoginController extends BaseController
             session()->setFlashdata('Error', 'Conta de email não autorizada!');
             return redirect()->to('/login');
         }
-
+        $existingUser = $this->userModel->where('email', $email)->first();
+        $userlevel = $existingUser['level'];// Mantém o nível existente
         // Dados do utilizador
         $userdata = [
             'oauth_id'    => $googleUser->getId(),
@@ -79,20 +83,25 @@ class LoginController extends BaseController
             'email'       => $email,
             'profile_img' => $googleUser->getPicture(),
             'updated_at'  => date('Y-m-d H:i:s'),
-            'level'       => 0,
+            'level'       => $userlevel,
             'status'      => 1,
         ];
 
-        $existingUser = $this->userModel->where('email', $email)->first();
-        if ($existingUser) {
-           $this->userModel->update($existingUser['id'], $userdata);
-        } else {
-            $this->userModel->insertUserData($userdata);
-        }
+    
+    if ($existingUser) {
+        $this->userModel->update($existingUser['id'], $userdata);
+        $userId = $existingUser['id'];       
+       
+        $userdata['user_id'] = $userId;
+    } else {
+        $userId = $this->userModel->insert($userdata); // <-- Usa insert do Model, retorna o novo ID
+        $userdata['user_id'] = $userId;
+    }
 
-        session()->set('LoggedUserData', $userdata);
+    session()->set('user_id', $userId); // <-- Garante que é sempre um inteiro!
+    session()->set('LoggedUserData', $userdata);
 
-        return redirect()->to('layout/dashboard');
+    return redirect()->to('layout/dashboard');
     }
 
     public function profile()

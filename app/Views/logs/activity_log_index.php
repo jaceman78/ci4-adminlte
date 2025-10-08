@@ -1,3 +1,12 @@
+<?php
+if ((session()->get('LoggedUserData')['level'] ?? 0) != 9) {
+    // Redireciona ou mostra mensagem de acesso negado
+    echo '<div class="alert alert-danger mt-4">Acesso negado.</div>';
+    exit;
+}
+?>
+
+
 <?= $this->extend("layout/master") ?>
 
 <?= $this->section("pageHeader") ?>
@@ -146,16 +155,14 @@
 </div>
 
 <!-- Modal de Visualização de Log -->
-<div class="modal fade" id="viewLogModal" tabindex="-1" role="dialog" aria-labelledby="viewLogModalLabel" aria-hidden="true">
+<div class="modal fade" id="viewLogModal" tabindex="-1" aria-labelledby="viewLogModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header bg-info">
                 <h5 class="modal-title" id="viewLogModalLabel">
                     <i class="fas fa-eye"></i> Detalhes do Log
                 </h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
@@ -235,7 +242,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times"></i> Fechar
                 </button>
             </div>
@@ -244,16 +251,14 @@
 </div>
 
 <!-- Modal de Estatísticas -->
-<div class="modal fade" id="statsModal" tabindex="-1" role="dialog" aria-labelledby="statsModalLabel" aria-hidden="true">
+<div class="modal fade" id="statsModal" tabindex="-1" aria-labelledby="statsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header bg-info">
                 <h5 class="modal-title" id="statsModalLabel">
                     <i class="fas fa-chart-bar"></i> Estatísticas dos Logs
                 </h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
                 <div id="statsContent">
@@ -264,7 +269,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times"></i> Fechar
                 </button>
             </div>
@@ -274,16 +279,14 @@
 
 <!-- Modal de Limpeza de Logs -->
 <?php if (session()->get("level") >= 9): ?>
-<div class="modal fade" id="cleanLogsModal" tabindex="-1" role="dialog" aria-labelledby="cleanLogsModalLabel" aria-hidden="true">
+<div class="modal fade" id="cleanLogsModal" tabindex="-1" aria-labelledby="cleanLogsModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header bg-warning">
                 <h5 class="modal-title" id="cleanLogsModalLabel">
                     <i class="fas fa-broom"></i> Limpar Logs Antigos
                 </h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <form id="cleanLogsForm">
                 <div class="modal-body">
@@ -303,7 +306,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times"></i> Cancelar
                     </button>
                     <button type="submit" class="btn btn-warning">
@@ -352,7 +355,7 @@ $(document).ready(function() {
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
         language: {
-            url: "<?= base_url("assets/datatables/i18n/pt-PT.json") ?>"
+            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json'
         },
         responsive: true,
         autoWidth: false,

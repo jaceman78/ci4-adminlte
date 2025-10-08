@@ -100,3 +100,87 @@ $routes->group("logs", function($routes) {
     $routes->get("exportCSV", "ActivityLogController::exportCSV");
     $routes->post("cleanOldLogs", "ActivityLogController::cleanOldLogs");
 });
+
+// Rotas para gestão de Materiais
+$routes->group("materiais", function($routes) {
+    $routes->get("/", "MateriaisController::index");
+    $routes->post("getDataTable", "MateriaisController::getDataTable");
+    $routes->get("getDataTable", "MateriaisController::getDataTable"); // Para compatibilidade
+    $routes->get("getMaterial/(:num)", "MateriaisController::getMaterial/$1");
+    $routes->post("save", "MateriaisController::saveMaterial");
+    $routes->post("delete/(:num)", "MateriaisController::deleteMaterial/$1");
+    $routes->get("getStats", "MateriaisController::getStats");
+});
+
+// Rotas para Gestão de Equipamentos
+$routes->group("equipamentos", function ($routes) {
+    $routes->get("/", "EquipamentosController::index");
+    $routes->post("getDataTable", "EquipamentosController::getDataTable");
+    $routes->get("getEquipamento/(:num)", "EquipamentosController::getEquipamento/$1");
+    $routes->post("create", "EquipamentosController::create");
+    $routes->post("update/(:num)", "EquipamentosController::update/$1");
+    $routes->post("delete/(:num)", "EquipamentosController::delete/$1");
+    $routes->get("getStatistics", "EquipamentosController::getStatistics");
+});
+
+// Rotas para Gestão de Tipos de Equipamento
+$routes->group("tipos_equipamentos", function ($routes) {
+    $routes->get("/", "TiposEquipamentosController::index");
+    $routes->post("getDataTable", "TiposEquipamentosController::getDataTable");
+    $routes->get("getTipoEquipamento/(:num)", "TiposEquipamentosController::getTipoEquipamento/$1");
+    $routes->post("create", "TiposEquipamentosController::create");
+    $routes->post("update/(:num)", "TiposEquipamentosController::update/$1");
+    $routes->post("delete/(:num)", "TiposEquipamentosController::delete/$1");
+    $routes->get("getStatistics", "TiposEquipamentosController::getStatistics");
+});
+/*
+ * --------------------------------------------------------------------*
+ * Rotas para Gestão de Tipos de Avaria
+ * --------------------------------------------------------------------*
+ */
+$routes->group("tipos_avaria", function ($routes) {
+    $routes->get("/", "TiposAvariaController::index");
+    $routes->post("getDataTable", "TiposAvariaController::getDataTable");
+    $routes->get("getTipoAvaria/(:num)", "TiposAvariaController::getTipoAvaria/$1");
+    $routes->post("create", "TiposAvariaController::create");
+    $routes->post("update/(:num)", "TiposAvariaController::update/$1");
+    $routes->post("delete/(:num)", "TiposAvariaController::delete/$1");
+    $routes->get("getStatistics", "TiposAvariaController::getStatistics");
+});
+
+/*
+ * --------------------------------------------------------------------*
+ * Rotas para Gestão de Tickets
+ * --------------------------------------------------------------------*
+ */
+$routes->group("tickets", function ($routes) {
+    $routes->get("novo", "TicketsController::novoTicket");
+    $routes->get("meus", "TicketsController::meusTickets");
+    $routes->get("tratamento", "TicketsController::tratamentoTickets");
+    $routes->get("todos", "TicketsController::todosTickets");
+
+    // Rotas AJAX para CRUD e DataTables
+    $routes->post("create", "TicketsController::create");
+    $routes->put("update/(:num)", "TicketsController::update/$1");
+    $routes->delete("delete/(:num)", "TicketsController::delete/$1");
+    $routes->get("get/(:num)", "TicketsController::get/$1"); // Para carregar detalhes do ticket para edição/visualização
+
+    $routes->get("meus-datatable", "TicketsController::getMyTicketsDataTable");
+    $routes->get("tratamento-datatable", "TicketsController::getTicketsForTreatmentDataTable");
+    $routes->get("todos-datatable", "TicketsController::getAllTicketsDataTable");
+
+    // Rotas de ação
+    $routes->post("assign", "TicketsController::assignTicket");
+    $routes->get("accept/(:num)", "TicketsController::acceptTicket/$1"); // Para aceitar ticket via link de email
+
+    // Rotas para estatísticas
+    $routes->get("statistics", "TicketsController::getStatistics");
+    $routes->get("advanced-statistics", "TicketsController::getAdvancedStatistics");
+    $routes->get("export-excel", "TicketsController::exportToExcel");
+});
+
+// Rotas para obter dados para selects em modais
+$routes->get("equipamentos/all", "EquipamentosController::getAll");
+$routes->get("salas/all", "SalasController::getAll");
+$routes->get("tipos-avaria/all", "TiposAvariaController::getAll");
+$routes->get("users/technicians", "UserController::getTechnicians");

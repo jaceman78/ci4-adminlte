@@ -112,9 +112,11 @@
                                 <label for="userLevel" class="form-label">Nível</label>
                                 <select class="form-select" id="userLevel" name="level">
                                     <option value="0">Utilizador</option>
-                                    <option value="1">Moderador</option>
-                                    <option value="2">Administrador</option>
-                                    <option value="3">Super Admin</option>
+                                    <option value="1">Professor</option>
+                                    <option value="2">Professor CP</option>
+                                    <option value="3">Moderador</option>
+                                    <option value="4">Administrador</option>
+                                    <option value="9">Super Admin</option>
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -125,6 +127,7 @@
                                 <select class="form-select" id="userStatus" name="status">
                                     <option value="1">Ativo</option>
                                     <option value="0">Inativo</option>
+                                    <option value="2">Pendente</option>
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -368,13 +371,24 @@ function viewUser(id) {
                 $('#viewUserGrupoId').text(user.grupo_id || 'N/A');
                 
                 // Nível
-                var levels = ['Utilizador', 'Moderador', 'Administrador', 'Super Admin'];
+                var levels = ['Utilizador','Professor', 'Professor CP', 'Moderador', 'Administrador', 'Super Admin'];
                 $('#viewUserLevel').text(levels[user.level] || 'Desconhecido');
                 
                 // Status
-                var statusBadge = user.status == 1 
-                    ? '<span class="badge bg-success">Ativo</span>' 
-                    : '<span class="badge bg-danger">Inativo</span>';
+                if(user.status == null || user.status == 2) // Pendente se nulo
+                    {
+                       statusBadge = '<span class="badge bg-warning text-dark">Pendente</span>';
+                    }
+                    else if(user.status === 1) // Ativo
+                    {
+                       statusBadge = '<span class="badge bg-success">Ativo</span>';
+                    }
+                    else if(user.status === 0) // Inativo
+                    {
+                       statusBadge = '<span class="badge bg-danger">Inativo</span>';
+                    }
+           
+                    
                 $('#viewUserStatus').html(statusBadge);
                 
                 // Imagem
@@ -494,6 +508,10 @@ function formatDate(dateString) {
     });
 }
 
+// Supondo que response.currentUserLevel está disponível
+if (response.currentUserLevel == 9) {
+    // Renderiza botões de editar e eliminar
+}
 </script>
 <?= $this->endSection() ?>
     

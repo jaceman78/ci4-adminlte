@@ -8,6 +8,19 @@ use CodeIgniter\Session\Handlers\FileHandler;
 
 class Session extends BaseConfig
 {
+    public string $driver = 'CodeIgniter\Session\Handlers\FileHandler';
+    public string $savePath = '';
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $this->savePath = sys_get_temp_dir();
+        } else {
+            $this->savePath = WRITEPATH . 'session';
+        }
+    }
     /**
      * --------------------------------------------------------------------------
      * Session Driver
@@ -21,7 +34,7 @@ class Session extends BaseConfig
      *
      * @var class-string<BaseHandler>
      */
-    public string $driver = FileHandler::class;
+    //public string $driver = FileHandler::class;
 
     /**
      * --------------------------------------------------------------------------
@@ -57,7 +70,10 @@ class Session extends BaseConfig
      *
      * IMPORTANT: You are REQUIRED to set a valid save path!
      */
-    public string $savePath = WRITEPATH . 'session';
+   // public string $savePath = WRITEPATH . 'session';
+
+   
+
 
     /**
      * --------------------------------------------------------------------------

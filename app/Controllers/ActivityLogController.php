@@ -1,25 +1,23 @@
-<?php
+<?php 
 
 namespace App\Controllers;
 
-use App\Controllers\BaseController;
 use App\Models\ActivityLogModel;
-use CodeIgniter\API\ResponseTrait;
-
-// Certifique-se de que o helper é carregado (via Autoload ou manualmente)
-// helper("LogHelper"); // Se não estiver no Autoload.php
+use App\Models\UserModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class ActivityLogController extends BaseController
 {
-    use ResponseTrait;
-
     protected $activityLogModel;
+    protected $userModel;
+    protected $validation;
 
     public function __construct()
     {
         $this->activityLogModel = new ActivityLogModel();
-        // Carregar o helper se não estiver no Autoload.php
-        helper("LogHelper"); 
+        $this->userModel = new UserModel();
+        $this->validation = \Config\Services::validation();
+        helper("LogHelper"); // Carrega o helper de logs
     }
 
     /**
@@ -27,271 +25,622 @@ class ActivityLogController extends BaseController
      */
     public function index()
     {
-        // Log de acesso à página de logs
-        log_activity(
-            get_current_user_id(),
-            'logs',
-            'view_page',
-            'Acedeu à página de logs de atividade'
-        );
+        // Só aqui, não em cada AJAX!
+        // log_activity(
+        //     session()->get('user_id'),
+        //     'logs',
+        //     'view_page',
+        //     'Acedeu à página de logs de atividade'
+        // );
 
         $data = [
             'title' => 'Logs de Atividade',
             'breadcrumb' => [
-                ['name' => 'Dashboard', 'url' => base_url('dashboard')],
+                ['name' => 'Dashboard', 'url' => base_url()],
                 ['name' => 'Logs de Atividade', 'url' => '']
-            ],
+            ]
         ];
 
         return view('logs/activity_log_index', $data);
     }
 
     /**
-     * Retorna os dados para a DataTable de logs
+     * Obter dados para DataTable via AJAX
      */
     public function getDataTable()
     {
         if (!$this->request->isAJAX()) {
-            return $this->failUnauthorized('Acesso não autorizado');
+            log_permission_denied('logs/getDataTable', 'non_ajax_request');
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
+        $request = $this->request->getPost();
+        
+        $start = $request['start'] ?? 0;
+        $length = $request['length'] ?? 10;
+        $search = $request['search']['value'] ?? '';
+        
+        // Configurar ordenação
+        $orderColumn = 'criado_em';
+        $orderDir = 'desc';
+        
+        if (isset($request['order'][0])) {
+            $columns = ['id', 'user_name', 'modulo', 'acao', 'descricao', 'criado_em'];
+            $orderColumnIndex = $request['order'][0]['column'];
+            $orderColumn = $columns[$orderColumnIndex] ?? 'criado_em';
+            $orderDir = $request['order'][0]['dir'] ?? 'desc';
+        }
+
+        // Obter filtros adicionais
         $filters = [
-            'user_id' => $this->request->getPost('filter_user_id'),
-            'modulo' => $this->request->getPost('filter_modulo'),
-            'acao' => $this->request->getPost('filter_acao'),
-            'data_inicio' => $this->request->getPost('filter_data_inicio'),
-            'data_fim' => $this->request->getPost('filter_data_fim'),
+            'user_id' => $request['filter_user_id'] ?? null,
+            'modulo' => $request['filter_modulo'] ?? null,
+            'acao' => $request['filter_acao'] ?? null,
+            'data_inicio' => $request['filter_data_inicio'] ?? null,
+            'data_fim' => $request['filter_data_fim'] ?? null
         ];
 
-        $draw = $this->request->getPost('draw');
-        $start = $this->request->getPost('start');
-        $length = $this->request->getPost('length');
-        $search = $this->request->getPost('search')['value'];
-        $order = $this->request->getPost('order');
-        $columns = $this->request->getPost('columns');
+        // Remover filtros vazios
+        $filters = array_filter($filters, function($value) {
+            return !empty($value);
+        });
 
-        $data = $this->activityLogModel->getDataTableData($draw, $start, $length, $search, $order, $columns, $filters);
-
-        // Log de visualização de dados da DataTable
+        $result = $this->activityLogModel->getDataTableData($start, $length, $search, $orderColumn, $orderDir, $filters);
+        
+        // Log da consulta de logs
+        $detalhes = [
+            'search' => $search,
+            'filters' => $filters,
+            'order_column' => $orderColumn,
+            'order_dir' => $orderDir,
+            'records_found' => $result['recordsFiltered']
+        ];
         log_activity(
             get_current_user_id(),
             'logs',
-            'view_datatable',
-            'Visualizou dados da DataTable de logs',
-            null, null, null,
-            ['filters' => $filters, 'search' => $search]
+            'datatable_query',
+            'Consultou logs de atividade via DataTable',
+            null,
+            null,
+            null,
+            $detalhes
         );
 
-        return $this->respond($data);
+        // Formatar dados para DataTable
+        $data = [];
+        foreach ($result['data'] as $log) {
+            // Badge do módulo
+            $moduloBadges = [
+                'users' => 'bg-primary',
+                'escolas' => 'bg-success',
+                'salas' => 'bg-info',
+                'auth' => 'bg-warning',
+                'system' => 'bg-secondary',
+                'logs' => 'bg-dark'
+            ];
+            $moduloBadge = '<span class="badge ' . ($moduloBadges[$log['modulo']] ?? 'bg-light') . '">' . ucfirst($log['modulo']) . '</span>';
+
+            // Badge da ação
+            $acaoBadges = [
+                'create' => 'bg-success',
+                'update' => 'bg-primary',
+                'delete' => 'bg-danger',
+                'view' => 'bg-info',
+                'login' => 'bg-success',
+                'logout' => 'bg-warning',
+                'export' => 'bg-secondary'
+            ];
+            $acaoBadge = '<span class="badge ' . ($acaoBadges[$log['acao']] ?? 'bg-light') . '">' . ucfirst($log['acao']) . '</span>';
+
+            // Nome do utilizador
+            $userName = $log['user_name'] ?? null;
+            $oauthId = $log['oauth_id'] ?? null;
+
+            if ($userName) {
+                $displayUser = $userName;
+            } elseif ($oauthId) {
+                $displayUser = '<span class="text-info">OAuth: ' . htmlspecialchars($oauthId) . '</span>';
+            } else {
+                $displayUser = '<span class="text-muted">Sistema</span>';
+            }
+
+            // Descrição truncada
+            $descricao = strlen($log['descricao']) > 80 
+                ? substr($log['descricao'], 0, 80) . '...' 
+                : $log['descricao'];
+
+            // Ações
+            $actions = '
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-info" onclick="viewLog(' . $log['id'] . ')" title="Ver Detalhes">
+                        <i class="fas fa-eye"></i>
+                    </button>';
+            
+            // Só mostrar botão de eliminar para administradores (level >= 9)
+            $currentUserLevel = session()->get('level') ?? 0;
+            if ($currentUserLevel >= 9) {
+                $actions .= '
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteLog(' . $log['id'] . ')" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>';
+            }
+            
+            $actions .= '</div>';
+            
+            $data[] = [
+                $log['id'],
+                $displayUser,
+                $moduloBadge,
+                $acaoBadge,
+                $descricao,
+                $log['ip_address'] ?? 'N/A',
+                date('d/m/Y H:i:s', strtotime($log['criado_em'])),
+                $actions
+            ];
+        }
+
+        return $this->response->setJSON([
+            'draw' => intval($request['draw'] ?? 1),
+            'recordsTotal' => $result['recordsTotal'],
+            'recordsFiltered' => $result['recordsFiltered'],
+            'data' => $data
+        ]);
     }
 
     /**
-     * Retorna os detalhes de um log específico
+     * Obter dados de um log específico
      */
     public function getLog($id = null)
     {
         if (!$this->request->isAJAX()) {
-            return $this->failUnauthorized('Acesso não autorizado');
+           log_activity(
+                get_current_user_id(),
+                'logs',
+                'view_log_failed',
+                'Tentou aceder a detalhes de log sem ser AJAX'
+            );
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
-        if ($id === null) {
-            return $this->failValidationErrors('ID do log não fornecido.');
+        if (!$id) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'ID não fornecido']);
         }
 
-        $log = $this->activityLogModel->getLogDetails($id);
-
+        $log = $this->activityLogModel->select('logs_atividade.*, user.name as user_name, user.email as user_email')
+                                     ->join('user', 'user.id = logs_atividade.user_id', 'left')
+                                     ->where('logs_atividade.id', $id)
+                                     ->first();
+        
         if (!$log) {
-            return $this->failNotFound('Log não encontrado.');
+            log_activity(
+                get_current_user_id(),
+                'logs',
+                'view_failed',
+                "Tentou visualizar log inexistente (ID: {$id})",
+                $id
+            );
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'Log não encontrado']);
         }
 
-        // Log de visualização de log individual
+        // Log de visualização de log específico
         log_activity(
             get_current_user_id(),
             'logs',
-            'view_details',
-            'Visualizou detalhes do log (ID: ' . $id . ')',
+            'view',
+            "Visualizou detalhes do log ID: {$id}",
             $id
         );
 
-        return $this->respond(['success' => true, 'data' => $log]);
-    }
-
-    /**
-     * Retorna dados para os filtros (utilizadores, módulos, ações)
-     */
-    public function getFilterData()
-    {
-        if (!$this->request->isAJAX()) {
-            return $this->failUnauthorized('Acesso não autorizado');
+        // Decodificar dados JSON se existirem
+        if ($log['dados_anteriores']) {
+            $log['dados_anteriores'] = json_decode($log['dados_anteriores'], true);
+        }
+        if ($log['dados_novos']) {
+            $log['dados_novos'] = json_decode($log['dados_novos'], true);
+        }
+        if ($log['detalhes']) {
+            $log['detalhes'] = json_decode($log['detalhes'], true);
         }
 
-        $users = $this->activityLogModel->getUniqueUsers();
-        $modules = $this->activityLogModel->getUniqueModules();
-        $actions = $this->activityLogModel->getUniqueActions();
-
-        return $this->respond(['success' => true, 'data' => compact('users', 'modules', 'actions')]);
+        return $this->response->setJSON(['success' => true, 'data' => $log]);
     }
 
     /**
-     * Retorna estatísticas dos logs
+     * Eliminar log (apenas para administradores)
+     */
+    public function delete($id = null)
+    {
+        if (!$this->request->isAJAX()) {
+            
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+        }
+
+        // Verificar permissões (apenas administradores)
+        $currentUserLevel = session()->get('level') ?? 0;
+        if ($currentUserLevel < 9) {
+          
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Permissões insuficientes']);
+        }
+
+        if (!$id) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'ID não fornecido']);
+        }
+
+        // Verificar se log existe
+        $log = $this->activityLogModel->find($id);
+        if (!$log) {
+            log_activity(
+                get_current_user_id(),
+                'logs',
+                'delete_failed',
+                "Tentou eliminar log inexistente (ID: {$id})",
+                $id
+            );
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'Log não encontrado']);
+        }
+
+        $result = $this->activityLogModel->delete($id);
+        
+        if ($result) {
+            // Log de eliminação bem-sucedida
+            log_activity(
+                get_current_user_id(),
+                'logs',
+                'delete',
+                "Eliminou log de atividade (ID: {$id})",
+                $id,
+                $log
+            );
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Log eliminado com sucesso!'
+            ]);
+        } else {
+            // Log de erro na eliminação
+            log_activity(
+                get_current_user_id(),
+                'logs',
+                'delete_failed',
+                "Erro ao eliminar log de atividade (ID: {$id})",
+                $id
+            );
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Erro ao eliminar log'
+            ]);
+        }
+    }
+
+    /**
+     * Obter estatísticas dos logs
      */
     public function getStats()
     {
         if (!$this->request->isAJAX()) {
-            return $this->failUnauthorized('Acesso não autorizado');
+            
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
         $stats = $this->activityLogModel->getLogStats();
-
-        // Log de visualização de estatísticas
+        
+        // Log de consulta de estatísticas
         log_activity(
             get_current_user_id(),
             'logs',
             'view_stats',
-            'Visualizou estatísticas dos logs'
+            'Consultou estatísticas de logs de atividade'
         );
-
-        return $this->respond(['success' => true, 'data' => $stats]);
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $stats
+        ]);
     }
 
     /**
-     * Exporta logs para CSV
+     * Obter dados para filtros (dropdowns)
+     */
+    public function getFilterData()
+    {
+        if (!$this->request->isAJAX()) {
+           
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+        }
+
+        $data = [
+            'modules' => $this->activityLogModel->getUniqueModules(),
+            'actions' => $this->activityLogModel->getUniqueActions(),
+            'users' => $this->activityLogModel->getUsersWithLogs()
+        ];
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
+    /**
+     * Exportar logs para CSV
      */
     public function exportCSV()
     {
-        // Apenas administradores podem exportar
-        if (session()->get('level') < 9) {
-            log_permission_denied('logs', 'export');
-            return $this->failForbidden('Não tem permissão para exportar logs.');
-        }
-
+        // Obter filtros da query string
         $filters = [
             'user_id' => $this->request->getGet('user_id'),
             'modulo' => $this->request->getGet('modulo'),
             'acao' => $this->request->getGet('acao'),
             'data_inicio' => $this->request->getGet('data_inicio'),
-            'data_fim' => $this->request->getGet('data_fim'),
+            'data_fim' => $this->request->getGet('data_fim')
         ];
 
-        $logs = $this->activityLogModel->getFilteredLogs($filters);
+        // Remover filtros vazios
+        $filters = array_filter($filters, function($value) {
+            return !empty($value);
+        });
 
-        if (empty($logs)) {
-            return $this->failNotFound('Nenhum log encontrado para exportar com os filtros aplicados.');
-        }
-
-        $filename = 'activity_logs_' . date('Ymd_His') . '.csv';
-
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-
+        $logs = $this->activityLogModel->exportToCSV($filters);
+        
+        // Log de exportação
+        log_activity(
+            get_current_user_id(),
+            'logs',
+            'export_csv',
+            'Exportou logs de atividade para CSV',
+            null,
+            null,
+            null,
+            ['filters' => $filters, 'exported_count' => count($logs)]
+        );
+        
+        $filename = 'logs_atividade_' . date('Y-m-d_H-i-s') . '.csv';
+        
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=' . $filename);
+        
         $output = fopen('php://output', 'w');
-
-        // Cabeçalho CSV
+        
+        // BOM para UTF-8
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        // Cabeçalhos
         fputcsv($output, [
-            'ID', 'User ID', 'User Name', 'User Email', 'Modulo', 'Acao', 'Registro ID',
-            'Descricao', 'Dados Anteriores', 'Dados Novos', 'IP Address', 'User Agent', 'Detalhes', 'Criado Em'
-        ]);
-
+            'ID',
+            'Utilizador',
+            'Email',
+            'Módulo',
+            'Ação',
+            'Descrição',
+            'Registo ID',
+            'IP Address',
+            'User Agent',
+            'Data/Hora'
+        ], ';');
+        
         // Dados
         foreach ($logs as $log) {
             fputcsv($output, [
-                $log->id,
-                $log->user_id,
-                $log->user_name,
-                $log->user_email,
-                $log->modulo,
-                $log->acao,
-                $log->registro_id,
-                $log->descricao,
-                $log->dados_anteriores,
-                $log->dados_novos,
-                $log->ip_address,
-                $log->user_agent,
-                $log->detalhes,
-                $log->criado_em
-            ]);
+                $log['id'],
+                $log['user_name'] ?? 'Sistema',
+                $log['user_email'] ?? 'N/A',
+                $log['modulo'],
+                $log['acao'],
+                $log['descricao'],
+                $log['registro_id'] ?? 'N/A',
+                $log['ip_address'] ?? 'N/A',
+                $log['user_agent'] ?? 'N/A',
+                $log['criado_em']
+            ], ';');
         }
-
+        
         fclose($output);
-
-        // Log de exportação
-        log_export_activity('logs', 'CSV', count($logs));
-
-        exit();
+        exit;
     }
 
     /**
-     * Elimina um log específico
-     */
-    public function delete($id = null)
-    {
-        if (!$this->request->isAJAX()) {
-            return $this->failUnauthorized('Acesso não autorizado');
-        }
-
-        // Apenas administradores podem eliminar logs
-        if (session()->get('level') < 9) {
-            log_permission_denied('logs', 'delete');
-            return $this->failForbidden('Não tem permissão para eliminar logs.');
-        }
-
-        if ($id === null) {
-            return $this->failValidationErrors('ID do log não fornecido.');
-        }
-
-        $log = $this->activityLogModel->find($id);
-        if (!$log) {
-            return $this->failNotFound('Log não encontrado.');
-        }
-
-        if ($this->activityLogModel->delete($id)) {
-            // Log da própria eliminação do log
-            log_activity(
-                get_current_user_id(),
-                'logs',
-                'delete',
-                'Eliminou log de atividade (ID: ' . $id . ')',
-                $id, json_decode($log->detalhes, true)
-            );
-            return $this->respondDeleted(['success' => true, 'message' => 'Log eliminado com sucesso.']);
-        } else {
-            return $this->failServerError('Erro ao eliminar log.');
-        }
-    }
-
-    /**
-     * Limpa logs antigos
+     * Limpar logs antigos (apenas para administradores)
      */
     public function cleanOldLogs()
     {
         if (!$this->request->isAJAX()) {
-            return $this->failUnauthorized('Acesso não autorizado');
+            log_activity(
+                get_current_user_id(),
+                'logs',
+                'clean_old_logs_failed',
+                'Tentou limpar logs antigos sem ser AJAX'
+            );
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
-        // Apenas administradores podem limpar logs
-        if (session()->get('level') < 9) {
-            log_permission_denied('logs', 'clean');
-            return $this->failForbidden('Não tem permissão para limpar logs antigos.');
+        // Verificar permissões (apenas administradores)
+        $currentUserLevel = session()->get('level') ?? 0;
+        if ($currentUserLevel < 9) {
+            log_activity(
+                get_current_user_id(),
+                'logs',
+                'clean_old_logs_failed',
+                'Tentou limpar logs antigos sem permissões suficientes'
+            );
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Permissões insuficientes']);
         }
 
-        $days = $this->request->getPost('days');
+        $data = $this->request->getPost();
+        $days = $data['days'] ?? 90;
 
-        if (!is_numeric($days) || $days <= 0) {
-            return $this->failValidationErrors('Número de dias inválido.');
+        // Validar número de dias
+        if (!is_numeric($days) || $days < 1) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Número de dias inválido'
+            ]);
         }
 
-        $count = $this->activityLogModel->cleanOldLogs($days);
+        // Contar logs que serão eliminados
+        $cutoffDate = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+        $logsToDelete = $this->activityLogModel->where('criado_em <', $cutoffDate)->countAllResults();
 
-        // Log da limpeza de logs
+        if ($logsToDelete == 0) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Nenhum log antigo encontrado para eliminar',
+                'deleted_count' => 0
+            ]);
+        }
+
+        $result = $this->activityLogModel->cleanOldLogs($days);
+        
+        if ($result) {
+            // Log da limpeza
+            log_activity(
+                get_current_user_id(),
+                'logs',
+                'clean_old',
+                "Limpou logs antigos (>{$days} dias) - {$logsToDelete} registos eliminados",
+                null,
+                null,
+                null,
+                ['days' => $days, 'deleted_count' => $logsToDelete]
+            );
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => "Logs antigos eliminados com sucesso! ({$logsToDelete} registos)",
+                'deleted_count' => $logsToDelete
+            ]);
+        } else {
+            // Log de erro na limpeza
+            log_activity(
+                get_current_user_id(),
+                'logs',
+                'clean_old_failed',
+                "Erro ao limpar logs antigos (>{$days} dias)",
+                null,
+                null,
+                null,
+                ['days' => $days]
+            );
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Erro ao eliminar logs antigos'
+            ]);
+        }
+    }
+
+    /**
+     * Obter logs recentes para dashboard
+     */
+    public function getRecentLogs()
+    {
+        if (!$this->request->isAJAX()) {
+            log_activity(
+                get_current_user_id(),
+                'logs',
+                'get_recent_logs_failed',
+                'Tentou aceder a logs recentes sem ser AJAX'
+            );
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+        }
+
+        $limit = $this->request->getGet('limit') ?? 10;
+        $logs = $this->activityLogModel->getRecentLogs($limit);
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $logs
+        ]);
+    }
+
+    /**
+     * Pesquisar logs
+     */
+    public function search()
+    {
+        if (!$this->request->isAJAX()) {
+            
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+        }
+
+        $search = $this->request->getGet('q');
+        
+        if (empty($search)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Termo de pesquisa não fornecido'
+            ]);
+        }
+
+        $logs = $this->activityLogModel->searchLogs($search, 50);
+        
+        // Log de pesquisa
         log_activity(
             get_current_user_id(),
             'logs',
-            'clean',
-            'Limpeza de logs antigos (mais de ' . $days . ' dias). ' . $count . ' logs eliminados.',
-            null, null, null,
-            ['days' => $days, 'deleted_count' => $count]
+            'search',
+            "Pesquisou logs com termo: {$search}",
+            null,
+            null,
+            null,
+            ['search_term' => $search, 'results_count' => count($logs)]
+        );
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $logs
+        ]);
+    }
+
+    /**
+     * Obter logs de um registo específico
+     */
+    public function getLogsByRecord()
+    {
+        if (!$this->request->isAJAX()) {
+            
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+        }
+
+        $modulo = $this->request->getGet('modulo');
+        $registroId = $this->request->getGet('registro_id');
+
+        if (empty($modulo) || empty($registroId)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Módulo e ID do registo são obrigatórios'
+            ]);
+        }
+
+        $logs = $this->activityLogModel->getLogsByRecord($modulo, $registroId);
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $logs
+        ]);
+    }
+
+    /**
+     * Dashboard de logs (página de estatísticas)
+     */
+    public function dashboard()
+    {
+        // Log de acesso ao dashboard
+        log_activity(
+            get_current_user_id(),
+            'logs',
+            'view_dashboard',
+            'Acedeu ao dashboard de logs de atividade'
         );
 
-        return $this->respond(['success' => true, 'message' => $count . ' logs antigos eliminados com sucesso.']);
+        $data = [
+            'title' => 'Dashboard - Logs de Atividade',
+            'breadcrumb' => [
+                ['name' => 'Dashboard', 'url' => base_url()],
+                ['name' => 'Logs de Atividade', 'url' => base_url('logs')],
+                ['name' => 'Dashboard', 'url' => '']
+            ]
+        ];
+
+        return view('logs/activity_log_dashboard', $data);
     }
 }

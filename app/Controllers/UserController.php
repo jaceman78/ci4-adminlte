@@ -1,7 +1,9 @@
-<?php
+<?php 
 
 namespace App\Controllers;
 
+helper('log');
+ helper("LogHelper"); // Carrega o helper de logs 
 use App\Models\UserModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
@@ -18,22 +20,27 @@ class UserController extends BaseController
     }
 
     /**
-     * Página principal de utilizadores
+     * Página principal de utilizadores 
      */
     public function index()
     {
         // Log de acesso à página
-        log_user_activity('view_page', 'Acedeu à página de gestão de utilizadores');
-
-        $data = [
-            'title' => 'Gestão de Utilizadores',
-            'breadcrumb' => [
-                ['name' => 'Dashboard', 'url' => base_url()],
-                ['name' => 'Utilizadores', 'url' => '']
-            ]
-        ];
-
-        return view('users/user_index', $data);
+        $userId = session()->get('user_id');
+        if ($userId && $this->userModel->find($userId)) {
+        log_activity(
+            (int)$userId , // quem acedeu
+            'users',
+            'view',
+            'Acedeu à página de gestão de utilizadores'
+        );
+    }          // DEBUG: Mostra dados diretamente para confirmar se estão na sessão
+    // echo '<pre>';
+    // print_r(session()->get('LoggedUserData'));
+    // print_r($userId);
+    
+    // echo '</pre>';
+    // exit;
+        return view('users/user_index');
     }
 
     /**
@@ -43,8 +50,12 @@ class UserController extends BaseController
     {
         if (!$this->request->isAJAX()) {
             // Log de tentativa de acesso não autorizado
-            log_permission_denied('users/getDataTable', 'non_ajax_request');
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+            log_activity(
+                session()->get('user_id'), // quem tentou aceder
+                'users',
+                'view_failed',
+                'Tentou aceder à lista de utilizadores via DataTable sem ser AJAX'
+            );
         }
 
         $request = $this->request->getPost();
@@ -66,21 +77,22 @@ class UserController extends BaseController
 
         $result = $this->userModel->getDataTableData($start, $length, $search, $orderColumn, $orderDir);
         
-        // Log da consulta de dados
+      
         $detalhes = [
             'search' => $search,
             'order_column' => $orderColumn,
             'order_dir' => $orderDir,
             'records_found' => $result['recordsFiltered']
         ];
-        log_user_activity('datatable_query', 'Consultou lista de utilizadores via DataTable', null, null, null);
-
+        
         // Formatar dados para DataTable
         $data = [];
         foreach ($result['data'] as $user) {
             $statusBadge = $user['status'] == 1 
                 ? '<span class="badge bg-success">Ativo</span>' 
-                : '<span class="badge bg-danger">Inativo</span>';
+                : ($user['status'] == 2 
+                    ? '<span class="badge bg-warning text-dark">Pendente</span>' 
+                    : '<span class="badge bg-danger">Inativo</span>');
             
             $profileImg = '';
             if ($user['profile_img'] && str_starts_with($user['profile_img'], 'http' )) {
@@ -131,7 +143,7 @@ class UserController extends BaseController
     public function getUser($id = null)
     {
         if (!$this->request->isAJAX()) {
-            log_permission_denied('users/getUser', 'non_ajax_request');
+            
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
@@ -143,15 +155,13 @@ class UserController extends BaseController
         
         if (!$user) {
             // Log de tentativa de acesso a utilizador inexistente
-            log_user_activity('view_failed', "Tentou visualizar utilizador inexistente (ID: {$id})", $id);
+           
             return $this->response->setStatusCode(404)->setJSON(['error' => 'Utilizador não encontrado']);
         }
 
         // Log de visualização de utilizador
-        log_user_activity('view', "Visualizou dados do utilizador {$user['name']} ({$user['email']})", $id);
-
-        // Sanitizar dados sensíveis antes de enviar
-        $userSanitized = sanitize_log_data($user);
+        
+     
 
         return $this->response->setJSON(['success' => true, 'data' => $user]);
     }
@@ -162,22 +172,20 @@ class UserController extends BaseController
     public function create()
     {
         if (!$this->request->isAJAX()) {
-            log_permission_denied('users/create', 'non_ajax_request');
+            
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
         $data = $this->request->getPost();
         
-        // Sanitizar dados para log
-        $dataSanitized = sanitize_log_data($data);
+   
         
         // Validar dados
         $validation = $this->userModel->validateUserData($data);
         
         if (!$validation['success']) {
             // Log de tentativa de criação com dados inválidos
-            log_user_activity('create_failed', 'Tentou criar utilizador com dados inválidos', null, null, $dataSanitized);
-            
+     
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Dados inválidos',
@@ -199,11 +207,19 @@ class UserController extends BaseController
 
         $userId = $this->userModel->insert($userData);
             
+
         if ($userId) {
             // Log de criação bem-sucedida
-            $userDataSanitized = sanitize_log_data($userData);
-            log_user_activity('create', "Criou novo utilizador: {$userData['name']} ({$userData['email']})", $userId, null, $userDataSanitized);
-            
+            log_activity(
+                session()->get('user_id'), // quem criou
+                'users',
+                'create',
+                'Criou novo utilizador: ' . $userData['name'] . ' (' . $userData['email'] . ')',
+                $userId,
+                null,
+                
+            );
+       
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Utilizador criado com sucesso!',
@@ -211,8 +227,15 @@ class UserController extends BaseController
             ]);
         } else {
             // Log de erro na criação
-            log_user_activity('create_failed', 'Erro ao criar utilizador na base de dados', null, null, $dataSanitized);
-            
+            log_activity(
+                session()->get('user_id'), // quem tentou criar
+                'users',
+                'create_failed',
+                'Erro ao criar utilizador na base de dados',
+                null,
+                null,
+                $userData
+            );
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Erro ao criar utilizador',
@@ -227,7 +250,7 @@ class UserController extends BaseController
     public function update($id = null)
     {
         if (!$this->request->isAJAX()) {
-            log_permission_denied('users/update', 'non_ajax_request');
+         
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
@@ -238,24 +261,19 @@ class UserController extends BaseController
         // Verificar se utilizador existe e obter dados anteriores
         $existingUser = $this->userModel->find($id);
         if (!$existingUser) {
-            log_user_activity('update_failed', "Tentou atualizar utilizador inexistente (ID: {$id})", $id);
+           
             return $this->response->setStatusCode(404)->setJSON(['error' => 'Utilizador não encontrado']);
         }
 
         $data = $this->request->getPost();
-        $data["id"] = $id; // Esta linha é crucial para a validação
-        
-        // Sanitizar dados para log
-        $dataSanitized = sanitize_log_data($data);
-        $existingUserSanitized = sanitize_log_data($existingUser);
+       
         
         // Validar dados
         $validation = $this->userModel->validateUserData($data, $id);
         
         if (!$validation['success']) {
             // Log de tentativa de atualização com dados inválidos
-            log_user_activity('update_failed', "Tentou atualizar utilizador {$existingUser['name']} com dados inválidos", $id, $existingUserSanitized, $dataSanitized);
-            
+           
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Dados inválidos',
@@ -280,11 +298,20 @@ class UserController extends BaseController
         }
 
         $result = $this->userModel->update($id, $userData);
+        session()->set("user_id", $existingUser["id"]);
        
         if ($result) {
             // Log de atualização bem-sucedida
-            $userDataSanitized = sanitize_log_data($userData);
-            log_user_activity('update', "Atualizou utilizador: {$userData['name']} ({$userData['email']})", $id, $existingUserSanitized, $userDataSanitized);
+          
+          log_activity(
+                session()->get('user_id'), // quem fez a alteração
+                'users',
+                'update',
+                'Atualizou utilizador: ' . $existingUser['name'] . ' (' . $existingUser['email'] . ')',
+                $id,
+           
+            );
+         
             
             return $this->response->setJSON([
                 'success' => true,
@@ -292,8 +319,7 @@ class UserController extends BaseController
             ]);
         } else {
             // Log de erro na atualização
-            log_user_activity('update_failed', "Erro ao atualizar utilizador {$existingUser['name']} na base de dados", $id, $existingUserSanitized, $dataSanitized);
-            
+          
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Erro ao atualizar utilizador',
@@ -308,7 +334,7 @@ class UserController extends BaseController
     public function delete($id = null)
     {
         if (!$this->request->isAJAX()) {
-            log_permission_denied('users/delete', 'non_ajax_request');
+            
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
@@ -319,7 +345,7 @@ class UserController extends BaseController
         // Verificar se utilizador existe e obter dados antes da eliminação
         $user = $this->userModel->find($id);
         if (!$user) {
-            log_user_activity('delete_failed', "Tentou eliminar utilizador inexistente (ID: {$id})", $id);
+           
             return $this->response->setStatusCode(404)->setJSON(['error' => 'Utilizador não encontrado']);
         }
 
@@ -328,16 +354,21 @@ class UserController extends BaseController
         
         if ($result) {
             // Log de eliminação bem-sucedida
-            $userSanitized = sanitize_log_data($user);
-            log_user_activity('delete', "Eliminou utilizador: {$user['name']} ({$user['email']})", $id, $userSanitized);
-            
+          log_activity(
+                session()->get('user_id'), // quem eliminou
+                'users',
+                'delete',
+                'Eliminou utilizador: ' . $user['name'] . ' (' . $user['email'] . ')',
+                $id,
+                null,
+                null
+            );
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Utilizador eliminado com sucesso!'
             ]);
         } else {
             // Log de erro na eliminação
-            log_user_activity('delete_failed', "Erro ao eliminar utilizador {$user['name']} da base de dados", $id);
             
             return $this->response->setJSON([
                 'success' => false,
@@ -352,7 +383,7 @@ class UserController extends BaseController
     public function restore($id = null)
     {
         if (!$this->request->isAJAX()) {
-            log_permission_denied('users/restore', 'non_ajax_request');
+           
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
@@ -369,7 +400,7 @@ class UserController extends BaseController
             // Log de restauração bem-sucedida
             $userName = $user ? $user['name'] : "ID: {$id}";
             $userEmail = $user ? $user['email'] : 'N/A';
-            log_user_activity('restore', "Restaurou utilizador: {$userName} ({$userEmail})", $id);
+        
             
             return $this->response->setJSON([
                 'success' => true,
@@ -377,7 +408,7 @@ class UserController extends BaseController
             ]);
         } else {
             // Log de erro na restauração
-            log_user_activity('restore_failed', "Erro ao restaurar utilizador (ID: {$id})", $id);
+           
             
             return $this->response->setJSON([
                 'success' => false,
@@ -392,7 +423,12 @@ class UserController extends BaseController
     public function updateStatus()
     {
         if (!$this->request->isAJAX()) {
-            log_permission_denied('users/updateStatus', 'non_ajax_request');
+            log_activity(
+                session()->get('user_id'), // quem tentou aceder
+                'users',
+                'update_status',
+                'Tentou alterar status de utilizador via AJAX sem ser AJAX'
+            );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
@@ -407,7 +443,7 @@ class UserController extends BaseController
         // Obter dados do utilizador antes da alteração
         $user = $this->userModel->find($id);
         if (!$user) {
-            log_user_activity('update_status_failed', "Tentou alterar status de utilizador inexistente (ID: {$id})", $id);
+            
             return $this->response->setStatusCode(404)->setJSON(['error' => 'Utilizador não encontrado']);
         }
 
@@ -415,19 +451,37 @@ class UserController extends BaseController
         
         if ($result) {
             // Log de alteração de status bem-sucedida
-            $statusText = $status == 1 ? 'ativado' : 'desativado';
+            
+                            // Status
+                if($status == null || $status == 2) // Pendente se nulo
+                    {
+                       $statusText='Pendente';
+                    }
+                    else if($status === 1) // Ativo
+                    {
+                       $statusText = 'Ativo';
+                    }
+                    else if($status === 0) // Inativo
+                    {
+                       $statusText = 'Inativo';
+                    }
             $dadosAnteriores = ['status' => $user['status']];
             $dadosNovos = ['status' => $status];
-            
-            log_user_activity('update_status', "Alterou status do utilizador {$user['name']} para {$statusText}", $id, $dadosAnteriores, $dadosNovos);
-            
+           log_activity(
+                session()->get('user_id'), // quem fez a alteração
+                'users',
+                'update_status',
+                "Alterou status do utilizador {$user['name']} ({$user['email']}) para {$statusText}",
+                $id,
+                $dadosAnteriores,
+                $dadosNovos
+            );
             return $this->response->setJSON([
                 'success' => true,
                 'message' => "Utilizador {$statusText} com sucesso!"
             ]);
         } else {
             // Log de erro na alteração de status
-            log_user_activity('update_status_failed', "Erro ao alterar status do utilizador {$user['name']}", $id);
             
             return $this->response->setJSON([
                 'success' => false,
@@ -442,14 +496,24 @@ class UserController extends BaseController
     public function uploadProfileImage()
     {
         if (!$this->request->isAJAX()) {
-            log_permission_denied('users/uploadProfileImage', 'non_ajax_request');
+            log_activity(
+                session()->get('user_id'), // quem tentou aceder
+                'users',
+                'upload_failed',
+                'Tentou fazer upload de imagem de perfil sem ser AJAX'
+            );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
         $file = $this->request->getFile('profile_image');
         
         if (!$file || !$file->isValid()) {
-            log_user_activity('upload_failed', 'Tentou fazer upload de imagem de perfil inválida');
+            log_activity(
+                session()->get('user_id'), // quem tentou fazer upload
+                'users',
+                'upload_failed',
+                'Nenhum ficheiro válido foi enviado para upload de imagem de perfil'
+            );
             
             return $this->response->setJSON([
                 'success' => false,
@@ -476,7 +540,15 @@ class UserController extends BaseController
                     'mime_type' => $file->getMimeType()
                 ];
                 
-                log_file_upload($file->getClientName(), $uploadPath . $newName, 'users');
+                log_activity(
+                    session()->get('user_id'), // quem fez o upload
+                    'users',
+                    'upload',
+                    'Fez upload de imagem de perfil: ' . $file->getClientName(),
+                    null,
+                    null,
+                    $detalhes
+                );
                 
                 return $this->response->setJSON([
                     'success' => true,
@@ -488,8 +560,12 @@ class UserController extends BaseController
         }
 
         // Log de erro no upload
-        log_user_activity('upload_failed', 'Erro ao fazer upload de imagem de perfil - tipo de ficheiro não permitido');
-
+        log_activity(
+            session()->get('user_id'), // quem tentou fazer upload
+            'users',
+            'upload_failed',
+            'Erro ao enviar imagem de perfil. Tipo de ficheiro inválido ou erro no upload.'
+        );
         return $this->response->setJSON([
             'success' => false,
             'message' => 'Erro ao enviar imagem. Apenas ficheiros JPEG, PNG e GIF são permitidos.'
@@ -502,14 +578,24 @@ class UserController extends BaseController
     public function getStats()
     {
         if (!$this->request->isAJAX()) {
-            log_permission_denied('users/getStats', 'non_ajax_request');
+            log_activity(
+                session()->get('user_id'), // quem tentou aceder
+                'users',
+                'view_stats_failed',
+                'Tentou consultar estatísticas de utilizadores sem ser AJAX'
+            );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
         $stats = $this->userModel->getUserStats();
         
         // Log de consulta de estatísticas
-        log_user_activity('view_stats', 'Consultou estatísticas de utilizadores');
+        log_activity(
+            session()->get('user_id'), // quem consultou
+            'users',
+            'view_stats',
+            'Consultou estatísticas de utilizadores'
+        );
         
         return $this->response->setJSON([
             'success' => true,
@@ -523,7 +609,12 @@ class UserController extends BaseController
     public function search()
     {
         if (!$this->request->isAJAX()) {
-            log_permission_denied('users/search', 'non_ajax_request');
+            log_activity(
+                session()->get('user_id'), // quem tentou aceder
+                'users',
+                'search_failed',
+                'Tentou pesquisar utilizadores sem ser AJAX'
+            );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
 
@@ -543,7 +634,15 @@ class UserController extends BaseController
             'search_term' => $search,
             'results_count' => count($users)
         ];
-        log_user_activity('search', "Pesquisou utilizadores com termo: {$search}", null, null, null);
+        log_activity(
+            session()->get('user_id'), // quem pesquisou
+            'users',
+            'search',
+            'Pesquisou utilizadores com o termo: ' . $search,
+            null,
+            null,
+            $detalhes
+        );
         
         return $this->response->setJSON([
             'success' => true,
@@ -559,7 +658,15 @@ class UserController extends BaseController
         $users = $this->userModel->getAllUsers();
         
         // Log de exportação
-        log_export_activity('users', 'CSV', count($users));
+        log_activity(
+            session()->get('user_id'), // quem exportou
+            'users',
+            'export',
+            'Exportou lista de utilizadores para CSV',
+            null,
+            null,
+            ['exported_count' => count($users)]
+        );
         
         $filename = 'utilizadores_' . date('Y-m-d_H-i-s') . '.csv';
         
@@ -573,6 +680,7 @@ class UserController extends BaseController
         
         // Dados
         foreach ($users as $user) {
+            $statusText = $user['status'] == 1 ? 'Ativo' : ($user['status'] == 2 ? 'Pendente' : 'Inativo');
             fputcsv($output, [
                 $user['id'],
                 $user['name'],
@@ -580,7 +688,7 @@ class UserController extends BaseController
                 $user['NIF'],
                 $user['grupo_id'],
                 $user['level'],
-                $user['status'] == 1 ? 'Ativo' : 'Inativo',
+                $statusText,
                 $user['created_at']
             ]);
         }
@@ -588,5 +696,21 @@ class UserController extends BaseController
         fclose($output);
         exit;
     }
-}helper("LogHelper");
+
+
+        public function getTechnicians()
+    {
+        if (!$this->request->isAJAX()) {
+            // log_permission_denied("users/getTechnicians", "non_ajax_request");
+            return $this->failUnauthorized("Acesso não autorizado");
+        }
+
+        $technicians = $this->userModel->where("level >=", 5)->findAll();
+        
+        // log_user_activity("view_technicians", "Visualizou lista de técnicos", null, null, ["count" => count($technicians)]);
+
+        return $this->respond($technicians);
+    }
+
+}
 

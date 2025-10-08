@@ -4,16 +4,24 @@ namespace App\Controllers;
 
 use App\Models\EscolasModel;
 use CodeIgniter\HTTP\ResponseInterface;
+use CodeIgniter\API\ResponseTrait;
+
+// Certifique-se de que o helper é carregado (via Autoload ou manualmente)
+// helper("LogHelper"); // Se não estiver no Autoload.php
 
 class EscolaController extends BaseController
 {
+    use ResponseTrait;
+    public $modulo = 'escola';
     protected $escolasModel;
     protected $validation;
-
+    
     public function __construct()
     {
         $this->escolasModel = new EscolasModel();
         $this->validation = \Config\Services::validation();
+        
+        helper("LogHelper"); // Carregar o helper
     }
 
     /**
@@ -21,6 +29,9 @@ class EscolaController extends BaseController
      */
     public function index()
     {
+        // Log de acesso à página de escolas
+
+
         $data = [
             'title' => 'Gestão de Escolas',
             'breadcrumb' => [
@@ -28,6 +39,7 @@ class EscolaController extends BaseController
                 ['name' => 'Escolas', 'url' => '']
             ]
         ];
+
 
         return view('escolas/escolas_index', $data);
     }
@@ -38,7 +50,8 @@ class EscolaController extends BaseController
     public function getDataTable()
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+            
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         $request = $this->request->getPost();
@@ -87,6 +100,9 @@ class EscolaController extends BaseController
             ];
         }
 
+        // Log de visualização de dados da DataTable
+ 
+
         return $this->response->setJSON([
             'draw' => intval($request['draw'] ?? 1),
             'recordsTotal' => $result['recordsTotal'],
@@ -101,20 +117,25 @@ class EscolaController extends BaseController
     public function getEscola($id = null)
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+            
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         if (!$id) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'ID não fornecido']);
+               return $this->failValidationErrors('ID não fornecido');
         }
 
         $escola = $this->escolasModel->find($id);
         
         if (!$escola) {
-            return $this->response->setStatusCode(404)->setJSON(['error' => 'Escola não encontrada']);
+           
+            return $this->failNotFound('Escola não encontrada');
         }
 
-        return $this->response->setJSON(['success' => true, 'data' => $escola]);
+        // Log de visualização de escola
+      
+
+        return $this->respond(['success' => true, 'data' => $escola]);
     }
 
     /**
@@ -123,7 +144,8 @@ class EscolaController extends BaseController
     public function create()
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+           
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         $data = $this->request->getPost();
@@ -132,10 +154,11 @@ class EscolaController extends BaseController
         $validation = $this->escolasModel->validateEscolaData($data);
         
         if (!$validation['success']) {
-            return $this->response->setJSON([
+            
+                return $this->respond([
                 'success' => false,
-                'message' => 'Dados inválidos',
-                'errors' => $validation['errors']
+                'message' => 'Erro ao criar escola', 
+                'errors' => $validation['errors']         
             ]);
         }
 
@@ -148,17 +171,19 @@ class EscolaController extends BaseController
         $escolaId = $this->escolasModel->insert($escolaData);
         
         if ($escolaId) {
-            return $this->response->setJSON([
+            log_activity(session()->get('user_id'),$this->modulo,'create', 'Escola criada com sucesso', $escolaId, null, $escolaData);
+            return $this->respondCreated([
                 'success' => true,
                 'message' => 'Escola criada com sucesso!',
                 'data' => ['id' => $escolaId]
             ]);
-        } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Erro ao criar escola',
-                'errors' => $this->escolasModel->errors()
-            ]);
+        } else {          
+        
+            
+      
+            return $this->failServerError('Erro ao criar escola', implode('; ', $this->escolasModel->errors()));
+          //  return $this->failServerError('Erro ao criar escola', implode('; ', $this->escolasModel->errors()));
+
         }
     }
 
@@ -168,17 +193,20 @@ class EscolaController extends BaseController
     public function update($id = null)
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+           
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         if (!$id) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'ID não fornecido']);
+           
+            return $this->failValidationErrors('ID não fornecido');
         }
 
         // Verificar se escola existe
         $existingEscola = $this->escolasModel->find($id);
         if (!$existingEscola) {
-            return $this->response->setStatusCode(404)->setJSON(['error' => 'Escola não encontrada']);
+            log_activity(session()->get('user_id'),$this->modulo,'update_not_found', 'Tentativa de atualizar escola não encontrada', $id);
+            return $this->failNotFound('Escola não encontrada');
         }
 
         $data = $this->request->getPost();
@@ -188,11 +216,8 @@ class EscolaController extends BaseController
         $validation = $this->escolasModel->validateEscolaData($data, $id);
         
         if (!$validation['success']) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Dados inválidos',
-                'errors' => $validation['errors']
-            ]);
+            log_activity(session()->get('user_id'),$this->modulo,'update_validation_fail', 'Erro de validação ao atualizar escola', $id, $existingEscola, $data, ['errors' => $validation['errors']]);
+            return $this->failValidationErrors($validation['errors']);
         }
 
         // Preparar dados para atualização
@@ -204,16 +229,14 @@ class EscolaController extends BaseController
         $result = $this->escolasModel->update($id, $escolaData);
         
         if ($result) {
-            return $this->response->setJSON([
+            log_activity(session()->get('user_id'),$this->modulo,'update', 'Escola atualizada com sucesso', $id, $existingEscola, $escolaData);
+            return $this->respondUpdated([
                 'success' => true,
                 'message' => 'Escola atualizada com sucesso!'
             ]);
         } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Erro ao atualizar escola',
-                'errors' => $this->escolasModel->errors()
-            ]);
+            log_activity(session()->get('user_id'), $this->modulo, 'update_fail', 'Erro ao atualizar escola', $id, $existingEscola, $escolaData, ['db_errors' => $this->escolasModel->errors()]);
+            return $this->failServerError('Erro ao atualizar escola', implode('; ', $this->escolasModel->errors()));
         }
     }
 
@@ -223,31 +246,33 @@ class EscolaController extends BaseController
     public function delete($id = null)
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+           
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         if (!$id) {
-            return $this->response->setStatusCode(400)->setJSON(['error' => 'ID não fornecido']);
+            log_activity(session()->get('user_id'),$this->modulo,'error', 'Tentativa de eliminar escola sem ID', ['ip_address' => $this->request->getIPAddress()]);
+            return $this->failValidationErrors('ID não fornecido');
         }
 
         // Verificar se escola existe
         $escola = $this->escolasModel->find($id);
         if (!$escola) {
-            return $this->response->setStatusCode(404)->setJSON(['error' => 'Escola não encontrada']);
+            log_activity(session()->get('user_id'),$this->modulo,'delete_not_found', 'Tentativa de eliminar escola não encontrada', $id);
+            return $this->failNotFound('Escola não encontrada');
         }
 
         $result = $this->escolasModel->delete($id);
         
         if ($result) {
-            return $this->response->setJSON([
+            log_activity(session()->get('user_id'),$this->modulo,'delete', 'Escola eliminada com sucesso', $id, $escola);
+            return $this->respondDeleted([
                 'success' => true,
                 'message' => 'Escola eliminada com sucesso!'
             ]);
         } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Erro ao eliminar escola'
-            ]);
+            log_activity(session()->get('user_id'),$this->modulo,'delete_fail', 'Erro ao eliminar escola', $id, $escola, null, ['db_errors' => $this->escolasModel->errors()]);
+            return $this->failServerError('Erro ao eliminar escola');
         }
     }
 
@@ -257,12 +282,15 @@ class EscolaController extends BaseController
     public function getStats()
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+            
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         $stats = $this->escolasModel->getEscolasStats();
         
-        return $this->response->setJSON([
+        log_activity(session()->get('user_id'),$this->modulo,'view_stats', 'Visualizou estatísticas das escolas', null, null, $stats);
+
+        return $this->respond([
             'success' => true,
             'data' => $stats
         ]);
@@ -274,21 +302,22 @@ class EscolaController extends BaseController
     public function search()
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+            log_activity(session()->get('user_id'),$this->modulo,'escolas', 'search');
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         $search = $this->request->getGet('q');
         
         if (empty($search)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Termo de pesquisa não fornecido'
-            ]);
+            log_activity(session()->get('user_id'),$this->modulo,'search_empty', 'Tentativa de pesquisa de escolas com termo vazio');
+            return $this->failValidationErrors('Termo de pesquisa não fornecido');
         }
 
         $escolas = $this->escolasModel->searchEscolas($search);
         
-        return $this->response->setJSON([
+        log_activity(session()->get('user_id'),$this->modulo,'search', 'Pesquisou escolas', null, ['term' => $search], ['results_count' => count($escolas)]);
+
+        return $this->respond([
             'success' => true,
             'data' => $escolas
         ]);
@@ -299,6 +328,12 @@ class EscolaController extends BaseController
      */
     public function exportCSV()
     {
+        // Apenas administradores podem exportar
+        if (session()->get('level') < 9) {
+            log_activity(session()->get('user_id'),$this->modulo, 'export', 'Tentativa de exportação de escolas sem permissão');
+            return $this->failForbidden('Não tem permissão para exportar escolas.');
+        }
+
         $escolas = $this->escolasModel->getAllEscolas();
         
         $filename = 'escolas_' . date('Y-m-d_H-i-s') . '.csv';
@@ -322,6 +357,10 @@ class EscolaController extends BaseController
         }
         
         fclose($output);
+
+        log_activity(session()->get('user_id'),$this->modulo,'export_csv', 'Exportou escolas para CSV', null, null, ['exported_count' => count($escolas)]);
+      
+
         exit;
     }
 
@@ -331,12 +370,15 @@ class EscolaController extends BaseController
     public function getDropdownList()
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+            
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         $escolas = $this->escolasModel->getEscolasForDropdown();
         
-        return $this->response->setJSON([
+        log_activity(session()->get('user_id'),$this->modulo,'view_dropdown', 'Visualizou lista de escolas para dropdown', null, null, ['count' => count($escolas)]);
+
+        return $this->respond([
             'success' => true,
             'data' => $escolas
         ]);
@@ -348,14 +390,17 @@ class EscolaController extends BaseController
     public function advancedSearch()
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+            
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         $filters = $this->request->getPost();
         
         $escolas = $this->escolasModel->advancedSearch($filters);
         
-        return $this->response->setJSON([
+      
+
+        return $this->respond([
             'success' => true,
             'data' => $escolas
         ]);
@@ -367,31 +412,45 @@ class EscolaController extends BaseController
     public function deleteMultiple()
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+            log_activity(session()->get('user_id'),$this->modulo,'delete_multiple_unauthorized', 'Tentativa de eliminar múltiplas escolas sem ser AJAX');
+           
+            return $this->failUnauthorized('Acesso não autorizado');
+        }
+
+        // Apenas administradores podem eliminar múltiplas escolas
+        if (session()->get('level') < 9) {
+            log_activity(session()->get('user_id'),$this->modulo,'delete_multiple_forbidden', 'Tentativa de eliminar múltiplas escolas sem permissões suficientes');
+            
+            return $this->failForbidden('Não tem permissão para eliminar múltiplas escolas.');
         }
 
         $ids = $this->request->getPost('ids');
         
         if (empty($ids) || !is_array($ids)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Nenhuma escola selecionada'
-            ]);
+            log_activity(session()->get('user_id'),$this->modulo,'delete_multiple_no_ids', 'Tentativa de eliminar múltiplas escolas sem IDs selecionados');
+            return $this->failValidationErrors('Nenhuma escola selecionada');
+        }
+
+        $deletedEscolas = [];
+        foreach ($ids as $id) {
+            $escola = $this->escolasModel->find($id);
+            if ($escola) {
+                $deletedEscolas[] = $escola;
+            }
         }
 
         $result = $this->escolasModel->deleteMultipleEscolas($ids);
         
         if ($result) {
             $count = count($ids);
-            return $this->response->setJSON([
+            log_activity(session()->get('user_id'),$this->modulo,'delete_multiple', 'Eliminou múltiplas escolas', null, ['ids' => $ids, 'deleted_data' => $deletedEscolas]);
+            return $this->respondDeleted([
                 'success' => true,
                 'message' => "{$count} escola(s) eliminada(s) com sucesso!"
             ]);
         } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Erro ao eliminar escolas'
-            ]);
+            log_activity(session()->get('user_id'),$this->modulo,'delete_multiple_fail', 'Erro ao eliminar múltiplas escolas', null, ['ids' => $ids], null, ['db_errors' => $this->escolasModel->errors()]);
+            return $this->failServerError('Erro ao eliminar escolas');
         }
     }
 
@@ -401,13 +460,16 @@ class EscolaController extends BaseController
     public function getRecent()
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+            log_activity(session()->get('user_id'),$this->modulo,'get_recent_unauthorized', 'Tentativa de aceder a escolas recentes sem ser AJAX');
+          
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         $days = $this->request->getGet('days') ?? 30;
         $escolas = $this->escolasModel->getRecentEscolas($days);
-        
-        return $this->response->setJSON([
+        log_activity(session()->get('user_id'),$this->modulo,'view_recent', 'Visualizou escolas recentes', null, ['days' => $days], ['results_count' => count($escolas)]);
+
+        return $this->respond([
             'success' => true,
             'data' => $escolas
         ]);
@@ -419,24 +481,23 @@ class EscolaController extends BaseController
     public function checkNome()
     {
         if (!$this->request->isAJAX()) {
-            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
+            return $this->failUnauthorized('Acesso não autorizado');
         }
 
         $nome = $this->request->getPost('nome');
         $excludeId = $this->request->getPost('exclude_id');
         
         if (empty($nome)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Nome não fornecido'
-            ]);
+             return $this->failValidationErrors('Nome não fornecido');
         }
 
         $exists = $this->escolasModel->nomeExists($nome, $excludeId);
-        
-        return $this->response->setJSON([
+       
+        return $this->respond([
             'success' => true,
             'exists' => $exists
         ]);
     }
 }
+
+

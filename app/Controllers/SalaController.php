@@ -8,6 +8,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class SalaController extends BaseController
 {
+    public $modulo = 'salas';
     protected $salasModel;
     protected $escolasModel;
     protected $validation;
@@ -169,12 +170,14 @@ class SalaController extends BaseController
         $salaId = $this->salasModel->insert($salaData);
         
         if ($salaId) {
+            log_activity(session()->get('user_id'), $this->modulo, 'create', 'Sala criada com sucesso', $salaId, null, $salaData);
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Sala criada com sucesso!',
                 'data' => ['id' => $salaId]
             ]);
         } else {
+            log_activity(session()->get('user_id'), $this->modulo, 'create_fail', $this->salasModel->errors().[0], null, null, $salaData, ['db_errors' => $this->salasModel->errors()]);
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Erro ao criar sala',
@@ -209,6 +212,7 @@ class SalaController extends BaseController
         $validation = $this->salasModel->validateSalaData($data, $id);
         
         if (!$validation['success']) {
+            log_activity(session()->get('user_id'), $this->modulo, 'update_fail', 'Dados inválidos ao atualizar sala', $id, $existingSala, $data, ['validation_errors' => $validation['errors']]);
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Dados inválidos',
@@ -234,6 +238,7 @@ class SalaController extends BaseController
         $result = $this->salasModel->update($id, $salaData);
         
         if ($result) {
+            log_activity(session()->get('user_id'), $this->modulo, 'update', 'Sala atualizada com sucesso', $id, $existingSala, $salaData);
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Sala atualizada com sucesso!'
@@ -266,18 +271,21 @@ class SalaController extends BaseController
             return $this->response->setStatusCode(404)->setJSON(['error' => 'Sala não encontrada']);
         }
 
-        $result = $this->salasModel->delete($id);
+        $result = $this->salasModel->delete($id);   
         
         if ($result) {
+            log_activity(session()->get('user_id'), $this->modulo, 'delete', 'Sala '.$sala['codigo_sala'].' eliminada com sucesso', $id, $sala, null);
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Sala eliminada com sucesso!'
             ]);
         } else {
-            return $this->response->setJSON([
+                 return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Erro ao eliminar sala'
+                'message' => 'Erro ao atualizar sala',
+                'errors' => $this->salasModel->errors()
             ]);
+        
         }
     }
 
@@ -536,4 +544,16 @@ class SalaController extends BaseController
             ]
         ]);
     }
+    /**
+     * Obter todas as salas (sem filtros) - para testes ou outras necessidades
+     */
+    public function getAll()
+    {
+        $salas = $this->salasModel->findAll();
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $salas
+        ]);
+    }
+    
 }
