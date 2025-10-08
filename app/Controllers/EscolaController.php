@@ -251,7 +251,7 @@ class EscolaController extends BaseController
         }
 
         if (!$id) {
-            log_activity(session()->get('user_id'),$this->modulo,'error', 'Tentativa de eliminar escola sem ID', ['ip_address' => $this->request->getIPAddress()]);
+            log_activity(session()->get('user_id'),$this->modulo,'error', 'Tentativa de eliminar escola sem ID', null, null, null, ['ip_address' => $this->request->getIPAddress()]);
             return $this->failValidationErrors('ID não fornecido');
         }
 
