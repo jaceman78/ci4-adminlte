@@ -1,27 +1,37 @@
-# Imagem base com PHP e extensões necessárias
+# Imagem base do PHP com Apache
 FROM php:8.2-apache
 
-# Instala extensões comuns usadas pelo CodeIgniter 4
-RUN docker-php-ext-install mysqli pdo pdo_mysql intl mbstring
+# Atualiza o sistema e instala dependências necessárias
+RUN apt-get update && apt-get install -y \
+    libicu-dev \
+    libzip-dev \
+    unzip \
+    git \
+    && docker-php-ext-configure intl \
+    && docker-php-ext-install mysqli pdo pdo_mysql intl mbstring zip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Ativa o mod_rewrite do Apache (necessário para CI4)
+# Ativa o mod_rewrite para URLs amigáveis
 RUN a2enmod rewrite
 
-# Copia os ficheiros do projeto para o diretório web
+# Copia os arquivos do projeto
 COPY . /var/www/html/
 
-# Define o diretório de trabalho
+# Define a pasta de trabalho
 WORKDIR /var/www/html/
 
-# Instala dependências do Composer
+# Instala o Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Instala dependências PHP (sem pacotes de desenvolvimento)
 RUN composer install --no-dev --optimize-autoloader
 
-# Configura o Apache para apontar para a pasta 'public'
+# Configura o Apache para apontar para /public
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 
-# Expõe a porta 80
+# Expõe a porta padrão da web
 EXPOSE 80
 
-# Comando para iniciar o servidor Apache
+# Inicia o Apache
 CMD ["apache2-foreground"]
