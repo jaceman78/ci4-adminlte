@@ -10,7 +10,7 @@
               <div class="col-sm-6"><h3 class="mb-0">Dashboard</h3></div>
               <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-end">
-            <li class="breadcrumb-item"><a href="<?= route_to('user/index') ?>">Homeestanodash10</a></li>
+            <li class="breadcrumb-item"><a href="<?= route_to('user/index') ?>">Home</a></li>
             <li class="breadcrumb-item active"><?= $title ?? 'Dashboard' ?></li>
         </ol>
            </div>

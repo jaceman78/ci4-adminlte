@@ -10,10 +10,8 @@
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0"><?= $title ?></h1>
-                </div>
-                <div class="col-sm-6">
+ 
+                <div class="col-sm-12">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="<?= site_url('/dashboard') ?>">Dashboard</a></li>
                         <li class="breadcrumb-item active"><?= $title ?></li>
@@ -131,15 +129,13 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="viewTicketModalLabel">Detalhes do Ticket</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="viewTicketContent">
                 <!-- Conteúdo carregado via AJAX -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
     </div>
@@ -151,9 +147,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="editTicketModalLabel">Editar Ticket (Admin)</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="editTicketForm">
                 <div class="modal-body">
@@ -225,7 +219,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Atualizar Ticket</button>
                 </div>
             </form>
@@ -239,15 +233,40 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="advancedStatisticsModalLabel">Estatísticas Avançadas de Tickets</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="advancedStatisticsContent">
                 <!-- Conteúdo carregado via AJAX -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Alterar Prioridade -->
+<div class="modal fade" id="modalPrioridadeTable" tabindex="-1" aria-labelledby="modalPrioridadeTableLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalPrioridadeTableLabel"><i class="fas fa-flag"></i> Alterar Prioridade</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="nova_prioridade_table">Selecione a nova prioridade:</label>
+                    <select class="form-control" id="nova_prioridade_table">
+                        <option value="baixa">Baixa</option>
+                        <option value="media">Média</option>
+                        <option value="alta">Alta</option>
+                        <option value="critica">Crítica</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarPrioridadeTable">Salvar</button>
             </div>
         </div>
     </div>
@@ -277,50 +296,80 @@ $(document).ready(function() {
             { 
                 "data": 5, // Estado
                 "render": function(data, type, row) {
-                    var badgeClass = '';
+                    var estadoStyle = '';
+                    var estadoTexto = '';
+                    
                     switch(data) {
                         case 'novo':
-                            badgeClass = 'badge-primary';
+                            estadoStyle = 'background-color: #007bff; color: white;';
+                            estadoTexto = 'Novo';
                             break;
                         case 'em_resolucao':
-                            badgeClass = 'badge-warning';
+                            estadoStyle = 'background-color: #ffc107; color: #000;';
+                            estadoTexto = 'Em Resolução';
                             break;
                         case 'aguarda_peca':
-                            badgeClass = 'badge-info';
+                            estadoStyle = 'background-color: #17a2b8; color: white;';
+                            estadoTexto = 'Aguarda Peça';
                             break;
                         case 'reparado':
-                            badgeClass = 'badge-success';
+                            estadoStyle = 'background-color: #28a745; color: white;';
+                            estadoTexto = 'Reparado';
                             break;
                         case 'anulado':
-                            badgeClass = 'badge-danger';
+                            estadoStyle = 'background-color: #dc3545; color: white;';
+                            estadoTexto = 'Anulado';
                             break;
                         default:
-                            badgeClass = 'badge-secondary';
+                            estadoStyle = 'background-color: #6c757d; color: white;';
+                            estadoTexto = data;
                     }
-                    return '<span class="badge ' + badgeClass + '">' + data + '</span>';
+                    
+                    return '<span class="badge" style="' + estadoStyle + '">' + estadoTexto + '</span>';
                 }
             },
             { 
                 "data": 6, // Prioridade
                 "render": function(data, type, row) {
-                    var badgeClass = '';
+                    var prioridadeStyle = '';
+                    var prioridadeTexto = '';
+                    var ticketId = row[0]; // ID do ticket
+                    var estadoTicket = row[5]; // Estado do ticket
+                    var isAdmin = <?= session()->get('level') >= 8 ? 'true' : 'false' ?>;
+                    
                     switch(data) {
                         case 'baixa':
-                            badgeClass = 'badge-success';
+                            prioridadeStyle = 'background-color: #28a745; color: white;';
+                            prioridadeTexto = 'Baixa';
                             break;
                         case 'media':
-                            badgeClass = 'badge-warning';
+                            prioridadeStyle = 'background-color: #ffc107; color: #000;';
+                            prioridadeTexto = 'Média';
                             break;
                         case 'alta':
-                            badgeClass = 'badge-danger';
+                            prioridadeStyle = 'background-color: #fd7e14; color: white;';
+                            prioridadeTexto = 'Alta';
                             break;
                         case 'critica':
-                            badgeClass = 'badge-dark';
+                            prioridadeStyle = 'background-color: #dc3545; color: white;';
+                            prioridadeTexto = 'Crítica';
                             break;
                         default:
-                            badgeClass = 'badge-secondary';
+                            prioridadeStyle = 'background-color: #6c757d; color: white;';
+                            prioridadeTexto = data;
                     }
-                    return '<span class="badge ' + badgeClass + '">' + data + '</span>';
+                    
+                    var cursor = (isAdmin && estadoTicket !== 'reparado') ? 'cursor: pointer;' : '';
+                    var opacity = (estadoTicket === 'reparado') ? 'opacity: 0.7;' : '';
+                    var title = (isAdmin && estadoTicket !== 'reparado') 
+                        ? 'Clique para alterar a prioridade' 
+                        : (estadoTicket === 'reparado' ? 'Não é possível alterar prioridade de ticket reparado' : '');
+                    
+                    return '<span class="badge badge-prioridade-table" style="' + prioridadeStyle + ' ' + cursor + ' ' + opacity + '" ' +
+                           'data-ticket-id="' + ticketId + '" ' +
+                           'data-prioridade="' + data + '" ' +
+                           'data-estado="' + estadoTicket + '" ' +
+                           'title="' + title + '">' + prioridadeTexto + '</span>';
                 }
             },
             { "data": 7 }, // Criado em
@@ -338,7 +387,7 @@ $(document).ready(function() {
             }
         ],
         "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Portuguese.json"
+            "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json"
         },
         "responsive": true,
         "autoWidth": false,
@@ -601,6 +650,95 @@ $(document).ready(function() {
     function exportToExcel() {
         window.location.href = '<?= site_url("tickets/export-excel") ?>';
     }
+    
+    // Variável global para armazenar o ticket ID atual
+    var currentTicketIdPrioridade = null;
+    
+    // Alterar Prioridade (apenas admins e tickets não reparados)
+    $(document).on('click', '.badge-prioridade-table', function() {
+        var isAdmin = <?= session()->get('level') >= 8 ? 'true' : 'false' ?>;
+        
+        if (!isAdmin) {
+            toastr.warning('Apenas administradores podem alterar a prioridade.');
+            return;
+        }
+        
+        var estadoTicket = $(this).data('estado');
+        
+        if (estadoTicket === 'reparado') {
+            toastr.warning('Não é possível alterar a prioridade de um ticket já reparado.');
+            return;
+        }
+        
+        currentTicketIdPrioridade = $(this).data('ticket-id');
+        var prioridadeAtual = $(this).data('prioridade');
+        
+        $('#nova_prioridade_table').val(prioridadeAtual);
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalPrioridadeTable'));
+        modal.show();
+    });
+    
+    $('#btnSalvarPrioridadeTable').on('click', function() {
+        const novaPrioridade = $('#nova_prioridade_table').val();
+        
+        if (!currentTicketIdPrioridade) {
+            toastr.error('Erro: ID do ticket não encontrado.');
+            return;
+        }
+        
+        $.ajax({
+            url: '<?= site_url("tickets/updatePrioridade") ?>',
+            type: 'POST',
+            data: {
+                ticket_id: currentTicketIdPrioridade,
+                prioridade: novaPrioridade
+            },
+            dataType: 'json',
+            beforeSend: function() {
+                $('#btnSalvarPrioridadeTable').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Salvando...');
+            },
+            success: function(response) {
+                console.log('Success response:', response);
+                
+                if (response.success) {
+                    const modalEl = document.getElementById('modalPrioridadeTable');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                    
+                    toastr.success(response.message || 'Prioridade atualizada com sucesso.');
+                    
+                    // Recarregar tabela
+                    table.ajax.reload(null, false);
+                    
+                    currentTicketIdPrioridade = null;
+                } else {
+                    toastr.error(response.message || 'Erro ao atualizar prioridade.');
+                }
+            },
+            error: function(xhr) {
+                console.log('Error response:', xhr);
+                
+                const response = xhr.responseJSON;
+                let errorMsg = 'Erro ao atualizar prioridade.';
+                
+                if (response) {
+                    if (response.message) {
+                        errorMsg = response.message;
+                    } else if (response.messages && typeof response.messages === 'object') {
+                        errorMsg = Object.values(response.messages).join('<br>');
+                    } else if (response.messages) {
+                        errorMsg = response.messages;
+                    }
+                }
+                
+                toastr.error(errorMsg);
+            },
+            complete: function() {
+                $('#btnSalvarPrioridadeTable').prop('disabled', false).html('Salvar');
+            }
+        });
+    });
 });
 </script>
 <?= $this->endSection() ?>

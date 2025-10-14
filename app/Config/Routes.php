@@ -9,6 +9,17 @@ use CodeIgniter\Router\RouteCollection;
 // Rota inicial
 $routes->get('/', 'Home::index');
 
+// Rota para teste de toasts (apenas desenvolvimento)
+$routes->get('teste-toasts', function() {
+    return view('teste_toasts');
+});
+
+// Rotas de debug (apenas desenvolvimento)
+$routes->get('debug/session', 'DebugController::checkSession');
+$routes->get('debug/fix-session', 'DebugController::fixSession');
+$routes->get('debug/test-email', 'DebugController::testEmailPage');
+$routes->post('debug/test-email', 'DebugController::testEmail');
+
 // ---------------------------
 // 🔐 Autenticação / Login
 // ---------------------------
@@ -86,6 +97,7 @@ $routes->group('salas', function($routes) {
     $routes->get('getRecent', 'SalaController::getRecent');
     $routes->post('checkCodigo', 'SalaController::checkCodigo');
     $routes->get('getEscolaInfo/(:num)', 'SalaController::getEscolaInfo/$1');
+    $routes->get('getByEscola/(:num)', 'SalaController::getByEscola/$1');
 });
 
 // Rotas para gestão de Logs de Atividade
@@ -115,12 +127,20 @@ $routes->group("materiais", function($routes) {
 // Rotas para Gestão de Equipamentos
 $routes->group("equipamentos", function ($routes) {
     $routes->get("/", "EquipamentosController::index");
+    $routes->get("all", "EquipamentosController::all");
     $routes->post("getDataTable", "EquipamentosController::getDataTable");
     $routes->get("getEquipamento/(:num)", "EquipamentosController::getEquipamento/$1");
+    $routes->get("getEquipamentoCompleto/(:num)", "EquipamentosController::getEquipamentoCompleto/$1");
     $routes->post("create", "EquipamentosController::create");
+    $routes->post("createWithSala", "EquipamentosController::createWithSala");
     $routes->post("update/(:num)", "EquipamentosController::update/$1");
     $routes->post("delete/(:num)", "EquipamentosController::delete/$1");
     $routes->get("getStatistics", "EquipamentosController::getStatistics");
+    $routes->get("getBySala/(:num)", "EquipamentosController::getBySala/$1");
+    $routes->post("atribuirSala", "EquipamentosController::atribuirSala");
+    $routes->post("editarSala", "EquipamentosController::editarSala");
+    $routes->post("removerSala", "EquipamentosController::removerSala");
+    $routes->get("getHistorico/(:num)", "EquipamentosController::getHistorico/$1");
 });
 
 // Rotas para Gestão de Tipos de Equipamento
@@ -158,12 +178,13 @@ $routes->group("tickets", function ($routes) {
     $routes->get("meus", "TicketsController::meusTickets");
     $routes->get("tratamento", "TicketsController::tratamentoTickets");
     $routes->get("todos", "TicketsController::todosTickets");
+    $routes->get("view/(:num)", "TicketsController::viewTicket/$1"); // Ver detalhes do ticket
 
     // Rotas AJAX para CRUD e DataTables
     $routes->post("create", "TicketsController::create");
     $routes->put("update/(:num)", "TicketsController::update/$1");
     $routes->delete("delete/(:num)", "TicketsController::delete/$1");
-    $routes->get("get/(:num)", "TicketsController::get/$1"); // Para carregar detalhes do ticket para edição/visualização
+    $routes->get("get/(:num)", "TicketsController::get/$1"); // Para carregar detalhes do ticket para edição/visualização via AJAX
 
     $routes->get("meus-datatable", "TicketsController::getMyTicketsDataTable");
     $routes->get("tratamento-datatable", "TicketsController::getTicketsForTreatmentDataTable");
@@ -171,7 +192,13 @@ $routes->group("tickets", function ($routes) {
 
     // Rotas de ação
     $routes->post("assign", "TicketsController::assignTicket");
+    $routes->post("assignTicket", "TicketsController::assignTicket"); // Alias para compatibilidade
     $routes->get("accept/(:num)", "TicketsController::acceptTicket/$1"); // Para aceitar ticket via link de email
+    $routes->post("updatePrioridade", "TicketsController::updatePrioridade"); // Atualizar prioridade
+    $routes->post("resolverTicket", "TicketsController::resolverTicket"); // Resolver ticket
+    $routes->post("reabrirTicket", "TicketsController::reabrirTicket"); // Reabrir ticket (apenas admins)
+    $routes->post("aceitarTicket", "TicketsController::aceitarTicket"); // Aceitar ticket atribuído
+    $routes->post("rejeitarTicket", "TicketsController::rejeitarTicket"); // Rejeitar ticket atribuído
 
     // Rotas para estatísticas
     $routes->get("statistics", "TicketsController::getStatistics");
@@ -180,7 +207,7 @@ $routes->group("tickets", function ($routes) {
 });
 
 // Rotas para obter dados para selects em modais
-$routes->get("equipamentos/all", "EquipamentosController::getAll");
-$routes->get("salas/all", "SalasController::getAll");
-$routes->get("tipos-avaria/all", "TiposAvariaController::getAll");
+$routes->get("equipamentos/all", "EquipamentosController::all");
+$routes->get("salas/all", "SalaController::all");
+$routes->get("tipos-avaria/all", "TiposAvariaController::all");
 $routes->get("users/technicians", "UserController::getTechnicians");

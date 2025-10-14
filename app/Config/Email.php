@@ -6,8 +6,8 @@ use CodeIgniter\Config\BaseConfig;
 
 class Email extends BaseConfig
 {
-    public string $fromEmail  = '';
-    public string $fromName   = '';
+    public string $fromEmail;
+    public string $fromName;
     public string $recipients = '';
 
     /**
@@ -18,7 +18,7 @@ class Email extends BaseConfig
     /**
      * The mail sending protocol: mail, sendmail, smtp
      */
-    public string $protocol = 'mail';
+    public string $protocol;
 
     /**
      * The server path to Sendmail.
@@ -28,32 +28,32 @@ class Email extends BaseConfig
     /**
      * SMTP Server Hostname
      */
-    public string $SMTPHost = '';
+    public string $SMTPHost;
 
     /**
      * SMTP Username
      */
-    public string $SMTPUser = '';
+    public string $SMTPUser;
 
     /**
      * SMTP Password
      */
-    public string $SMTPPass = '';
+    public string $SMTPPass;
 
     /**
      * SMTP Port
      */
-    public int $SMTPPort = 25;
+    public int $SMTPPort;
 
     /**
      * SMTP Timeout (in seconds)
      */
-    public int $SMTPTimeout = 5;
+    public int $SMTPTimeout;
 
     /**
      * Enable persistent SMTP connections
      */
-    public bool $SMTPKeepAlive = false;
+    public bool $SMTPKeepAlive;
 
     /**
      * SMTP Encryption.
@@ -62,7 +62,29 @@ class Email extends BaseConfig
      *             to the server. 'ssl' means implicit SSL. Connection on port
      *             465 should set this to ''.
      */
-    public string $SMTPCrypto = 'tls';
+    public string $SMTPCrypto;
+
+    public bool $SMTPAuth;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        // Carregar configurações do .env
+        $this->fromEmail      = getenv('email.fromEmail') ?: 'escoladigitaljb@aejoaodebarros.pt';
+        $this->fromName       = getenv('email.fromName') ?: 'Escola Digital JB';
+        $this->protocol       = getenv('email.protocol') ?: 'smtp';
+        $this->SMTPHost       = getenv('email.SMTPHost') ?: 'smtp.gmail.com';
+        $this->SMTPUser       = getenv('email.SMTPUser') ?: '';
+        $this->SMTPPass       = getenv('email.SMTPPass') ?: '';
+        $this->SMTPPort       = (int)(getenv('email.SMTPPort') ?: 587);
+        $this->SMTPTimeout    = (int)(getenv('email.SMTPTimeout') ?: 10);
+        $this->SMTPKeepAlive  = filter_var(getenv('email.SMTPKeepAlive'), FILTER_VALIDATE_BOOLEAN);
+        $this->mailType       = getenv('email.mailType') ?: 'html';
+        $this->charset        = getenv('email.charset') ?: 'UTF-8';
+        $this->SMTPCrypto     = getenv('email.SMTPCrypto') ?: 'tls';
+        $this->SMTPAuth       = filter_var(getenv('email.SMTPAuth'), FILTER_VALIDATE_BOOLEAN);
+    }
 
     /**
      * Enable word-wrap

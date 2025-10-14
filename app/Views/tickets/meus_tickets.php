@@ -10,10 +10,8 @@
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0"><?= $title ?></h1>
-                </div>
-                <div class="col-sm-6">
+ 
+                <div class="col-sm-12">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="<?= site_url('/dashboard') ?>">Dashboard</a></li>
                         <li class="breadcrumb-item active"><?= $title ?></li>
@@ -77,9 +75,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="editTicketModalLabel">Editar Ticket</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="editTicketForm">
                 <div class="modal-body">
@@ -112,13 +108,83 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Atualizar Ticket</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- Modal para Alterar Prioridade -->
+<div class="modal fade" id="modalPrioridadeMeus" tabindex="-1" aria-labelledby="modalPrioridadeMeusLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalPrioridadeMeusLabel"><i class="fas fa-flag"></i> Alterar Prioridade</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="nova_prioridade_meus">Selecione a nova prioridade:</label>
+                    <select class="form-control" id="nova_prioridade_meus">
+                        <option value="baixa">Baixa</option>
+                        <option value="media">Média</option>
+                        <option value="alta">Alta</option>
+                        <option value="critica">Crítica</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarPrioridadeMeus">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?= $this->endSection() ?>
+
+<?= $this->section('styles') ?>
+<style>
+    /* Estilos para badges na tabela */
+    #meusTicketsTable .badge {
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+        font-weight: 600;
+        border-radius: 0.25rem;
+        display: inline-block;
+        min-width: 80px;
+        text-align: center;
+    }
+    
+    /* Garantir texto branco em todos os badges de estado */
+    #meusTicketsTable .text-white {
+        color: #ffffff !important;
+    }
+    
+    /* Melhorar legibilidade da coluna equipamento */
+    #meusTicketsTable td:first-child {
+        line-height: 1.6;
+    }
+    
+    #meusTicketsTable td:first-child strong {
+        color: #007bff;
+        font-size: 0.95rem;
+    }
+    
+    #meusTicketsTable td:first-child small {
+        font-size: 0.8rem;
+    }
+    
+    /* Cores das linhas por estado */
+    #meusTicketsTable tbody tr {
+        transition: background-color 0.2s ease;
+    }
+    
+    #meusTicketsTable tbody tr:hover {
+        filter: brightness(0.95);
+    }
+</style>
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
@@ -140,50 +206,81 @@ $(document).ready(function() {
             { 
                 "data": 4, // Estado
                 "render": function(data, type, row) {
-                    var badgeClass = '';
+                    var estadoStyle = '';
+                    var estadoTexto = '';
+                    
                     switch(data) {
                         case 'novo':
-                            badgeClass = 'badge-primary';
+                            estadoStyle = 'background-color: #007bff; color: white;';
+                            estadoTexto = 'Novo';
                             break;
                         case 'em_resolucao':
-                            badgeClass = 'badge-warning';
+                            estadoStyle = 'background-color: #ffc107; color: #000;';
+                            estadoTexto = 'Em Resolução';
                             break;
                         case 'aguarda_peca':
-                            badgeClass = 'badge-info';
+                            estadoStyle = 'background-color: #17a2b8; color: white;';
+                            estadoTexto = 'Aguarda Peça';
                             break;
                         case 'reparado':
-                            badgeClass = 'badge-success';
+                            estadoStyle = 'background-color: #28a745; color: white;';
+                            estadoTexto = 'Reparado';
                             break;
                         case 'anulado':
-                            badgeClass = 'badge-danger';
+                            estadoStyle = 'background-color: #dc3545; color: white;';
+                            estadoTexto = 'Anulado';
                             break;
                         default:
-                            badgeClass = 'badge-secondary';
+                            estadoStyle = 'background-color: #6c757d; color: white;';
+                            estadoTexto = data;
                     }
-                    return '<span class="badge ' + badgeClass + '">' + data + '</span>';
+                    
+                    return '<span class="badge" style="' + estadoStyle + '">' + estadoTexto + '</span>';
                 }
             },
             { 
                 "data": 5, // Prioridade
                 "render": function(data, type, row) {
-                    var badgeClass = '';
+                    var badgeStyle = '';
+                    var prioridadeTexto = '';
+                    var ticketId = row[9]; // ID do ticket (última coluna, oculta)
+                    var estadoTicket = row[4]; // Estado do ticket
+                    var isAdmin = <?= session()->get('level') >= 8 ? 'true' : 'false' ?>;
+                    
                     switch(data) {
                         case 'baixa':
-                            badgeClass = 'badge-success';
+                            badgeStyle = 'background-color: #28a745; color: white;';
+                            prioridadeTexto = 'Baixa';
                             break;
                         case 'media':
-                            badgeClass = 'badge-warning';
+                            badgeStyle = 'background-color: #ffc107; color: #000;';
+                            prioridadeTexto = 'Média';
                             break;
                         case 'alta':
-                            badgeClass = 'badge-danger';
+                            badgeStyle = 'background-color: #fd7e14; color: white;';
+                            prioridadeTexto = 'Alta';
                             break;
+                        case 'urgente':
                         case 'critica':
-                            badgeClass = 'badge-dark';
+                            badgeStyle = 'background-color: #dc3545; color: white;';
+                            prioridadeTexto = 'Crítica';
                             break;
                         default:
-                            badgeClass = 'badge-secondary';
+                            badgeStyle = 'background-color: #6c757d; color: white;';
+                            prioridadeTexto = data;
                     }
-                    return '<span class="badge ' + badgeClass + '">' + data + '</span>';
+                    
+                    var cursor = (isAdmin && estadoTicket !== 'reparado') ? 'cursor: pointer;' : '';
+                    var opacity = (estadoTicket === 'reparado') ? 'opacity: 0.7;' : '';
+                    var title = (isAdmin && estadoTicket !== 'reparado') 
+                        ? 'Clique para alterar a prioridade' 
+                        : (estadoTicket === 'reparado' ? 'Não é possível alterar prioridade de ticket reparado' : '');
+                    
+                    return '<span class="badge badge-prioridade-meus" style="' + badgeStyle + ' ' + cursor + ' ' + opacity + '" ' +
+                           'data-ticket-id="' + ticketId + '" ' +
+                           'data-prioridade="' + data + '" ' +
+                           'data-estado="' + estadoTicket + '" ' +
+                           'title="' + title + '">' + prioridadeTexto + '</span>';
                 }
             },
             { "data": 6 }, // Criado em
@@ -191,13 +288,40 @@ $(document).ready(function() {
             { 
                 "data": 8, // Opções
                 "orderable": false
+            },
+            { 
+                "data": 9, // ID do ticket (coluna oculta)
+                "visible": false,
+                "searchable": false
             }
         ],
         "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Portuguese.json"
+            "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json"
         },
         "responsive": true,
-        "autoWidth": false
+        "autoWidth": false,
+        "rowCallback": function(row, data, index) {
+            // Colorir a linha conforme o estado do ticket
+            var estado = data[4]; // Coluna do estado
+            
+            switch(estado) {
+                case 'novo':
+                    $(row).css('background-color', '#e3f2fd'); // Azul claro
+                    break;
+                case 'em_resolucao':
+                    $(row).css('background-color', '#fff3cd'); // Amarelo claro
+                    break;
+                case 'aguarda_peca':
+                    $(row).css('background-color', '#d1ecf1'); // Ciano claro
+                    break;
+                case 'reparado':
+                    $(row).css('background-color', '#d4edda'); // Verde claro
+                    break;
+                case 'anulado':
+                    $(row).css('background-color', '#f8d7da'); // Vermelho claro
+                    break;
+            }
+        }
     });
 
     // Editar Ticket
@@ -229,13 +353,10 @@ $(document).ready(function() {
                 $('button[type="submit"]', '#editTicketForm').prop('disabled', true).text('Atualizando...');
             },
             success: function(response) {
-                if (response.status === 200) {
-                    toastr.success(response.messages.success || 'Ticket atualizado com sucesso!');
-                    $('#editTicketModal').modal('hide');
-                    table.ajax.reload();
-                } else {
-                    toastr.error('Erro ao atualizar ticket.');
-                }
+                // respondUpdated retorna com status HTTP 200, response tem a mensagem
+                toastr.success(response.message || 'Ticket atualizado com sucesso!');
+                $('#editTicketModal').modal('hide');
+                table.ajax.reload();
             },
             error: function(xhr) {
                 var response = JSON.parse(xhr.responseText);
@@ -258,30 +379,34 @@ $(document).ready(function() {
     });
 
     function loadTicketForEdit(ticketId) {
-        $.ajax({
-            url: '<?= site_url("tickets/get/") ?>' + ticketId,
-            type: 'GET',
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 200 && response.data) {
-                    var ticket = response.data;
+        // Primeiro carregar os selects
+        loadSelectOptions(function() {
+            // Depois carregar os dados do ticket
+            $.ajax({
+                url: '<?= site_url("tickets/get/") ?>' + ticketId,
+                type: 'GET',
+                dataType: 'json',
+                success: function(ticket) {
+                    console.log('Ticket carregado:', ticket);
+                    // O response já é o ticket diretamente
                     $('#edit_ticket_id').val(ticket.id);
                     $('#edit_equipamento_id').val(ticket.equipamento_id);
                     $('#edit_sala_id').val(ticket.sala_id);
                     $('#edit_tipo_avaria_id').val(ticket.tipo_avaria_id);
                     $('#edit_descricao').val(ticket.descricao);
                     
-                    // Carregar opções dos selects se necessário
-                    loadSelectOptions();
-                    
                     $('#editTicketModal').modal('show');
-                } else {
-                    toastr.error('Erro ao carregar dados do ticket.');
+                },
+                error: function(xhr) {
+                    console.error('Erro ao carregar ticket:', xhr);
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        toastr.error(response.message || 'Erro ao carregar dados do ticket.');
+                    } catch (e) {
+                        toastr.error('Erro ao carregar dados do ticket.');
+                    }
                 }
-            },
-            error: function() {
-                toastr.error('Erro ao carregar dados do ticket.');
-            }
+            });
         });
     }
 
@@ -291,12 +416,9 @@ $(document).ready(function() {
             type: 'DELETE',
             dataType: 'json',
             success: function(response) {
-                if (response.status === 200) {
-                    toastr.success(response.messages.success || 'Ticket apagado com sucesso!');
-                    table.ajax.reload();
-                } else {
-                    toastr.error('Erro ao apagar ticket.');
-                }
+                // respondDeleted retorna com status HTTP 200, response tem a mensagem
+                toastr.success(response.message || 'Ticket apagado com sucesso!');
+                table.ajax.reload();
             },
             error: function(xhr) {
                 var response = JSON.parse(xhr.responseText);
@@ -309,31 +431,141 @@ $(document).ready(function() {
         });
     }
 
-    function loadSelectOptions() {
+    function loadSelectOptions(callback) {
+        var promises = [];
+        
         // Carregar equipamentos
-        $.get('<?= site_url("equipamentos/all") ?>', function(data) {
-            $('#edit_equipamento_id').empty().append('<option value="">Selecione um equipamento</option>');
-            $.each(data, function(key, value) {
-                $('#edit_equipamento_id').append('<option value="' + value.id + '">' + value.marca + ' ' + value.modelo + '</option>');
-            });
-        });
+        promises.push(
+            $.get('<?= site_url("equipamentos/all") ?>', function(data) {
+                $('#edit_equipamento_id').empty().append('<option value="">Selecione um equipamento</option>');
+                $.each(data, function(key, value) {
+                    var equipamentoLabel = (value.tipo_nome || 'N/A') + ' - ' + (value.marca || '') + ' ' + (value.modelo || '');
+                    if (value.numero_serie) {
+                        equipamentoLabel += ' (S/N: ' + value.numero_serie + ')';
+                    }
+                    $('#edit_equipamento_id').append('<option value="' + value.id + '">' + equipamentoLabel + '</option>');
+                });
+            })
+        );
 
         // Carregar salas
-        $.get('<?= site_url("salas/all") ?>', function(data) {
-            $('#edit_sala_id').empty().append('<option value="">Selecione uma sala</option>');
-            $.each(data, function(key, value) {
-                $('#edit_sala_id').append('<option value="' + value.id + '">' + value.codigo_sala + '</option>');
-            });
-        });
+        promises.push(
+            $.get('<?= site_url("salas/all") ?>', function(data) {
+                $('#edit_sala_id').empty().append('<option value="">Selecione uma sala</option>');
+                $.each(data, function(key, value) {
+                    var salaLabel = value.codigo_sala;
+                    if (value.escola_nome) {
+                        salaLabel += ' (' + value.escola_nome + ')';
+                    }
+                    $('#edit_sala_id').append('<option value="' + value.id + '">' + salaLabel + '</option>');
+                });
+            })
+        );
 
         // Carregar tipos de avaria
-        $.get('<?= site_url("tipos-avaria/all") ?>', function(data) {
-            $('#edit_tipo_avaria_id').empty().append('<option value="">Selecione um tipo de avaria</option>');
-            $.each(data, function(key, value) {
-                $('#edit_tipo_avaria_id').append('<option value="' + value.id + '">' + value.descricao + '</option>');
-            });
+        promises.push(
+            $.get('<?= site_url("tipos-avaria/all") ?>', function(data) {
+                $('#edit_tipo_avaria_id').empty().append('<option value="">Selecione um tipo de avaria</option>');
+                $.each(data, function(key, value) {
+                    $('#edit_tipo_avaria_id').append('<option value="' + value.id + '">' + value.descricao + '</option>');
+                });
+            })
+        );
+
+        // Quando todos os selects estiverem carregados, executar callback
+        $.when.apply($, promises).done(function() {
+            if (callback) callback();
         });
     }
+    
+    // Variável global para armazenar o ticket ID atual
+    var currentTicketIdPrioridadeMeus = null;
+    
+    // Alterar Prioridade (apenas admins e tickets não reparados)
+    $(document).on('click', '.badge-prioridade-meus', function() {
+        var isAdmin = <?= session()->get('level') >= 8 ? 'true' : 'false' ?>;
+        
+        if (!isAdmin) {
+            toastr.warning('Apenas administradores podem alterar a prioridade.');
+            return;
+        }
+        
+        var estadoTicket = $(this).data('estado');
+        
+        if (estadoTicket === 'reparado') {
+            toastr.warning('Não é possível alterar a prioridade de um ticket já reparado.');
+            return;
+        }
+        
+        currentTicketIdPrioridadeMeus = $(this).data('ticket-id');
+        var prioridadeAtual = $(this).data('prioridade');
+        
+        $('#nova_prioridade_meus').val(prioridadeAtual);
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalPrioridadeMeus'));
+        modal.show();
+    });
+    
+    $('#btnSalvarPrioridadeMeus').on('click', function() {
+        const novaPrioridade = $('#nova_prioridade_meus').val();
+        
+        if (!currentTicketIdPrioridadeMeus) {
+            toastr.error('Erro: ID do ticket não encontrado.');
+            return;
+        }
+        
+        $.ajax({
+            url: '<?= site_url("tickets/updatePrioridade") ?>',
+            type: 'POST',
+            data: {
+                ticket_id: currentTicketIdPrioridadeMeus,
+                prioridade: novaPrioridade
+            },
+            dataType: 'json',
+            beforeSend: function() {
+                $('#btnSalvarPrioridadeMeus').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Salvando...');
+            },
+            success: function(response) {
+                console.log('Success response:', response);
+                
+                if (response.success) {
+                    const modalEl = document.getElementById('modalPrioridadeMeus');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                    
+                    toastr.success(response.message || 'Prioridade atualizada com sucesso.');
+                    
+                    // Recarregar tabela
+                    meusTicketsTable.ajax.reload(null, false);
+                    
+                    currentTicketIdPrioridadeMeus = null;
+                } else {
+                    toastr.error(response.message || 'Erro ao atualizar prioridade.');
+                }
+            },
+            error: function(xhr) {
+                console.log('Error response:', xhr);
+                
+                const response = xhr.responseJSON;
+                let errorMsg = 'Erro ao atualizar prioridade.';
+                
+                if (response) {
+                    if (response.message) {
+                        errorMsg = response.message;
+                    } else if (response.messages && typeof response.messages === 'object') {
+                        errorMsg = Object.values(response.messages).join('<br>');
+                    } else if (response.messages) {
+                        errorMsg = response.messages;
+                    }
+                }
+                
+                toastr.error(errorMsg);
+            },
+            complete: function() {
+                $('#btnSalvarPrioridadeMeus').prop('disabled', false).html('Salvar');
+            }
+        });
+    });
 });
 </script>
 <?= $this->endSection() ?>

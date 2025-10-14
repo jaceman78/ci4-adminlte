@@ -74,8 +74,15 @@ class LoginController extends BaseController
             session()->setFlashdata('Error', 'Conta de email não autorizada!');
             return redirect()->to('/login');
         }
+
         $existingUser = $this->userModel->where('email', $email)->first();
-        $userlevel = $existingUser['level'];// Mantém o nível existente
+
+        // Safe: se não existir utilizador, usa nível por omissão (0)
+        $userlevel = 0;
+        if ($existingUser && isset($existingUser['level'])) {
+            $userlevel = (int) $existingUser['level'];
+        }
+
         // Dados do utilizador
         $userdata = [
             'oauth_id'    => $googleUser->getId(),
@@ -87,21 +94,22 @@ class LoginController extends BaseController
             'status'      => 1,
         ];
 
-    
-    if ($existingUser) {
-        $this->userModel->update($existingUser['id'], $userdata);
-        $userId = $existingUser['id'];       
-       
-        $userdata['user_id'] = $userId;
-    } else {
-        $userId = $this->userModel->insert($userdata); // <-- Usa insert do Model, retorna o novo ID
-        $userdata['user_id'] = $userId;
-    }
+        if ($existingUser) {
+            $this->userModel->update($existingUser['id'], $userdata);
+            $userId = $existingUser['id'];
+        } else {
+            $this->userModel->insert($userdata);
+            // garantir o id do registo inserido
+            $userId = $this->userModel->getInsertID();
+        }
 
-    session()->set('user_id', $userId); // <-- Garante que é sempre um inteiro!
-    session()->set('LoggedUserData', $userdata);
+        // Definir dados da sessão
+        session()->set('user_id', $userId);
+        session()->set('isLoggedIn', true);
+        session()->set('level', $userlevel);
+        session()->set('LoggedUserData', $userdata);
 
-    return redirect()->to('layout/dashboard');
+        return redirect()->to('layout/dashboard');
     }
 
     public function profile()
@@ -122,7 +130,7 @@ class LoginController extends BaseController
 
     public function logout()
     {
-        session()->remove(['LoggedUserData']);
+        session()->remove(['LoggedUserData', 'user_id', 'isLoggedIn', 'level']);
         session()->setFlashdata('Success', 'Logout efetuado com sucesso.');
         return redirect()->to('/login');
     }

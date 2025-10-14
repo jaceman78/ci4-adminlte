@@ -25,6 +25,12 @@ class ActivityLogController extends BaseController
      */
     public function index()
     {
+        // Verificar nível de acesso - Apenas Super Admins (nível 9)
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 9) {
+            return redirect()->to('/tickets/novo')->with('error', 'Acesso negado. Apenas Super Admins podem aceder aos logs.');
+        }
+        
         // Só aqui, não em cada AJAX!
         // log_activity(
         //     session()->get('user_id'),

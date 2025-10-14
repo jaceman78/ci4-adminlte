@@ -115,7 +115,8 @@
                                     <option value="1">Professor</option>
                                     <option value="2">Professor CP</option>
                                     <option value="3">Moderador</option>
-                                    <option value="4">Administrador</option>
+                                    <option value="5">Técnico</option>
+                                    <option value="8">Administrador</option>
                                     <option value="9">Super Admin</option>
                                 </select>
                                 <div class="invalid-feedback"></div>
@@ -281,7 +282,8 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     showToast('success', response.message);
-                    $('#userModal').modal('hide');
+                    var userModal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
+                    if (userModal) userModal.hide();
                     table.ajax.reload();
                     resetForm();
                 } else {
@@ -321,7 +323,8 @@ $(document).ready(function() {
 function openCreateModal() {
     resetForm();
     $('#userModalLabel').text('Novo Utilizador');
-    $('#userModal').modal('show');
+    var userModal = new bootstrap.Modal(document.getElementById('userModal'));
+    userModal.show();
 }
 
 // Função para editar utilizador
@@ -343,7 +346,8 @@ function editUser(id) {
                 $('#userStatus').val(user.status);
                 
                 $('#userModalLabel').text('Editar Utilizador');
-                $('#userModal').modal('show');
+                var userModal = new bootstrap.Modal(document.getElementById('userModal'));
+                userModal.show();
             } else {
                 showToast('error', response.message || 'Erro ao carregar dados do utilizador');
             }
@@ -371,7 +375,15 @@ function viewUser(id) {
                 $('#viewUserGrupoId').text(user.grupo_id || 'N/A');
                 
                 // Nível
-                var levels = ['Utilizador','Professor', 'Professor CP', 'Moderador', 'Administrador', 'Super Admin'];
+                var levels = {
+                    0: 'Utilizador',
+                    1: 'Professor',
+                    2: 'Professor CP',
+                    3: 'Moderador',
+                    5: 'Técnico',
+                    8: 'Administrador',
+                    9: 'Super Admin'
+                };
                 $('#viewUserLevel').text(levels[user.level] || 'Desconhecido');
                 
                 // Status
@@ -406,7 +418,9 @@ function viewUser(id) {
                 $('#viewUserCreated').text(formatDate(user.created_at));
                 $('#viewUserUpdated').text(user.updated_at ? formatDate(user.updated_at) : 'N/A');
                 
-                $('#viewUserModal').modal('show');
+                // Bootstrap 5 - usar Modal API nativa
+                var viewModal = new bootstrap.Modal(document.getElementById('viewUserModal'));
+                viewModal.show();
             } else {
                 showToast('error', response.message || 'Erro ao carregar dados do utilizador');
             }
@@ -507,13 +521,6 @@ function formatDate(dateString) {
         minute: '2-digit'
     });
 }
-
-// Supondo que response.currentUserLevel está disponível
-if (response.currentUserLevel == 9) {
-    // Renderiza botões de editar e eliminar
-}
 </script>
 <?= $this->endSection() ?>
-    
 <?= $this->endSection() ?>
-

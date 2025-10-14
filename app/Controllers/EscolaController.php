@@ -29,6 +29,12 @@ class EscolaController extends BaseController
      */
     public function index()
     {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 5) {
+            return redirect()->to('/tickets/novo')->with('error', 'Acesso negado. Nível de permissão insuficiente.');
+        }
+        
         // Log de acesso à página de escolas
 
 

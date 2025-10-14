@@ -46,12 +46,26 @@ class TicketsModel extends Model
     // Relacionamentos
     public function getTicketDetails($id = null)
     {
-        $this->select('tickets.*, e.marca as equipamento_marca, e.modelo as equipamento_modelo, s.codigo_sala, ta.descricao as tipo_avaria_descricao, u.nome as user_nome, u.email as user_email, au.nome as atribuido_user_nome, au.email as atribuido_user_email');
+        $this->select('tickets.*, 
+            e.marca as equipamento_marca, 
+            e.modelo as equipamento_modelo, 
+            e.numero_serie as equipamento_nserie,
+            te.nome as equipamento_tipo,
+            CONCAT(IFNULL(te.nome, ""), " ", e.marca, " ", e.modelo) as equipamento_info,
+            s.codigo_sala as sala_nome, 
+            esc.nome as escola_nome,
+            ta.descricao as tipo_avaria_nome, 
+            u.name as user_nome, 
+            u.email as user_email, 
+            au.name as atribuido_user_nome, 
+            au.email as atribuido_user_email');
         $this->join('equipamentos e', 'e.id = tickets.equipamento_id');
+        $this->join('tipos_equipamento te', 'te.id = e.tipo_id', 'left');
         $this->join('salas s', 's.id = tickets.sala_id');
+        $this->join('escolas esc', 'esc.id = s.escola_id', 'left');
         $this->join('tipos_avaria ta', 'ta.id = tickets.tipo_avaria_id');
         $this->join('user u', 'u.id = tickets.user_id');
-        $this->join('user au', 'au.id = tickets.atribuido_user_id', 'left'); // LEFT JOIN para atribuido_user_id, pois pode ser NULL
+        $this->join('user au', 'au.id = tickets.atribuido_user_id', 'left');
 
         if ($id) {
             return $this->find($id);
@@ -62,17 +76,22 @@ class TicketsModel extends Model
 
     public function getMyTickets($userId)
     {
-        $this->select('tickets.id, e.marca as equipamento_marca, e.modelo as equipamento_modelo, s.codigo_sala, ta.descricao as tipo_avaria_descricao, tickets.descricao, tickets.estado, tickets.prioridade, tickets.created_at, tickets.updated_at');
+        $this->select('tickets.id, e.marca as equipamento_marca, e.modelo as equipamento_modelo, e.numero_serie as equipamento_nserie, te.nome as equipamento_tipo, s.codigo_sala, ta.descricao as tipo_avaria_descricao, tickets.descricao, tickets.estado, tickets.prioridade, tickets.created_at, tickets.updated_at, tickets.user_id, tickets.atribuido_user_id');
         $this->join('equipamentos e', 'e.id = tickets.equipamento_id');
+        $this->join('tipos_equipamento te', 'te.id = e.tipo_id', 'left');
         $this->join('salas s', 's.id = tickets.sala_id');
         $this->join('tipos_avaria ta', 'ta.id = tickets.tipo_avaria_id');
-        $this->where('tickets.user_id', $userId);
+        // Incluir tickets criados pelo utilizador OU atribuídos ao utilizador
+        $this->groupStart()
+            ->where('tickets.user_id', $userId)
+            ->orWhere('tickets.atribuido_user_id', $userId)
+        ->groupEnd();
         return $this->findAll();
     }
 
     public function getTicketsForTreatment()
     {
-        $this->select('tickets.id, e.marca as equipamento_marca, e.modelo as equipamento_modelo, s.codigo_sala, ta.descricao as tipo_avaria_descricao, tickets.descricao, tickets.estado, tickets.prioridade, tickets.created_at, tickets.updated_at, u.nome as user_nome, u.email as user_email, au.nome as atribuido_user_nome');
+        $this->select('tickets.id, e.marca as equipamento_marca, e.modelo as equipamento_modelo, s.codigo_sala, ta.descricao as tipo_avaria_descricao, tickets.descricao, tickets.estado, tickets.prioridade, tickets.created_at, tickets.updated_at, u.name as user_nome, u.email as user_email, au.name as atribuido_user_nome');
         $this->join('equipamentos e', 'e.id = tickets.equipamento_id');
         $this->join('salas s', 's.id = tickets.sala_id');
         $this->join('tipos_avaria ta', 'ta.id = tickets.tipo_avaria_id');
@@ -84,7 +103,7 @@ class TicketsModel extends Model
 
     public function getAllTicketsOrdered()
     {
-        $this->select('tickets.*, e.marca as equipamento_marca, e.modelo as equipamento_modelo, s.codigo_sala, ta.descricao as tipo_avaria_descricao, u.nome as user_nome, u.email as user_email, au.nome as atribuido_user_nome, au.email as atribuido_user_email');
+        $this->select('tickets.*, e.marca as equipamento_marca, e.modelo as equipamento_modelo, s.codigo_sala, ta.descricao as tipo_avaria_descricao, u.name as user_nome, u.email as user_email, au.name as atribuido_user_nome, au.email as atribuido_user_email');
         $this->join('equipamentos e', 'e.id = tickets.equipamento_id');
         $this->join('salas s', 's.id = tickets.sala_id');
         $this->join('tipos_avaria ta', 'ta.id = tickets.tipo_avaria_id');

@@ -25,6 +25,12 @@ class SalaController extends BaseController
      */
     public function index()
     {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 5) {
+            return redirect()->to('/tickets/novo')->with('error', 'Acesso negado. Nível de permissão insuficiente.');
+        }
+        
         $data = [
             'title' => 'Gestão de Salas',
             'breadcrumb' => [
@@ -34,6 +40,21 @@ class SalaController extends BaseController
         ];
 
         return view('salas/salas_index', $data);
+    }
+
+    /**
+     * Retorna todas as salas para selects (AJAX)
+     */
+    public function all()
+    {
+        $salas = $this->salasModel
+            ->select('salas.id, salas.codigo_sala, escolas.nome as escola_nome')
+            ->join('escolas', 'escolas.id = salas.escola_id', 'left')
+            ->orderBy('escolas.nome', 'ASC')
+            ->orderBy('salas.codigo_sala', 'ASC')
+            ->findAll();
+
+        return $this->response->setJSON($salas);
     }
 
     /**
@@ -554,6 +575,20 @@ class SalaController extends BaseController
             'success' => true,
             'data' => $salas
         ]);
+    }
+
+    public function getByEscola($escolaId = null)
+    {
+        if (!$escolaId) {
+            return $this->response->setJSON([]);
+        }
+
+        $salas = $this->salasModel
+            ->where('escola_id', $escolaId)
+            ->orderBy('codigo_sala', 'ASC')
+            ->findAll();
+
+        return $this->response->setJSON($salas);
     }
     
 }

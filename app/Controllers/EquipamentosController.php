@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\EquipamentosModel;
 use App\Models\TipoEquipamentosModel;
 use App\Models\SalasModel;
+use App\Models\EquipamentosSalaModel;
 use CodeIgniter\API\ResponseTrait;
 
 class EquipamentosController extends BaseController
@@ -15,21 +16,31 @@ class EquipamentosController extends BaseController
     protected $equipamentosModel;
     protected $tipoEquipamentosModel;
     protected $salasModel;
+    protected $equipamentosSalaModel;
 
     public function __construct()
     {
         $this->equipamentosModel = new EquipamentosModel();
         $this->tipoEquipamentosModel = new TipoEquipamentosModel();
         $this->salasModel = new SalasModel();
+        $this->equipamentosSalaModel = new EquipamentosSalaModel();
     }
 
     public function index()
     {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 5) {
+            return redirect()->to('/tickets/novo')->with('error', 'Acesso negado. Nível de permissão insuficiente.');
+        }
+        
+        $escolasModel = new \App\Models\EscolasModel();
         $data = [
             'page_title' => 'Gestão de Equipamentos',
             'page_subtitle' => 'Listagem e gestão de equipamentos',
             'tipos_equipamento' => $this->tipoEquipamentosModel->findAll(),
-            'salas' => $this->salasModel->findAll()
+            'salas' => $this->salasModel->findAll(),
+            'escolas' => $escolasModel->orderBy('nome', 'ASC')->findAll()
         ];
         return view('equipamentos/equipamentos_index', $data);
     }
@@ -37,9 +48,17 @@ class EquipamentosController extends BaseController
     public function getDataTable()
     {
         $equipamentos = $this->equipamentosModel
-            ->select('equipamentos.*, salas.codigo_sala as sala_nome, tipos_equipamento.nome as tipo_nome')
-            ->join('salas', 'salas.id = equipamentos.sala_id', 'left')
+            ->select('equipamentos.*, 
+                      tipos_equipamento.nome as tipo_nome,
+                      es.sala_id as sala_atual_id,
+                      salas.codigo_sala as sala_nome,
+                      escolas.nome as escola_nome,
+                      es.data_entrada')
             ->join('tipos_equipamento', 'tipos_equipamento.id = equipamentos.tipo_id', 'left')
+            ->join('equipamentos_sala es', 'es.equipamento_id = equipamentos.id AND es.data_saida IS NULL', 'left')
+            ->join('salas', 'salas.id = es.sala_id', 'left')
+            ->join('escolas', 'escolas.id = salas.escola_id', 'left')
+            ->orderBy('equipamentos.id', 'DESC')
             ->findAll();
 
         // Adapta os dados para o DataTable
@@ -47,26 +66,46 @@ class EquipamentosController extends BaseController
         foreach ($equipamentos as $eq) {
             $data[] = [
                 'id' => $eq['id'],
-                'sala_nome' => $eq['sala_nome'] ?? '',
+                'escola_nome' => $eq['escola_nome'] ?? '<span class="text-muted">Sem atribuição</span>',
+                'sala_nome' => $eq['sala_nome'] ?? '<span class="text-muted">Sem atribuição</span>',
+                'sala_id' => $eq['sala_atual_id'] ?? null,
                 'tipo_nome' => $eq['tipo_nome'] ?? '',
-                'marca' => $eq['marca'],
-                'modelo' => $eq['modelo'],
-                'numero_serie' => $eq['numero_serie'],
+                'marca' => $eq['marca'] ?? '',
+                'modelo' => $eq['modelo'] ?? '',
+                'marca_modelo' => trim(($eq['marca'] ?? '') . ' ' . ($eq['modelo'] ?? '')),
+                'numero_serie' => $eq['numero_serie'] ?? '',
                 'estado' => $eq['estado'],
                 'data_aquisicao' => $eq['data_aquisicao'],
-                'observacoes' => $eq['observacoes'],
+                'observacoes' => $eq['observacoes'] ?? '',
+                'tem_sala' => !empty($eq['sala_atual_id'])
             ];
         }
 
         return $this->respond(['data' => $data]);
     }
 
+    public function all()
+    {
+        $equipamentos = $this->equipamentosModel
+            ->select('equipamentos.id, equipamentos.marca, equipamentos.modelo, equipamentos.numero_serie, tipos_equipamento.nome as tipo_nome')
+            ->join('tipos_equipamento', 'tipos_equipamento.id = equipamentos.tipo_id', 'left')
+            ->orderBy('tipos_equipamento.nome', 'ASC')
+            ->orderBy('equipamentos.marca', 'ASC')
+            ->findAll();
+
+        return $this->respond($equipamentos);
+    }
+
     public function getEquipamento($id = null)
     {
         $eq = $this->equipamentosModel
-            ->select('equipamentos.*, salas.codigo_sala as sala_nome, tipos_equipamento.nome as tipo_nome')
-            ->join('salas', 'salas.id = equipamentos.sala_id', 'left')
+            ->select('equipamentos.*, 
+                      tipos_equipamento.nome as tipo_nome,
+                      es.sala_id as sala_atual_id,
+                      salas.codigo_sala as sala_nome')
             ->join('tipos_equipamento', 'tipos_equipamento.id = equipamentos.tipo_id', 'left')
+            ->join('equipamentos_sala es', 'es.equipamento_id = equipamentos.id AND es.data_saida IS NULL', 'left')
+            ->join('salas', 'salas.id = es.sala_id', 'left')
             ->find($id);
 
         if ($eq) {
@@ -76,25 +115,30 @@ class EquipamentosController extends BaseController
         }
     }
 
+    /**
+     * @deprecated Use createWithSala() instead
+     * Método legado mantido para compatibilidade
+     */
     public function create()
     {
         $rules = [
-            'sala_id'        => 'permit_empty|is_natural',
             'tipo_id'        => 'required|is_natural_no_zero',
             'marca'          => 'permit_empty|max_length[100]',
             'modelo'         => 'permit_empty|max_length[100]',
             'numero_serie'   => 'permit_empty|max_length[255]|is_unique[equipamentos.numero_serie]',
             'estado'         => 'required|in_list[ativo,inativo,pendente]',
             'data_aquisicao' => 'permit_empty|valid_date',
-            'observacoes'    => 'permit_empty|max_length[1000]'
+            'observacoes'    => 'permit_empty|max_length[1000]',
+            'sala_id'        => 'permit_empty|is_natural_no_zero'
         ];
 
         if (!$this->validate($rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
         }
 
+        $salaId = $this->request->getPost('sala_id');
+        
         $data = [
-            'sala_id'        => $this->request->getPost('sala_id'),
             'tipo_id'        => $this->request->getPost('tipo_id'),
             'marca'          => $this->request->getPost('marca'),
             'modelo'         => $this->request->getPost('modelo'),
@@ -104,17 +148,39 @@ class EquipamentosController extends BaseController
             'observacoes'    => $this->request->getPost('observacoes')
         ];
 
-        if ($this->equipamentosModel->insert($data)) {
-            return $this->respondCreated(['message' => 'Equipamento criado com sucesso.']);
+        $equipamentoId = $this->equipamentosModel->insert($data);
+        
+        if ($equipamentoId) {
+            // Se foi associado a uma sala, criar registo na tabela equipamentos_sala
+            if ($salaId) {
+                $this->equipamentosSalaModel->insert([
+                    'equipamento_id' => $equipamentoId,
+                    'sala_id' => $salaId,
+                    'data_entrada' => date('Y-m-d H:i:s'),
+                    'motivo_movimentacao' => 'Equipamento criado e associado à sala',
+                    'user_id' => session()->get('id'),
+                    'observacoes' => 'Registo automático ao criar equipamento'
+                ]);
+                
+                log_message('info', "Equipamento {$equipamentoId} criado e associado à sala {$salaId}");
+            }
+            
+            return $this->respondCreated([
+                'message' => 'Equipamento criado com sucesso.',
+                'id' => $equipamentoId
+            ]);
         } else {
             return $this->failServerError('Não foi possível criar o equipamento.');
         }
     }
 
+    /**
+     * Atualizar apenas dados do equipamento (não altera sala)
+     * Para mudar sala, use editarSala()
+     */
     public function update($id = null)
     {
         $rules = [
-            'sala_id'        => 'permit_empty|is_natural',
             'tipo_id'        => 'required|is_natural_no_zero',
             'marca'          => 'permit_empty|max_length[100]',
             'modelo'         => 'permit_empty|max_length[100]',
@@ -129,7 +195,6 @@ class EquipamentosController extends BaseController
         }
 
         $data = [
-            'sala_id'        => $this->request->getPost('sala_id'),
             'tipo_id'        => $this->request->getPost('tipo_id'),
             'marca'          => $this->request->getPost('marca'),
             'modelo'         => $this->request->getPost('modelo'),
@@ -173,10 +238,268 @@ class EquipamentosController extends BaseController
             'por_tipo'           => $equipamentosPorTipo
         ]);
     }
-        public function getAll()
+    public function getAll()
     {
         $equipamentos = $this->equipamentosModel->findAll();
         return $this->respond($equipamentos);
+    }
+
+    public function getBySala($salaId = null)
+    {
+        if (!$salaId) {
+            return $this->respond([]);
+        }
+
+        // Buscar equipamentos atualmente nesta sala via equipamentos_sala
+        $equipamentos = $this->equipamentosModel
+            ->select('equipamentos.*, tipos_equipamento.nome as tipo_nome')
+            ->join('tipos_equipamento', 'tipos_equipamento.id = equipamentos.tipo_id', 'left')
+            ->join('equipamentos_sala es', 'es.equipamento_id = equipamentos.id AND es.data_saida IS NULL', 'inner')
+            ->where('es.sala_id', $salaId)
+            ->where('equipamentos.estado', 'ativo')
+            ->findAll();
+
+        return $this->respond($equipamentos);
+    }
+
+    /**
+     * Criar equipamento com atribuição de sala
+     */
+    public function createWithSala()
+    {
+        $rules = [
+            'tipo_id'        => 'required|is_natural_no_zero',
+            'marca'          => 'permit_empty|max_length[100]',
+            'modelo'         => 'permit_empty|max_length[100]',
+            'numero_serie'   => 'permit_empty|max_length[255]|is_unique[equipamentos.numero_serie]',
+            'estado'         => 'required|in_list[ativo,inativo,pendente]',
+            'data_aquisicao' => 'permit_empty|valid_date',
+            'observacoes'    => 'permit_empty|max_length[1000]',
+            'sala_id'        => 'permit_empty|is_natural',
+            'motivo_movimentacao' => 'permit_empty|max_length[500]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            // Criar equipamento
+            $equipData = [
+                'tipo_id'        => $this->request->getPost('tipo_id'),
+                'marca'          => $this->request->getPost('marca'),
+                'modelo'         => $this->request->getPost('modelo'),
+                'numero_serie'   => $this->request->getPost('numero_serie'),
+                'estado'         => $this->request->getPost('estado'),
+                'data_aquisicao' => $this->request->getPost('data_aquisicao'),
+                'observacoes'    => $this->request->getPost('observacoes')
+            ];
+
+            $equipamentoId = $this->equipamentosModel->insert($equipData);
+
+            if (!$equipamentoId) {
+                throw new \Exception('Erro ao criar equipamento');
+            }
+
+            // Se tem sala, criar registro na equipamentos_sala
+            $salaId = $this->request->getPost('sala_id');
+            if (!empty($salaId)) {
+                $this->equipamentosSalaModel->insert([
+                    'equipamento_id' => $equipamentoId,
+                    'sala_id' => $salaId,
+                    'data_entrada' => date('Y-m-d H:i:s'),
+                    'motivo_movimentacao' => $this->request->getPost('motivo_movimentacao') ?? 'Novo equipamento',
+                    'user_id' => session()->get('user_id')
+                ]);
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->failServerError('Erro ao processar transação');
+            }
+
+            return $this->respondCreated([
+                'message' => 'Equipamento criado com sucesso!',
+                'id' => $equipamentoId
+            ]);
+
+        } catch (\Exception $e) {
+            $db->transRollback();
+            return $this->failServerError('Erro: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Atribuir sala a um equipamento
+     */
+    public function atribuirSala()
+    {
+        $equipamentoId = $this->request->getPost('equipamento_id');
+        $salaId = $this->request->getPost('sala_id');
+        $motivo = $this->request->getPost('motivo_movimentacao');
+
+        if (empty($equipamentoId) || empty($salaId)) {
+            return $this->fail('Equipamento e sala são obrigatórios');
+        }
+
+        // Verificar se equipamento já tem sala
+        $salaAtual = $this->equipamentosSalaModel->getSalaAtual($equipamentoId);
+        
+        if ($salaAtual) {
+            return $this->fail('Equipamento já tem uma sala atribuída. Use "Editar Sala" para trocar.');
+        }
+
+        $result = $this->equipamentosSalaModel->atribuirSala(
+            $equipamentoId, 
+            $salaId, 
+            session()->get('user_id')
+        );
+
+        if ($result) {
+            // Atualizar motivo se fornecido
+            if (!empty($motivo)) {
+                $this->equipamentosSalaModel->update($result, ['motivo_movimentacao' => $motivo]);
+            }
+
+            log_activity(
+                session()->get('user_id'), 
+                'equipamentos', 
+                'atribuir_sala', 
+                "Sala atribuída ao equipamento ID: {$equipamentoId}",
+                $equipamentoId,
+                null,
+                ['sala_id' => $salaId, 'motivo' => $motivo]
+            );
+
+            return $this->respond(['message' => 'Sala atribuída com sucesso!']);
+        }
+
+        return $this->failServerError('Erro ao atribuir sala');
+    }
+
+    /**
+     * Editar/Mover equipamento para outra sala
+     */
+    public function editarSala()
+    {
+        $equipamentoId = $this->request->getPost('equipamento_id');
+        $novaSalaId = $this->request->getPost('sala_id');
+        $motivo = $this->request->getPost('motivo_movimentacao');
+
+        if (empty($equipamentoId) || empty($novaSalaId)) {
+            return $this->fail('Equipamento e nova sala são obrigatórios');
+        }
+
+        $result = $this->equipamentosSalaModel->moverEquipamento(
+            $equipamentoId,
+            $novaSalaId,
+            $motivo,
+            session()->get('user_id')
+        );
+
+        if ($result) {
+            log_activity(
+                session()->get('user_id'), 
+                'equipamentos', 
+                'mover_sala', 
+                "Equipamento ID: {$equipamentoId} movido para nova sala",
+                $equipamentoId,
+                null,
+                ['nova_sala_id' => $novaSalaId, 'motivo' => $motivo]
+            );
+
+            return $this->respond(['message' => 'Equipamento movido com sucesso!']);
+        }
+
+        return $this->failServerError('Erro ao mover equipamento');
+    }
+
+    /**
+     * Remover equipamento de sala
+     */
+    public function removerSala()
+    {
+        $equipamentoId = $this->request->getPost('equipamento_id');
+        $motivo = $this->request->getPost('motivo_movimentacao');
+
+        if (empty($equipamentoId)) {
+            return $this->fail('ID do equipamento é obrigatório');
+        }
+
+        $result = $this->equipamentosSalaModel->removerDeSala(
+            $equipamentoId,
+            $motivo,
+            session()->get('user_id')
+        );
+
+        if ($result) {
+            log_activity(
+                session()->get('user_id'), 
+                'equipamentos', 
+                'remover_sala', 
+                "Equipamento ID: {$equipamentoId} removido da sala",
+                $equipamentoId,
+                null,
+                ['motivo' => $motivo]
+            );
+
+            return $this->respond(['message' => 'Equipamento removido da sala com sucesso!']);
+        }
+
+        return $this->failServerError('Erro ao remover equipamento da sala');
+    }
+
+    /**
+     * Obter histórico de movimentações
+     */
+    public function getHistorico($equipamentoId = null)
+    {
+        if (!$equipamentoId) {
+            return $this->fail('ID do equipamento é obrigatório');
+        }
+
+        $historico = $this->equipamentosSalaModel->getHistoricoEquipamento($equipamentoId);
+        return $this->respond($historico);
+    }
+
+    /**
+     * Obter dados completos do equipamento incluindo sala atual
+     */
+    public function getEquipamentoCompleto($id = null)
+    {
+        if (!$id) {
+            return $this->failNotFound('ID não fornecido');
+        }
+
+        $equipamento = $this->equipamentosModel->find($id);
+        
+        if (!$equipamento) {
+            return $this->failNotFound('Equipamento não encontrado');
+        }
+
+        // Buscar sala atual
+        $salaAtual = $this->equipamentosSalaModel->getSalaAtual($id);
+        
+        if ($salaAtual) {
+            $sala = $this->salasModel
+                ->select('salas.*, escolas.nome as escola_nome, escolas.id as escola_id')
+                ->join('escolas', 'escolas.id = salas.escola_id')
+                ->find($salaAtual['sala_id']);
+            
+            $equipamento['sala_atual'] = $sala;
+            $equipamento['sala_atual_id'] = $salaAtual['sala_id'];
+            $equipamento['escola_id'] = $sala['escola_id'] ?? null;
+        } else {
+            $equipamento['sala_atual'] = null;
+            $equipamento['sala_atual_id'] = null;
+            $equipamento['escola_id'] = null;
+        }
+
+        return $this->respond($equipamento);
     }
 }
 

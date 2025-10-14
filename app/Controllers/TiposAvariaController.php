@@ -19,6 +19,12 @@ class TiposAvariaController extends BaseController
 
     public function index()
     {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 5) {
+            return redirect()->to('/tickets/novo')->with('error', 'Acesso negado. Nível de permissão insuficiente.');
+        }
+        
         $data = [
             'page_title' => 'Gestão de Tipos de Avaria',
             'page_subtitle' => 'Listagem e gestão de tipos de avaria'
@@ -30,6 +36,12 @@ class TiposAvariaController extends BaseController
     {
         $tipos = $this->tiposAvariaModel->findAll();
         return $this->response->setJSON(['data' => $tipos]);
+    }
+
+    public function all()
+    {
+        $tipos = $this->tiposAvariaModel->orderBy('descricao', 'ASC')->findAll();
+        return $this->respond($tipos);
     }
 
     public function getTipoAvaria($id = null)

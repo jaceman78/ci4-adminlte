@@ -5,10 +5,8 @@
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0"><?= $page_title ?></h1>
-                </div>
-                <div class="col-sm-6">
+ 
+                <div class="col-sm-12">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="<?= base_url() ?>">Início</a></li>
                         <li class="breadcrumb-item active">Equipamentos</li>
@@ -71,7 +69,7 @@
                                 <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#equipamentoModal" onclick="openCreateModal()">
                                     <i class="fas fa-plus"></i> Novo Equipamento
                                 </button>
-                                <button type="button" class="btn btn-info btn-sm" onclick="loadStatistics()">
+                                <button type="button" class="btn btn-info btn-sm" onclick="loadStatistics(true)">
                                     <i class="fas fa-chart-bar"></i> Estatísticas
                                 </button>
                             </div>
@@ -81,14 +79,12 @@
                                 <thead>
                                     <tr>
                                         <th>ID</th>
+                                        <th>Escola</th>
                                         <th>Sala</th>
                                         <th>Tipo</th>
-                                        <th>Marca</th>
-                                        <th>Modelo</th>
+                                        <th>Marca/Modelo</th>
                                         <th>Número de Série</th>
                                         <th>Estado</th>
-                                        <th>Data de Aquisição</th>
-                                        <th>Observações</th>
                                         <th>Ações</th>
                                     </tr>
                                 </thead>
@@ -114,73 +110,112 @@
             <form id="equipamentoForm">
                 <div class="modal-body">
                     <input type="hidden" id="equipamento_id" name="equipamento_id">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="sala_id" class="form-label">Sala</label>
-                                <select class="form-select" id="sala_id" name="sala_id">
-                                    <option value="">Selecione uma sala</option>
-                                    <?php foreach ($salas as $sala): ?>
-                                        <option value="<?= $sala['id'] ?>"><?= $sala['codigo_sala'] ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                    
+                    <!-- Seção de Localização -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-map-marker-alt"></i> Localização</h6>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="tipo_id" class="form-label">Tipo de Equipamento <span class="text-danger">*</span></label>
-                                <select class="form-select" id="tipo_id" name="tipo_id" required>
-                                    <option value="">Selecione um tipo</option>
-                                    <?php foreach ($tipos_equipamento as $tipo): ?>
-                                        <option value="<?= $tipo['id'] ?>"><?= $tipo['nome'] ?></option>
-                                    <?php endforeach; ?>
-                                </select>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="escola_id" class="form-label">Escola</label>
+                                        <select class="form-select" id="escola_id" name="escola_id">
+                                            <option value="">Sem atribuição</option>
+                                            <?php foreach ($escolas as $escola): ?>
+                                                <option value="<?= $escola['id'] ?>"><?= $escola['nome'] ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <small class="text-muted">Deixe vazio se o equipamento não tem sala atribuída</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="sala_id" class="form-label">Sala</label>
+                                        <select class="form-select" id="sala_id" name="sala_id" disabled>
+                                            <option value="">Selecione primeiro uma escola</option>
+                                        </select>
+                                        <small class="text-muted">Selecione a escola primeiro</small>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="marca" class="form-label">Marca</label>
-                                <input type="text" class="form-control" id="marca" name="marca">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modelo" class="form-label">Modelo</label>
-                                <input type="text" class="form-control" id="modelo" name="modelo">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="numero_serie" class="form-label">Número de Série</label>
-                                <input type="text" class="form-control" id="numero_serie" name="numero_serie">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="estado" class="form-label">Estado <span class="text-danger">*</span></label>
-                                <select class="form-select" id="estado" name="estado" required>
-                                    <option value="ativo">Ativo</option>
-                                    <option value="inativo">Inativo</option>
-                                    <option value="pendente">Pendente</option>
-                                </select>
+                            <div class="row" id="motivo_section" style="display:none;">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="motivo_movimentacao" class="form-label">Motivo da Atribuição/Movimentação</label>
+                                        <textarea class="form-control" id="motivo_movimentacao" name="motivo_movimentacao" rows="2" placeholder="Ex: Novo equipamento, Transferência, Substituição..."></textarea>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="data_aquisicao" class="form-label">Data de Aquisição</label>
-                                <input type="date" class="form-control" id="data_aquisicao" name="data_aquisicao">
-                            </div>
+
+                    <!-- Seção de Dados do Equipamento -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-laptop"></i> Dados do Equipamento</h6>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="observacoes" class="form-label">Observações</label>
-                                <textarea class="form-control" id="observacoes" name="observacoes" rows="2"></textarea>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="tipo_id" class="form-label">Tipo de Equipamento <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="tipo_id" name="tipo_id" required>
+                                            <option value="">Selecione um tipo</option>
+                                            <?php foreach ($tipos_equipamento as $tipo): ?>
+                                                <option value="<?= $tipo['id'] ?>"><?= $tipo['nome'] ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="estado" class="form-label">Estado <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="estado" name="estado" required>
+                                            <option value="ativo">Ativo</option>
+                                            <option value="fora_servico">Fora de Serviço</option>
+                                            <option value="por_atribuir">Por Atribuir</option>
+                                            <option value="abate">Abate</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="marca" class="form-label">Marca</label>
+                                        <input type="text" class="form-control" id="marca" name="marca">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="modelo" class="form-label">Modelo</label>
+                                        <input type="text" class="form-control" id="modelo" name="modelo">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="numero_serie" class="form-label">Número de Série</label>
+                                        <input type="text" class="form-control" id="numero_serie" name="numero_serie">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="data_aquisicao" class="form-label">Data de Aquisição</label>
+                                        <input type="date" class="form-control" id="data_aquisicao" name="data_aquisicao">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="observacoes" class="form-label">Observações</label>
+                                        <textarea class="form-control" id="observacoes" name="observacoes" rows="2"></textarea>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -270,6 +305,70 @@
   </div>
 </div>
 
+<!-- Modal Gestão de Sala -->
+<div class="modal fade" id="gerirSalaModal" tabindex="-1" aria-labelledby="gerirSalaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="gerirSalaModalLabel"><i class="fas fa-map-marker-alt"></i> Gerir Localização</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="gerirSalaForm">
+                <div class="modal-body">
+                    <input type="hidden" id="gerir_equipamento_id" name="equipamento_id">
+                    <input type="hidden" id="gerir_action" name="action">
+                    
+                    <div class="alert alert-info">
+                        <strong>Equipamento:</strong> <span id="gerir_equipamento_info"></span>
+                    </div>
+                    
+                    <div id="sala_atual_info" class="alert alert-warning" style="display:none;">
+                        <strong>Sala Atual:</strong> <span id="gerir_sala_atual"></span>
+                    </div>
+                    
+                    <div id="nova_localizacao_section">
+                        <div class="mb-3">
+                            <label for="gerir_escola_id" class="form-label">Escola <span class="text-danger">*</span></label>
+                            <select class="form-select" id="gerir_escola_id" name="escola_id" required>
+                                <option value="">Selecione uma escola</option>
+                                <?php foreach ($escolas as $escola): ?>
+                                    <option value="<?= $escola['id'] ?>"><?= $escola['nome'] ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="gerir_sala_id" class="form-label">Sala <span class="text-danger">*</span></label>
+                            <select class="form-select" id="gerir_sala_id" name="sala_id" required disabled>
+                                <option value="">Selecione primeiro uma escola</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="gerir_motivo" class="form-label">Motivo <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="gerir_motivo" name="motivo_movimentacao" rows="3" required placeholder="Ex: Transferência, Avaria, Substituição..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div id="remover_sala_section" style="display:none;">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Tem certeza que deseja remover este equipamento da sala atual?
+                        </div>
+                        <div class="mb-3">
+                            <label for="gerir_motivo_remocao" class="form-label">Motivo da Remoção <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="gerir_motivo_remocao" name="motivo_movimentacao" rows="3" placeholder="Ex: Equipamento para reparação, Equipamento obsoleto..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="gerirSalaBtn">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Estatísticas -->
 <div class="modal fade" id="estatisticasModal" tabindex="-1" aria-labelledby="estatisticasModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -290,6 +389,14 @@
 
 <?= $this->section('scripts') ?>
 <script>
+// Definir baseUrl global
+const baseUrl = '<?= base_url() ?>';
+</script>
+<script src="<?= base_url('assets/js/equipamentos.js') ?>"></script>
+<script>
+// Script legado removido - agora usa arquivo externo equipamentos.js
+// Manter apenas configurações específicas se necessário
+/*
 $(document).ready(function() {
     // Inicializar DataTable
     var table = $('#equipamentosTable').DataTable({
@@ -489,7 +596,7 @@ function confirmDelete(id) {
     $('#confirmDeleteModal').modal('show');
 }
 
-function loadStatistics() {
+function loadStatistics(showModal = false) {
     $.ajax({
         url: '<?= base_url('equipamentos/getStatistics') ?>',
         type: 'GET',
@@ -527,7 +634,11 @@ function loadStatistics() {
             html += '</ul>';
 
             $('#estatisticasModalBody').html(html);
-            $('#estatisticasModal').modal('show');
+            
+            // Só abre a modal se for explicitamente solicitado (quando clicar no botão)
+            if (showModal) {
+                $('#estatisticasModal').modal('show');
+            }
         },
         error: function(xhr) {
             console.error('Erro ao carregar estatísticas:', xhr);
@@ -571,6 +682,7 @@ function showToast(type, message) {
         alert('Erro: ' + message);
     }
 }
+*/
 </script>
 <?= $this->endSection() ?>
 <?= $this->endSection() ?>

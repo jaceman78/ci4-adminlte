@@ -10,10 +10,8 @@
     <div class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0"><?= $title ?></h1>
-                </div>
-                <div class="col-sm-6">
+ 
+                <div class="col-sm-12">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="<?= site_url('/dashboard') ?>">Dashboard</a></li>
                         <li class="breadcrumb-item active"><?= $title ?></li>
@@ -78,15 +76,13 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="viewTicketModalLabel">Detalhes do Ticket</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="viewTicketContent">
                 <!-- Conteúdo carregado via AJAX -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
     </div>
@@ -98,17 +94,15 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="assignTicketModalLabel">Atribuir/Alterar Estado do Ticket</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="assignTicketForm">
                 <div class="modal-body">
                     <input type="hidden" id="assign_ticket_id" name="ticket_id">
                     <div class="form-group">
                         <label for="atribuido_user_id">Atribuir a</label>
-                        <select class="form-control" id="atribuido_user_id" name="atribuido_user_id" required>
-                            <option value="">Selecione um utilizador</option>
+                        <select class="form-control" id="atribuido_user_id" name="atribuido_user_id">
+                            <option value="">Nenhum (remover atribuição)</option>
                             <?php foreach ($utilizadoresTecnicos as $utilizador): ?>
                                 <option value="<?= $utilizador['id'] ?>"><?= esc($utilizador['name']) ?></option>
                             <?php endforeach; ?>
@@ -117,8 +111,7 @@
                     <div class="form-group">
                         <label for="estado">Estado</label>
                         <select class="form-control" id="estado" name="estado" required>
-                            <option value="novo">Novo</option>
-                            <option value="em_resolucao">Em Resolução</option>
+                            <option value="em_resolucao" selected>Em Resolução</option>
                             <option value="aguarda_peca">Aguarda Peça</option>
                             <option value="reparado">Reparado</option>
                             <option value="anulado">Anulado</option>
@@ -126,7 +119,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Atribuir/Atualizar</button>
                 </div>
             </form>
@@ -140,15 +133,40 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="statisticsModalLabel">Estatísticas de Tickets</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="statisticsContent">
                 <!-- Conteúdo carregado via AJAX -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Alterar Prioridade -->
+<div class="modal fade" id="modalPrioridadeTratamento" tabindex="-1" aria-labelledby="modalPrioridadeTratamentoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalPrioridadeTratamentoLabel"><i class="fas fa-flag"></i> Alterar Prioridade</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="nova_prioridade_tratamento">Selecione a nova prioridade:</label>
+                    <select class="form-control" id="nova_prioridade_tratamento">
+                        <option value="baixa">Baixa</option>
+                        <option value="media">Média</option>
+                        <option value="alta">Alta</option>
+                        <option value="critica">Crítica</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarPrioridadeTratamento">Salvar</button>
             </div>
         </div>
     </div>
@@ -174,50 +192,80 @@ $(document).ready(function() {
             { 
                 "data": 4, // Estado
                 "render": function(data, type, row) {
-                    var badgeClass = '';
+                    var estadoStyle = '';
+                    var estadoTexto = '';
+                    
                     switch(data) {
                         case 'novo':
-                            badgeClass = 'badge-primary';
+                            estadoStyle = 'background-color: #007bff; color: white;';
+                            estadoTexto = 'Novo';
                             break;
                         case 'em_resolucao':
-                            badgeClass = 'badge-warning';
+                            estadoStyle = 'background-color: #ffc107; color: #000;';
+                            estadoTexto = 'Em Resolução';
                             break;
                         case 'aguarda_peca':
-                            badgeClass = 'badge-info';
+                            estadoStyle = 'background-color: #17a2b8; color: white;';
+                            estadoTexto = 'Aguarda Peça';
                             break;
                         case 'reparado':
-                            badgeClass = 'badge-success';
+                            estadoStyle = 'background-color: #28a745; color: white;';
+                            estadoTexto = 'Reparado';
                             break;
                         case 'anulado':
-                            badgeClass = 'badge-danger';
+                            estadoStyle = 'background-color: #dc3545; color: white;';
+                            estadoTexto = 'Anulado';
                             break;
                         default:
-                            badgeClass = 'badge-secondary';
+                            estadoStyle = 'background-color: #6c757d; color: white;';
+                            estadoTexto = data;
                     }
-                    return '<span class="badge ' + badgeClass + '">' + data + '</span>';
+                    
+                    return '<span class="badge" style="' + estadoStyle + '">' + estadoTexto + '</span>';
                 }
             },
             { 
                 "data": 5, // Prioridade
                 "render": function(data, type, row) {
-                    var badgeClass = '';
+                    var prioridadeStyle = '';
+                    var prioridadeTexto = '';
+                    var ticketId = row[10]; // ID do ticket (última coluna, oculta)
+                    var estadoTicket = row[4]; // Estado do ticket
+                    var isAdmin = <?= session()->get('level') >= 8 ? 'true' : 'false' ?>;
+                    
                     switch(data) {
                         case 'baixa':
-                            badgeClass = 'badge-success';
+                            prioridadeStyle = 'background-color: #28a745; color: white;';
+                            prioridadeTexto = 'Baixa';
                             break;
                         case 'media':
-                            badgeClass = 'badge-warning';
+                            prioridadeStyle = 'background-color: #ffc107; color: #000;';
+                            prioridadeTexto = 'Média';
                             break;
                         case 'alta':
-                            badgeClass = 'badge-danger';
+                            prioridadeStyle = 'background-color: #fd7e14; color: white;';
+                            prioridadeTexto = 'Alta';
                             break;
                         case 'critica':
-                            badgeClass = 'badge-dark';
+                            prioridadeStyle = 'background-color: #dc3545; color: white;';
+                            prioridadeTexto = 'Crítica';
                             break;
                         default:
-                            badgeClass = 'badge-secondary';
+                            prioridadeStyle = 'background-color: #6c757d; color: white;';
+                            prioridadeTexto = data;
                     }
-                    return '<span class="badge ' + badgeClass + '">' + data + '</span>';
+                    
+                    var cursor = (isAdmin && estadoTicket !== 'reparado') ? 'cursor: pointer;' : '';
+                    var opacity = (estadoTicket === 'reparado') ? 'opacity: 0.7;' : '';
+                    var title = (isAdmin && estadoTicket !== 'reparado') 
+                        ? 'Clique para alterar a prioridade' 
+                        : (estadoTicket === 'reparado' ? 'Não é possível alterar prioridade de ticket reparado' : '');
+                    
+                    return '<span class="badge badge-prioridade-tratamento" style="' + prioridadeStyle + ' ' + cursor + ' ' + opacity + '" ' +
+                           'data-ticket-id="' + ticketId + '" ' +
+                           'data-prioridade="' + data + '" ' +
+                           'data-estado="' + estadoTicket + '" ' +
+                           'title="' + title + '">' + prioridadeTexto + '</span>';
                 }
             },
             { "data": 6 }, // Criado em
@@ -226,10 +274,15 @@ $(document).ready(function() {
             { 
                 "data": 9, // Opções
                 "orderable": false
+            },
+            { 
+                "data": 10, // ID do ticket (coluna oculta)
+                "visible": false,
+                "searchable": false
             }
         ],
         "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Portuguese.json"
+            "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json"
         },
         "responsive": true,
         "autoWidth": false
@@ -245,7 +298,8 @@ $(document).ready(function() {
     $(document).on('click', '.assign-ticket', function() {
         var ticketId = $(this).data('id');
         $('#assign_ticket_id').val(ticketId);
-        $('#assignTicketModal').modal('show');
+        var assignModal = new bootstrap.Modal(document.getElementById('assignTicketModal'));
+        assignModal.show();
     });
 
     // Submeter formulário de atribuição
@@ -254,7 +308,7 @@ $(document).ready(function() {
         var formData = $(this).serialize();
         
         $.ajax({
-            url: '<?= site_url("tickets/assign") ?>',
+            url: '<?= site_url("tickets/assignTicket") ?>',
             type: 'POST',
             data: formData,
             dataType: 'json',
@@ -262,13 +316,11 @@ $(document).ready(function() {
                 $('button[type="submit"]', '#assignTicketForm').prop('disabled', true).text('Atribuindo...');
             },
             success: function(response) {
-                if (response.status === 200) {
-                    toastr.success(response.messages.success || 'Ticket atribuído/atualizado com sucesso!');
-                    $('#assignTicketModal').modal('hide');
-                    table.ajax.reload();
-                } else {
-                    toastr.error('Erro ao atribuir/atualizar ticket.');
-                }
+                // respondUpdated retorna com status HTTP 200, response tem a mensagem
+                toastr.success(response.message || 'Ticket atribuído/atualizado com sucesso!');
+                var assignModal = bootstrap.Modal.getInstance(document.getElementById('assignTicketModal'));
+                assignModal.hide();
+                table.ajax.reload();
             },
             error: function(xhr) {
                 var response = JSON.parse(xhr.responseText);
@@ -318,7 +370,8 @@ $(document).ready(function() {
                     content += '</div>';
                     
                     $('#viewTicketContent').html(content);
-                    $('#viewTicketModal').modal('show');
+                    var viewModal = new bootstrap.Modal(document.getElementById('viewTicketModal'));
+                    viewModal.show();
                 } else {
                     toastr.error('Erro ao carregar detalhes do ticket.');
                 }
@@ -354,6 +407,95 @@ $(document).ready(function() {
             }
         });
     }
+    
+    // Variável global para armazenar o ticket ID atual
+    var currentTicketIdPrioridadeTratamento = null;
+    
+    // Alterar Prioridade (apenas admins e tickets não reparados)
+    $(document).on('click', '.badge-prioridade-tratamento', function() {
+        var isAdmin = <?= session()->get('level') >= 8 ? 'true' : 'false' ?>;
+        
+        if (!isAdmin) {
+            toastr.warning('Apenas administradores podem alterar a prioridade.');
+            return;
+        }
+        
+        var estadoTicket = $(this).data('estado');
+        
+        if (estadoTicket === 'reparado') {
+            toastr.warning('Não é possível alterar a prioridade de um ticket já reparado.');
+            return;
+        }
+        
+        currentTicketIdPrioridadeTratamento = $(this).data('ticket-id');
+        var prioridadeAtual = $(this).data('prioridade');
+        
+        $('#nova_prioridade_tratamento').val(prioridadeAtual);
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalPrioridadeTratamento'));
+        modal.show();
+    });
+    
+    $('#btnSalvarPrioridadeTratamento').on('click', function() {
+        const novaPrioridade = $('#nova_prioridade_tratamento').val();
+        
+        if (!currentTicketIdPrioridadeTratamento) {
+            toastr.error('Erro: ID do ticket não encontrado.');
+            return;
+        }
+        
+        $.ajax({
+            url: '<?= site_url("tickets/updatePrioridade") ?>',
+            type: 'POST',
+            data: {
+                ticket_id: currentTicketIdPrioridadeTratamento,
+                prioridade: novaPrioridade
+            },
+            dataType: 'json',
+            beforeSend: function() {
+                $('#btnSalvarPrioridadeTratamento').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Salvando...');
+            },
+            success: function(response) {
+                console.log('Success response:', response);
+                
+                if (response.success) {
+                    const modalEl = document.getElementById('modalPrioridadeTratamento');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                    
+                    toastr.success(response.message || 'Prioridade atualizada com sucesso.');
+                    
+                    // Recarregar tabela
+                    table.ajax.reload(null, false);
+                    
+                    currentTicketIdPrioridadeTratamento = null;
+                } else {
+                    toastr.error(response.message || 'Erro ao atualizar prioridade.');
+                }
+            },
+            error: function(xhr) {
+                console.log('Error response:', xhr);
+                
+                const response = xhr.responseJSON;
+                let errorMsg = 'Erro ao atualizar prioridade.';
+                
+                if (response) {
+                    if (response.message) {
+                        errorMsg = response.message;
+                    } else if (response.messages && typeof response.messages === 'object') {
+                        errorMsg = Object.values(response.messages).join('<br>');
+                    } else if (response.messages) {
+                        errorMsg = response.messages;
+                    }
+                }
+                
+                toastr.error(errorMsg);
+            },
+            complete: function() {
+                $('#btnSalvarPrioridadeTratamento').prop('disabled', false).html('Salvar');
+            }
+        });
+    });
 });
 </script>
 <?= $this->endSection() ?>

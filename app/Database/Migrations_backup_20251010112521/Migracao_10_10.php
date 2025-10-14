@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Database\Migrations;
 
@@ -9,7 +9,7 @@ class CreateDatabaseTables extends Migration
     public function up()
     {
         /**
-         * USERS
+         * USERS (mantido como estava)
          */
     $this->forge->addField([
             'id' => [
@@ -77,9 +77,10 @@ class CreateDatabaseTables extends Migration
 
         /**
          * ESCOLAS
+         * agora id é unsigned para compatibilidade com FK em salas
          */
         $this->forge->addField([
-            'id'    => ['type' => 'INT', 'auto_increment' => true],
+            'id'    => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'auto_increment' => true],
             'nome'  => ['type' => 'VARCHAR', 'constraint' => 150],
             'morada'=> ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
         ]);
@@ -88,10 +89,11 @@ class CreateDatabaseTables extends Migration
 
         /**
          * SALAS
+         * id e escola_id agora unsigned
          */
         $this->forge->addField([
-            'id'         => ['type' => 'INT', 'auto_increment' => true],
-            'escola_id'  => ['type' => 'INT'],
+            'id'         => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'auto_increment' => true],
+            'escola_id'  => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true],
             'codigo_sala'=> ['type' => 'VARCHAR', 'constraint' => 50],
         ]);
         $this->forge->addKey('id', true);
@@ -102,35 +104,32 @@ class CreateDatabaseTables extends Migration
          * TIPOS DE EQUIPAMENTO
          */
         $this->forge->addField([
-    'id'        => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'auto_increment' => true],
-    'nome'      => ['type' => 'VARCHAR', 'constraint' => 255, 'unique' => true, 'null' => false],
-    'descricao' => ['type' => 'TEXT', 'null' => true],
-    'created_at'=> ['type' => 'DATETIME', 'null' => true],
-    'updated_at'=> ['type' => 'DATETIME', 'null' => true],
-    ]);
+            'id'        => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'auto_increment' => true],
+            'nome'      => ['type' => 'VARCHAR', 'constraint' => 255, 'unique' => true, 'null' => false],
+            'descricao' => ['type' => 'TEXT', 'null' => true],
+            'created_at'=> ['type' => 'DATETIME', 'null' => true],
+            'updated_at'=> ['type' => 'DATETIME', 'null' => true],
+        ]);
 
-        // 2. Definir a Chave Primária
-        $this->forge->addKey('id', true); // O segundo parâmetro 'true' define como chave primária
-
-        // 3. Criar a Tabela
+        $this->forge->addKey('id', true);
         $this->forge->createTable('tipos_equipamento');
 
         /**
          * EQUIPAMENTOS
+         * FK columns are unsigned to match referenced tables
          */
         $this->forge->addField([
-        'id'             => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'auto_increment' => true],
-        'sala_id'        => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'null' => true],
-        'tipo_id'        => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'null' => false],
-        'marca'          => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
-        'modelo'         => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
-        'numero_serie'   => ['type' => 'VARCHAR', 'constraint' => 255, 'unique' => true, 'null' => true],
-        'estado'         => ['type' => 'ENUM', 'constraint' => ['ativo', 'inativo', 'pendente'], 'default' => 'ativo', 'null' => false],
-        'data_aquisicao' => ['type' => 'DATE', 'null' => true],
-        'observacoes'    => ['type' => 'TEXT', 'null' => true],
-        'created_at'     => ['type' => 'DATETIME', 'null' => true],
-        'updated_at'     => ['type' => 'DATETIME', 'null' => true],
-
+            'id'             => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'auto_increment' => true],
+            'sala_id'        => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'null' => true],
+            'tipo_id'        => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'null' => false],
+            'marca'          => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
+            'modelo'         => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
+            'numero_serie'   => ['type' => 'VARCHAR', 'constraint' => 255, 'unique' => true, 'null' => true],
+            'estado'         => ['type' => 'ENUM', 'constraint' => ['ativo', 'inativo', 'pendente'], 'default' => 'ativo', 'null' => false],
+            'data_aquisicao' => ['type' => 'DATE', 'null' => true],
+            'observacoes'    => ['type' => 'TEXT', 'null' => true],
+            'created_at'     => ['type' => 'DATETIME', 'null' => true],
+            'updated_at'     => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('sala_id', 'salas', 'id', 'CASCADE', 'CASCADE');
@@ -151,14 +150,15 @@ class CreateDatabaseTables extends Migration
 
         /**
          * TICKETS
+         * FK cols unsigned to match referenced ids
          */
         $this->forge->addField([
-            'id'                => ['type' => 'INT', 'auto_increment' => true],
-            'equipamento_id'    => ['type' => 'INT', 'null' => false],
-            'sala_id'           => ['type' => 'INT', 'null' => false],
-            'tipo_avaria_id'    => ['type' => 'INT', 'null' => false],
-            'user_id'           => ['type' => 'INT', 'null' => false],
-            'atribuido_user_id' => ['type' => 'INT', 'null' => true],
+            'id'                => ['type' => 'INT', 'auto_increment' => true, 'unsigned' => true],
+            'equipamento_id'    => ['type' => 'INT', 'unsigned' => true, 'null' => false],
+            'sala_id'           => ['type' => 'INT', 'unsigned' => true, 'null' => false],
+            'tipo_avaria_id'    => ['type' => 'INT', 'unsigned' => true, 'null' => false],
+            'user_id'           => ['type' => 'INT', 'unsigned' => true, 'null' => false],
+            'atribuido_user_id' => ['type' => 'INT', 'unsigned' => true, 'null' => true],
             'ticket_aceite'     => ['type' => 'BOOLEAN', 'default' => false],
             'descricao'         => ['type' => 'TEXT', 'null' => false],
             'estado'            => [
@@ -188,23 +188,23 @@ class CreateDatabaseTables extends Migration
          * REGISTOS DE REPARAÇÃO
          */
         $this->forge->addField([
-            'id'             => ['type' => 'INT', 'auto_increment' => true],
-            'ticket_id'      => ['type' => 'INT'],
-            'user_id'     => ['type' => 'INT'],
+            'id'             => ['type' => 'INT', 'auto_increment' => true, 'unsigned' => true],
+            'ticket_id'      => ['type' => 'INT', 'unsigned' => true],
+            'user_id'        => ['type' => 'INT', 'unsigned' => true],
             'descricao'      => ['type' => 'TEXT', 'null' => true],
             'tempo_gasto_min'=> ['type' => 'INT', 'null' => true],
             'criado_em'      => ['type' => 'DATETIME'],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('ticket_id', 'tickets', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('user_id', 'user', 'id', 'CASCADE', 'CASCADE');    // Corrigido!
+        $this->forge->addForeignKey('user_id', 'user', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('registos_reparacao');
 
         /**
          * MATERIAIS
          */
         $this->forge->addField([
-            'id'          => ['type' => 'INT', 'auto_increment' => true],
+            'id'          => ['type' => 'INT', 'auto_increment' => true, 'unsigned' => true],
             'nome'        => ['type' => 'VARCHAR', 'constraint' => 150],
             'referencia'  => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
             'stock_atual' => ['type' => 'INT', 'default' => 0],
@@ -216,9 +216,9 @@ class CreateDatabaseTables extends Migration
          * MATERIAIS SUBSTITUIDOS
          */
         $this->forge->addField([
-            'id'         => ['type' => 'INT', 'auto_increment' => true],
-            'registo_id' => ['type' => 'INT'],
-            'material_id'=> ['type' => 'INT'],
+            'id'         => ['type' => 'INT', 'auto_increment' => true, 'unsigned' => true],
+            'registo_id' => ['type' => 'INT', 'unsigned' => true],
+            'material_id'=> ['type' => 'INT', 'unsigned' => true],
             'quantidade' => ['type' => 'INT', 'default' => 1],
         ]);
         $this->forge->addKey('id', true);
@@ -230,8 +230,8 @@ class CreateDatabaseTables extends Migration
          * LOGS DE ATIVIDADE (opcional)
          */
         $this->forge->addField([
-            'id'              => ['type' => 'INT', 'auto_increment' => true],
-            'user_id'         => ['type' => 'INT'],
+            'id'              => ['type' => 'INT', 'auto_increment' => true, 'unsigned' => true],
+            'user_id'         => ['type' => 'INT', 'unsigned' => true],
             'modulo'          => ['type' => 'VARCHAR', 'constraint' => 50],
             'acao'            => ['type' => 'VARCHAR', 'constraint' => 100],
             'registro_id'     => ['type' => 'VARCHAR', 'constraint' => 50, 'null' => true],
@@ -250,18 +250,17 @@ class CreateDatabaseTables extends Migration
 
     public function down()
     {
-        $this->forge->dropForeignKey('equipamentos', 'equipamentos_tipo_equipamento_id_foreign');
-        
-        $this->forge->dropTable('logs_atividade');
-        $this->forge->dropTable('materiais_substituidos');
-        $this->forge->dropTable('materiais');
-        $this->forge->dropTable('registos_reparacao');
-        $this->forge->dropTable('tickets');
-        $this->forge->dropTable('tipos_avaria');
-        $this->forge->dropTable('equipamentos');
-        $this->forge->dropTable('tipos_equipamento'); // Adiciona aqui!
-        $this->forge->dropTable('salas');
-        $this->forge->dropTable('escolas');
-    
+        // dropar na ordem inversa (garante remoção sem FK quebradas)
+        $this->forge->dropTable('logs_atividade', true);
+        $this->forge->dropTable('materiais_substituidos', true);
+        $this->forge->dropTable('materiais', true);
+        $this->forge->dropTable('registos_reparacao', true);
+        $this->forge->dropTable('tickets', true);
+        $this->forge->dropTable('tipos_avaria', true);
+        $this->forge->dropTable('equipamentos', true);
+        $this->forge->dropTable('tipos_equipamento', true);
+        $this->forge->dropTable('salas', true);
+        $this->forge->dropTable('escolas', true);
+        $this->forge->dropTable('user', true);
     }
 }
