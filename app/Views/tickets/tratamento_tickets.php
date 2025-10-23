@@ -190,47 +190,15 @@ $(document).ready(function() {
             { "data": 2 }, // Tipo de Avaria
             { "data": 3 }, // Descrição
             { 
-                "data": 4, // Estado
-                "render": function(data, type, row) {
-                    var estadoStyle = '';
-                    var estadoTexto = '';
-                    
-                    switch(data) {
-                        case 'novo':
-                            estadoStyle = 'background-color: #007bff; color: white;';
-                            estadoTexto = 'Novo';
-                            break;
-                        case 'em_resolucao':
-                            estadoStyle = 'background-color: #ffc107; color: #000;';
-                            estadoTexto = 'Em Resolução';
-                            break;
-                        case 'aguarda_peca':
-                            estadoStyle = 'background-color: #17a2b8; color: white;';
-                            estadoTexto = 'Aguarda Peça';
-                            break;
-                        case 'reparado':
-                            estadoStyle = 'background-color: #28a745; color: white;';
-                            estadoTexto = 'Reparado';
-                            break;
-                        case 'anulado':
-                            estadoStyle = 'background-color: #dc3545; color: white;';
-                            estadoTexto = 'Anulado';
-                            break;
-                        default:
-                            estadoStyle = 'background-color: #6c757d; color: white;';
-                            estadoTexto = data;
-                    }
-                    
-                    return '<span class="badge" style="' + estadoStyle + '">' + estadoTexto + '</span>';
-                }
+                "data": 4 // Estado (badge já vem formatado do servidor)
             },
             { 
                 "data": 5, // Prioridade
                 "render": function(data, type, row) {
                     var prioridadeStyle = '';
                     var prioridadeTexto = '';
-                    var ticketId = row[10]; // ID do ticket (última coluna, oculta)
-                    var estadoTicket = row[4]; // Estado do ticket
+                    var ticketId = row[10]; // ID do ticket
+                    var estadoCodigo = row[11]; // Código do estado (coluna oculta)
                     var isAdmin = <?= session()->get('level') >= 8 ? 'true' : 'false' ?>;
                     
                     switch(data) {
@@ -255,16 +223,20 @@ $(document).ready(function() {
                             prioridadeTexto = data;
                     }
                     
-                    var cursor = (isAdmin && estadoTicket !== 'reparado') ? 'cursor: pointer;' : '';
-                    var opacity = (estadoTicket === 'reparado') ? 'opacity: 0.7;' : '';
-                    var title = (isAdmin && estadoTicket !== 'reparado') 
+                    // Estados finais que não permitem alteração
+                    var estadosFinais = ['reparado', 'anulado'];
+                    var estadoFinal = estadosFinais.includes(estadoCodigo);
+                    
+                    var cursor = (isAdmin && !estadoFinal) ? 'cursor: pointer;' : '';
+                    var opacity = (estadoFinal) ? 'opacity: 0.7;' : '';
+                    var title = (isAdmin && !estadoFinal) 
                         ? 'Clique para alterar a prioridade' 
-                        : (estadoTicket === 'reparado' ? 'Não é possível alterar prioridade de ticket reparado' : '');
+                        : (estadoFinal ? 'Não é possível alterar prioridade de ticket finalizado' : '');
                     
                     return '<span class="badge badge-prioridade-tratamento" style="' + prioridadeStyle + ' ' + cursor + ' ' + opacity + '" ' +
                            'data-ticket-id="' + ticketId + '" ' +
                            'data-prioridade="' + data + '" ' +
-                           'data-estado="' + estadoTicket + '" ' +
+                           'data-estado="' + estadoCodigo + '" ' +
                            'title="' + title + '">' + prioridadeTexto + '</span>';
                 }
             },
@@ -277,6 +249,11 @@ $(document).ready(function() {
             },
             { 
                 "data": 10, // ID do ticket (coluna oculta)
+                "visible": false,
+                "searchable": false
+            },
+            { 
+                "data": 11, // Código do estado (coluna oculta)
                 "visible": false,
                 "searchable": false
             }

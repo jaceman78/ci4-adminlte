@@ -1,0 +1,656 @@
+Codigo;Abreviatura;Descritivo;tipologia
++ suc GD;+ su;+ suc GD;1
++ Suces Port;+ su;+ Sucesso Port;1
++ Sucess BG;+ su;+ Sucess BG;1
++ Sucess Fil;+ su;+ Sucess Fil;1
++ Sucess FQ;+ su;+ Sucess FQ;1
++ Sucess Geo;+ su;+ Sucess Geo;1
++ Sucess Hist;+ su;+ Sucesso Hist;1
++ Sucess Ing;+ su;+ Sucess Ing;1
++ Sucess Mat;+ su;+ Sucess Mat;1
++ Sucesso FR;+ su;+ Sucesso FR;1
++ Sucesso GD;+ su;+ Sucesso GD;1
++Sucess Hist;+ su;+Sucess Hist;1
++Sucesso;+ su;+Sucesso;1
++Sucesso_CN;+ su;+Sucesso_CN;1
+A. Apr. FR;A.Fr;Apoio Francês;1
+A.C.T2;A.C;A.C.T2;1
+A.E.C.;A.E;A.E.C.;1
+A.Integração;A.I;A.INTEGRAÇÃO;1
+A.V.D.;A.V;A.V.D.;1
+A_Comp;AC;A.C.;1
+A_Int;AI;Area Int;1
+ACAD.ELET.;ACA;ACAD.ELET.;1
+ACP;ACP;ATIV. CAPACIT.;1
+Adj Dir;Adj;Adj Direção;1
+AE  FQ;APA;APA FQ;1
+AE Biol.;AE;AE BioGeo;1
+AE CN;APA;APA CN;1
+AE E.V.;AE;AE E.V.;1
+AE Econ.;APA;APA Econ.;1
+AE Fil.;AE;AE Fil.;1
+AE Física;AE F;AE Física;1
+AE FQA;APA;APA FQA;1
+AE FR;APA;APA FR;1
+AE GDA;APA;APA GDA;1
+AE Geo;APA;APA Geo;1
+AE Hist;APA;APA Hist;1
+AE Ing;APA;APA Ing;1
+AE Macs;APA;APA Macs;1
+AE MAT;APA;APA MAT;1
+AE Port.;APA;APA Port.;1
+AEC_AFD;AEC;AEC_AFD;1
+AEC_DANÇA;AEC;AEC_DANÇA;1
+AEC_INGLÊS;AEC;AEC_INGLÊS;1
+AEC_IOGA;AEC;AEC_IOGA;1
+AEC_JUDO;AEC;AEC_JUDO;1
+AEC_TEATRO;AEC;AEC_TEATRO;1
+AI Bio;APA;AI_Bio;1
+AI CN;APA;AI_CN;1
+AI Econ;APA;AI_Econ;1
+AI EV;APA;AI_EV;1
+AI Filos;APA;AI_Filos;1
+AI FQ;APA;AI FQ;1
+AI Franc;AI F;AI Franc;1
+AI GD;APA;AI GD;1
+AI Geo;APA;AI Geo;1
+AI HCA;APA;AI HCA;1
+AI Hist;AI H;AI Hist;1
+AI Ing;APA;AI Ing;1
+AI Macs;AI;AI_Macs;1
+AI Mat;Apa;AI Mat;1
+AI P.S.I.;AI;AI PSI;1
+AI Port;APA;AI Port;1
+AI Psi;AI P;AI_Psi;1
+Alemão;Ale;Alemão;1
+aLer+;aLer;aLer+;1
+Amamentação;Ama;Amamentação;2
+AN2;AN2;AN2;2
+Ap EE 1AJ;Apoi;Apoio DL54_;1
+Ap EE 2AJ;Apoi;Apoio DL54_ 2AJ;1
+Ap EE 3 AJ;Apoi;Ap DL 54_3 AJ;1
+Ap EE 4AJ;Apoi;Ap DL 54 4AJ;1
+Ap EE AJ;Apoi;Ap DL54_Pré AJ;1
+Ap EE Pré;EE;Ap EE Pré;2
+AP PROF;AP P;AP PROF;2
+Ap. EdEsp;ApEE;Apoio EdEsp;1
+Ap. Educ.;Apoi;Apoio Educat;1
+Ap. EST;Ap.;Ap. EST;1
+Ap. Est.;A.E.;Apoio Estudo;0
+Ap. Inl.1.ºC;Ap.;Ap. Inl. 1.ºC;0
+Ap. VAE;Ap.;Ap. VAE;1
+Ap.EdEsp;Ap.E;Ap.EdEsp;0
+Ap.PLNM;PLNM;Apoio PLNM;1
+Ap/Coad_M;Ap/C;Ap/Coad M;1
+Ap/Coad_P;Ap/C;Ap/Coad_P;1
+AP_5B;AP5B;Apoio 5B;2
+AP_6B;A_6B;AP_6B;2
+AP5A;AP5A;AP5A;0
+APC_1C;APC;APC_1C;1
+Apl_InfB;Apl;Aplic. Inf.;1
+Aplic Inf B;AIB;Aplic Inf B;0
+Aplic. Inf.A;Apl;Aplic. Inf.A;1
+Aplic.Inf.T1;Apl;Aplic.Inf.T1;1
+Aplic.Inf.T2;Apl;Aplic.Inf.T2;1
+Apoio;Apo;Apoio;1
+APOIO 5D;APOI;APOIO 5D;0
+APOIO 6A;APOI;APOIO 6A;0
+APOIO 6C;APOI;APOIO 6C;0
+APOIO 7_E;APOI;APOIO 7_E;0
+APOIO 7E;APOI;APOIO 7E;0
+Apoio 7ºA;Apo;Apoio 7ºA;1
+Apoio 7ºB;Apo;Apoio 7ºB;1
+Apoio 7ºC;Apo;Apoio 7ºC;2
+Apoio 7ºD;Apo;Apoio7D;2
+Apoio 7ºE;Apo;Apoio7E;2
+Apoio 7ºF;Apo;Apoio 7ºF;2
+Apoio 8B;Apoi;Apoio 8B;0
+APOIO 8C;APOI;APOIO 8C;0
+APOIO 8E;APOI;APOIO 8E;0
+Apoio 8ºA;Apo;Apoio8ºA;1
+Apoio 8ºC;Apo;Apoio8C;2
+Apoio 8ºD;Apo;Apoio 8ºD;1
+Apoio 8ºE;Apo;Apoio8ºE;1
+Apoio 8ºF;Apo;Apoio8ºF;1
+Apoio 8ºH;Apo;Apoio 8ºH;1
+APOIO 9B;APOI;APOIO 9B;0
+APOIO 9F;APOI;APOIO 9F;0
+Apoio 9ºA;Apo;Apoio 9ºA;1
+Apoio 9ºB;Apo;Apoio 9ºB;1
+Apoio 9ºC;Apo;Apoio 9ºC;1
+Apoio Adm.;AAdm;Apoio Adm.;2
+Apoio BME;Apo;Apoio BME;2
+Apoio Dir.;Apoi;Apoio Dir;1
+Apoio DL54;Apoi;Apoio DL54;2
+Apoio Ed.;ApEd;Apoio Educat.;0
+Apoio EV;Apoi;Apoio EV;1
+Apoio Exames;A.Ex;Apoio Exames;2
+Apoio FQ;Apoi;Apoio FQ;1
+Apoio Online;Anet;Apoio Online;1
+Apoio T1;Apo;Apoio T1;1
+Apoio T2;Apo;Apoio T2;1
+apoio_bio;apo;apoio_bio;0
+Apoio_Eco;Apoi;Apoio_Eco;1
+Apoio_ET;Apoi;Apoio_ET;0
+Apoio_Fis;Apoi;Apoio_Fis;1
+Apoio_GAAF;Apoi;Apoio_GAAF;2
+Apoio_Geog;Apo;Apoio_Geo;1
+Apoio_Inf;Apo;Apoio_Inf;2
+apoio_PLNM;ap;apoio_PLNM;2
+Apoio8E;Apo;Apoio8E;2
+Apoio9A;Apo;Apoio9A;2
+ApoioBME;Apo;ApoioBME;2
+Area de Int;Are;Area de Int;1
+Áreas-Cont.;A.C.;Áreas-Conteúdo;1
+Àreas Cont;AC;Àreas conteúdo;0
+Art. 79 Proj;Art.;Art. 79 Proj;1
+Art.79º-VAE;Art.;Art.79º-VAE;1
+ARTEMAT;AMAT;ARTEMAT;2
+Artigo79;Art;Artº79;2
+Artº79;Artº;Artº79;2
+Ass.Direção;Ass;Ass.Direção;2
+At. CerAzul;At.;At. CerAzul;1
+At. Exp.;A.E.;Atividades Exp.;0
+At. F.M.;AFM;At. Fisioco Moto;0
+ATE;ATE;ATE;1
+Atend/EE;Ate;Atend/EE;2
+Av Interna;AI;Av Interna;1
+Av.Interna;Av.;Av.Interna;2
+Avaliação;Ava;Avaliação;2
+B M E;B M;B M E;2
+B.M.E.;B.M;B.M.E.;2
+BE-JA;BE;BE-JA;1
+BE Miratejo;BE M;BE Miratejo;1
+BE NAP;BE;BE NAP;1
+BG;Bio;Bio. Geo.;1
+Biblioteca;Bibl;Biblioteca;1
+Bio. Geo. CT;Bio;Bio. Geo. CT;1
+Bio.Geo.CtT1;Bio;Bio.Geo.CtT1;1
+Bio.Geo.CtT2;Bio;Bio.Geo.CtT2;1
+Bio.Geo.T1;Bio;Bio.Geo.T1;1
+Bio.Geo.T2;Bio;Bio.Geo.T2;1
+Biol;Bio;Biologia;1
+Biologia T1;Bio;Biologia T1;1
+Biologia T2;Bio;Biologia T2;1
+BME;BME;BME;1
+BOCCIA;BOCC;BOCCIA;2
+Boccia 1ºC;Bocc;Boccia 1ºC;2
+BRAÇOS ABER;BA;BRAÇOS ABER;2
+C EScriativa;EScr;EScriativa;0
+C RADIO;C RA;C RADIO;2
+C. ESPANHOL;CESP;C. ESPANHOL;2
+C_Dad;Com;Com. Dados;1
+CAA JB;CAA;CAA JB;2
+CFDAN;CFD;CFDAN;1
+CFQ;CFQ;FQ;1
+CID_MA;CID;CID&MA;1
+Cid_Sec;Ci_S;Cid_Sec;1
+Cid2;Cid2;C&D;1
+Cid3;Cid3;CiD;1
+CL Art Ter;CL A;CL Art Ter;2
+CL CineMira;CL C;CineMira Cl Cin;2
+Cl Dança;Cl D;Cl Dança;1
+Cl Línguas;Club;Clube Línguas;2
+Cl. Musica;Cl.;Cl. Musica;1
+CL_Vigil.;CL_V;CL_Vigilância;1
+Clave JB;Cla;Clave JB;2
+Club CerAzul;Club;Club CerAzul;1
+Club Eletro;Clu;Clube Electro;2
+Clube Alemão;Clu;Clube Alemão;2
+Clube DIMA;DIM;Clube DIMA;2
+Clube Fran.;Club;Clube Frances;2
+Clube Geo;Club;Clube Geologia;1
+Clube Inf;CI;Clube Inf;1
+Clube LIvro;Clu;Clube LIvro;2
+Clube Mate;Club;Clube Mate;1
+Clube ProCiv;Club;Clube Pro. Civ;2
+Clube Rob;Club;Clube Rob;1
+Clube RSCS;Club;Clube RSCS;2
+Clube Saúde;Clu;Clube Saúde;2
+Clube SOS;Clu;Clube SOS;2
+Clube Teatro;Clu;Clube Teatro;2
+Clube Xadrez;Clu;Clube Xadrez;2
+clubeaero;ca;Clube de Aeromod;2
+ClubedImagem;Club;ClubedImagem;1
+CMA;CMA;C.M.A.;0
+CN;CN;CN;1
+CN CALT;CN;CN CALT;0
+CN T1;CN;CN T1;1
+CN T2;CN;CN T2;0
+CN/CFQ;CN/;CN/CFQ;1
+CN2;CN2;CN;1
+CNA;CNA;CNA;1
+CNL;CNL;CNL;2
+CNS;CNT;CNT1;0
+Co CD;Co C;Co CD;1
+Co Estab;Co E;Co Estab;1
+CO JB@COLHE;CO J;CO JB@COLHE;2
+Co PLNM;Co P;Co PLNM;1
+Co Secção;Coo;Coord. Sec.;1
+Co. EDC;Co.;Co. EDC;1
+Co. Projetos;Co.;Co. Projetos;1
+Co. PTE;Co.;Co. PTE;1
+Co.CultSab.;Co.;Co. Cult.Sab.;1
+CO_AI;C_AI;CO_AI;2
+coadj;coa;coadj;0
+Coadj10D;Coa;Coadj10D;0
+Coadj7C;Coa;Coadj7C;0
+Coadj7E;Coa;Coadj7E;0
+Coadj8F;Coa;Coadj8F;0
+coadjuv;coa;coadjuv.;0
+Coadjuv.;Coa;Coadjuv.;2
+COCURSOTEA;CTEA;COCURSOTEA;2
+COM DADOS T1;COM;COM DADOS T1;1
+COM DADOS T2;COM;COM DADOS T2;1
+Comp.Letiva;CL;Comp.Letiva;2
+Cond Físic;Saú;Condição Física;2
+ConsGeral;Con;ConsGeral;2
+Contar e...;Cont;Contar e...;1
+COO_EMAEI;EMAE;COO_EMAEI;2
+COOD CID EMR;COOD;COOD CID EMR;2
+COOD EMRC;COOD;COOD EMRC;2
+Coor. ATE;Coo;Coord. A.T.E:;2
+Coor. D.Esc.;Coo;Coor. D.Esc.;2
+coord Bib.;coor;coord Bib.;1
+Coord CTE;Coor;Coord CTE;1
+Coord DT;Coo;Coord DT;2
+Coord Ecosol;Coo;Coord Ecosol;2
+Coord. cid;Coor;Coord. cid;2
+Coord. CTT;Coor;Coord. CTT;1
+Coord.Av.Int;Coo;Coord.Av.Int;2
+Coord.C.E.F.;Coo;Coord. C.E.F.;2
+Coord.C.Prof;Coo;Coord.C.Prof;2
+Coord.Dep.;Coo;Coord Dep.;1
+Coord.PES;Coo;Coo.E.Saude;2
+Coord.Voc;Coo;Coord.Voc;2
+Coord+TJMCCR;Coo;Coord +T JMCCR;2
+CoordClubLín;Coo;Coord.Club.Lín;2
+CoordHST;Coo;CoordHST;2
+Cos Cria;Cos;Cos Cria;1
+Cos. Criat;Cos.;Cos. Criat;2
+CPC;CPC;CPC;2
+CPCJ;CPCJ;CPCJ;2
+CR DA LEITURA;CRLE;CR DA LEITURA;2
+Crédito;Cré;Crédito;2
+CTE;CTE;Apoio CTE;1
+Dança;Danç;Dança;1
+DANÇA_1C;DANÇ;DANÇA_1C;2
+DANÇA_VAE;DANÇ;DANÇA_VAE;0
+DE ACT RITM;DE A;DE ACT RITM;2
+DE ATLET;DE A;DE ATLET;2
+DE Basquetebol;DE B;DE Basquetebol;1
+DE Boccia;DE B;DE Boccia;1
+DE CAN;DE C;DE CAN;1
+DE Comunidade;DE C;DE Comunidade;1
+DE E. Ativa;E.A.;DE E. Ativa;1
+DE Futsal;DE F;DE Futsal;1
+DE Ginastica;DE G;DE Ginastica;1
+DE MultM;DE M;DE MultM;1
+DE Natação;Nat;DE Natação;1
+DE S Rodas;SRod;DE Sobre Rodas;1
+DE VOL F;DE V;DE VOL F;1
+DE VOL M;DE V;DE VOL M;1
+Del Sindical;Del;Del Sindical;1
+Des_A;Des;Desenho A;1
+Desenho A T1;Des;Desenho A T1;1
+Desenho A T2;Des;Desenho A T2;1
+Deslocação;des;Deslocação;2
+Desp. Esc.;Des;DE;1
+DG_A;DGD;DGD A;1
+DGD B;DGD;DGD B;1
+Dinamiz AI;Din;Dinamizador AI;2
+Dir. C. Pr.;Dir;Dir. C. Prof.;2
+Dir.Inst.;Dir;Dir.Inst.;2
+Direção;Dir;Direcção;2
+Diretor;Dire;Diretor;2
+DPSL;DPSL;DPSL;1
+Dramaturgia;Dram;Dramaturgia;1
+DT;DT;DT;3
+DT-Tut;DT-T;DT Tut;1
+DT EE;DT E;DT EE;1
+E. M. p/ I.;E.;Equipa M. p/ I.;2
+E.C.E.S.T1;E.C;E.C.E.S.T1;0
+E.C.E.S.T2;E.C;E.C.E.S.T2;0
+E.FUND T1;E.F;E.FUND T1;1
+E.FUND T2;EFU;EFUND T2;1
+E_Fun;EFun;E.Fund;1
+E360;E360;E360;2
+EB Unidade;EB U;EB Unidade;1
+Econ_A;ECO;Econ A;1
+Econ_C;Eco;Economia C;0
+Economia;Eco;Economia;1
+Ecosol;Eco;Ecosol;2
+Ed. Artis.;E.A.;Ed. Artis.;0
+Ed. Física;Ed.;Ed. Física;0
+Ed.Fis.;Ed.F;Ed.Fis. 1ºC;0
+Ed.Físi;Ed.F;Ed.Fís.;0
+Ed.Saude;Sau;Ed.Saude;2
+Ed_Fis;Ed.;Ed. Física;1
+EDF;EDF;EDF;1
+EDM;EDM;EDM;1
+Educ. Tecn.;Edu;Educ. Tecn;1
+Educ. Visual;Edu;Educ. Visual;1
+Educação Esp;Edu;Educação Esp;1
+EducSaúde;Edu;EducSaúde;2
+EDV;EDV;EV;1
+EE 1CEB;EE1C;EE 1CEB;0
+EF;EF;EF;1
+EF Funcional;EF F;EF Funcional;2
+Eletr;Ele;Electr;1
+Eletr T1;Ele;Eletr T1;0
+Eletr T2;Ele;Eletr T2;0
+EMAEI;EMAE;EMAEI;1
+Emp_ADCL;Emp_;Emp_ADCL;1
+EMR;EMR;EMR;1
+EMRC;EMR;EMRC;1
+EMRE;Emr;Emre8ºD;1
+Ens.Esp.;Ens.;Ens.Esp.;1
+Ens.Especial;Ens;Ens.Especial;2
+EPIS - JA;EPIS;EPIS - JA;1
+EPIS - M;EPIS;EPIS - M;1
+EPIS - NAP;EPIS;EPIS - NAP;1
+EqPed 10;E.Pe;EqPed 10;2
+EqPed 11;E.Pe;EqPed 11;2
+EqPed 5;E.Pe;EqPed 5;1
+EqPed 6;E.Pe;EqPed 6;1
+EqPed 7;E.Pe;EqPed 7;2
+EqPed 8;E.Pe;EqPed 8;2
+Erasmus;Eras;Erasmus;2
+Escola Dig.;Digi;Escola Digital;2
+EScriativa;EScr;EScriativa;2
+Espanhol 3c;Espa;Espanhol 3c;1
+Espanhol sec;Espa;Espanhol sec;1
+Estudo Meio;E.M.;Estudo Meio;0
+ET2;ET2;ET;1
+ET3;ET3;ET;0
+EV2;EV2;EV;1
+Exp. Art.;E.A.;Exp. Artísticas;0
+Filos;Fil;Filosofia;1
+Filosofia A;Fil;Filosofia A;1
+Fis;Fis;Física;1
+Fís. Quim. A;Fís;Fís. Quim. A;1
+Fís. Quimica;Fís;Física Quimi;1
+FQ;FQ;FQ;1
+FQ A Ct;FQ;FQ A Ct;1
+FQ A IN;Fís;Fís. Quim IN;1
+FQ A T1;Fq;Fq A T1;1
+FQ A T2;FQ;FQ A T2;1
+FQ T1;FQ;FQ T1;1
+FQ T2;FQ;FQ T2;1
+FQ_A;FQ;FQ;1
+FQT1;FQ;FQ T1;1
+FQT2;FQ;FQ T2;0
+FQU;FQ;FQ;1
+FR ESP.;FRA;FRANCÊS ESP.;0
+FR INI;FR;FR INI;0
+Fr. Esp T1;Fr.;Fr. Esp T1;0
+Fr. Esp T2;Fr.;Fr. Esp T2;0
+FRA ESP INI;FRA;FRA ESP INI;1
+Fran_cnt;Fra;Francês;1
+Franc CEI;Fra;Franc CEI;0
+Francês S.;Fra;Francês S.;0
+Francês T1;Fra;Francês T1;1
+Francês T2;Fra;Francês T2;1
+FrancêsT1;Fra;FrancêsT1;0
+FrancêsT2;Fra;FrancêsT2;0
+FRC2;FRC2;Francês;0
+FrGHR;FrGH;FrGHR;1
+GD_A;GD;GD A;1
+GDA CONT;GDA;GDA CONT;1
+GDA INIC;GDA;GDA INIC;1
+GDA T1;GDA;GDA T1;0
+GDA T2;GDA;GDA T2;0
+GEO A CONT;GEO;GEO A CONT;1
+GEO A INIC;GEO;GEO A INIC;1
+Geo_C;GEO;GEO C;1
+Geog_A;GEO;Geog A;1
+Geografia S.;Geo;Geografia Sem.;0
+Geologia;GEO;GEOLOGIA;1
+Geologia T1;GEO;GEOLOGIA T1;1
+Geologia T2;GEO;GEOLOGIA T2;1
+GGF;GGF;Geo;0
+GIP;GIP;GIP;2
+GMP;GMP;GMP;1
+Grammar;Gra;Grammar;1
+H.S.S.T.;H.S;H.S.S.T.;0
+H.S.T;HST;HST;2
+HCA;HCA;HCA;1
+HGP;HGP;HGP;1
+Hist;HIS;Hist A;1
+Hist B;Hist;Hist B;1
+História;HIS;HISTÓRIA;1
+História S.;His;História Sem;0
+Horta EB23;Hor;Horta EB23;2
+HSST;HSD;HST;2
+HST;HST;História;0
+I.M.E.E.T1;I.M;I.M.E.E.T1;0
+I.M.E.E.T2;I.M;I.M.E.E.T2;0
+I.M.R.C.T1;I.M;I.M.R.C.T1;0
+I.M.R.C.T2;I.M;I.M.R.C.T2;0
+IG;ING;Inglês;1
+IMEI;IME;IMEI;1
+IMEI  T1;IME;IMEI  T1;0
+IMEI  T2;IME;IMEI  T2;0
+IMEI T1;IME;IMEI T1;1
+IMEI T2;IME;IMEI T2;1
+ING;ING;ING;1
+Ing 1ºC;Ing;Inglês 1ºC;0
+ING ESP;ING;ING ESP;0
+Ing_DL54;Ing;Ing_DL54;0
+ING1;ING1;ING;1
+IngGHR;IngG;IngGHR;1
+Inglês;ING;INGLÊS;1
+Inglês S.;Ing;Inglês S.;0
+Interpret;Inte;Interpretação;0
+JA Boccia;JA B;JA Boccia;1
+JB@colhe;JB@c;JB@colhe;2
+JB@COLHE_5D;JB@C;JB@COLHE_5D;2
+JB@COLHE_7B;JB@C;JB@COLHE_7B;2
+JB@COLHE_8C;JB@C;JB@COLHE_8C;2
+JB@COLHE_8D;JB@C;JB@COLHE_8D;2
+JMP/E360;JMP/;JMP/E360;1
+Jogos Mat;Jogo;Jogos Mat;1
+Judo;Judo;Judo;1
+L Port;LP;L. Port.;1
+L. PROG T1;L.;L. PROG.;1
+L. PROG T2;L.;L. PROG T2;1
+LE_Ing;LE_I;Inglês;1
+LPROG;LP;LP;0
+M.A.C.S. CEI;M.A;M.A.C.S. CEI;0
+M.E.I.S.T1;M.E;M.E.I.S.T1;0
+M.E.I.S.T2;M.E;M.E.I.S.T2;0
+MACS;MAC;MACS;1
+MADEIRA_CRIA;MADE;MAD_CRIA;0
+Mais Sucesso;Mais;Mais Sucesso;1
+Man PC;Man;Man PC;1
+MAT;MAT;MAT;1
+Mat_A;MAT;Mat A;1
+Mat_DL54;Mat;Mat_DL54;1
+Matem. 1ºC;Mat.;Matemática 1ºC;0
+Matemática;MAT;MATEMÁTICA;1
+Matemática B;MAT;MATEMÁTICA B;1
+MatGHR;MatG;MatGHR;1
+Mentorias;Ment;Mentorias;2
+Mir@colhe;Mir@;Mir@colhe;2
+MIRA Boccia;MIRA;MIRA Boccia;1
+Moodle;Moo;Moodle;2
+MOVIMENTO;MOVI;MOVIMENTO;0
+Mús VAE JA;VAE;Música VAE JA;1
+Mús VAE M;VAE;Mús VAE M;1
+Mús VAE NAP;VAE;Mús VAE NAP;1
+Música 4AJ;MAJ;Música 4AJ;1
+Música 4AM;M4AM;Música 4AM;1
+Música 4AN;M4AN;Música 4AN;1
+Música 4BM;M4BM;Música 4BM;1
+Música 4BN;M4BN;Música 4BN;1
+Música 4CM;M4CM;Música 4CM;1
+Não Let;NL;Não Letiva;1
+Não Letiva;NL;Não Letiva;1
+O_COLI;O_CO;O_COL;2
+Ocupação;Ocu;Ocupação;2
+Ocupacão_2;ocu;ocupacão;2
+Of Cos;Of C;Of. Cos;1
+Of Cul;Of C;Of. Cul;1
+Of Hort;Of H;Of. Hort;1
+Of Ing;Of I;Of. Ing;1
+Of Man;Of M;Of. Man;1
+Of Mus VAE;Of M;Of Mus VAE;1
+OF. ARTES;ARTE;OF. ARTES;2
+OF. COL;COL;OF. CLINARIA;2
+Of. Imagem;Of.;Of. Imagem;1
+OF.ARTES;OF.A;OF.ARTES;0
+Of.CTEM;Of.C;Of.CTEM;2
+Of.Form. Ing;Of.;Of.Form. Ing;1
+OF.TEC;OF.T;OF.TEC;0
+Of_Artes;Ofi;Of. Artes;1
+OF_CULINARIA;OF_C;OF_CULINARIA;2
+Of_MultB;Ofi;Of. Mult;1
+Of_Multim;Of_M;Of_Multim;1
+OFARTE;ARTE;OFARTE;0
+OFARTE_JA;OFAR;OFARTE_JA;0
+OFARTE_MIR;OFAR;OFARTE_MIR;0
+Oficina CN;Ofic;Oficina CN;2
+Oficina Imag;OI;Oficina Imagem;2
+Oficina Musi;Ofic;Oficina Musica;2
+OficManEB23;Ofi;OficManutEB23;2
+OfMult;OfMu;OfMult;1
+Or. de Est;Ori;Orient. de Est.;2
+Orien. Estag;Orie;Orien. Estag;1
+Orien. PAP;Orie;Orien. PAP;1
+P. Alta Mente;P.;P. Alta Mente;2
+P. Esc.-Empr.;Esc;Pr. Esc.-Empresa;2
+P. LED;P. L;P. LED;2
+P. REC. AP.;P. R;P. REC. AP.;2
+P. UBUNTO;P. U;P. UBUNTO;2
+P.E.V.S.;P.E.;P.E.V.S.;2
+P.S.I.T1;P.S;P.S.I.T1;0
+P.S.I.T2;P.S;P.S.I.T2;0
+PAA;PAA;Plano Anual Ativ;2
+Pag. Int.;Pag.;Pag. Int.;1
+PAP_Estag;PAP_;PAP_Estag;1
+Parceria;Parc;Parceria;1
+PC Repair;PC;PC Repair;2
+PES;PES;PES;2
+PEVS;PEVS;PEVS;1
+Pg Escola;Pg;Pg Escola;2
+PHS;PHS;P HIGIENE SEGURA;2
+Plano Tec;Plan;Plano Tec;2
+Plat SIGO;Plat;Plat SIGO;2
+PLeitura 14/20;PLei;PLeitura 14/20;2
+PLNM;PLN;PLNM;1
+PLNM 1.ºC;PLNM;PLNM 1.ºC;1
+PLNM A1;PLN;PLNM A1;1
+PLNM A2;PLN;PLNM;1
+PLNM B1;PLN;PLNM B1;1
+PLNM B2;PLN;PLNM B2;1
+PLNM G1;PLNM;PLNM G1;1
+PLNM G2;PLNM;PLNM G2;1
+PNA;PNA;PNA;2
+PNC;PNC;PNC;2
+POR;POR;Port;1
+PORT;PORT;PORT;1
+Port_DL54;Por;Port_DL54;0
+Port2;Port;Port;1
+Português 1ºC;Port;Português 1ºC;0
+Pr Apoios;Pr A;Pr Apoios;2
+Pr Esp Verde;Hor;Pr Esp Verde;2
+Pr. At. Int.;AInt;Pr. At Int.;1
+Pr. D;PrD;Pr. Discipl;2
+Pr. DE;P DE;Pre Atv DE;1
+Prep Laborat;Pre;Prep Lab CNBio;2
+Prep Med.;Prep;Prep. Medicina;2
+Prep. AExp.;Prep;Prep. AExp.;1
+Pres C Geral;Pre;Pres. C. Geral;2
+Proc Discipl;Pro;Proc. Discipl.;2
+Proc. Disc.;Proc;Proc. Disc.;1
+Prof Reu;Prof;Prof Reu;1
+Prof TI;Prof;Prof TI;1
+Prog_Rob;Prog;Prog_Rob;1
+Proj Despen;Proj;Proj Despen;1
+Proj Educ;PE;Projeto Educativ;2
+Proj EscFixe;Proj;Proj EscFixe;1
+Proj Hist;Proj;Proj Hist;1
+Proj IntCult;Proj;Proj IntCult;1
+Proj Ler+Jov;Proj;Proj Ler+Jov;2
+Proj Recant;Proj;Proj Recant;2
+Proj. EC;Proj;Proj. EC;1
+Proj. EF;Prof;Proj. EF;1
+Proj. MAT;Proj;Proj. MAT;1
+Proj.EMA;Pro;Proj.EMA;2
+Proj.S.VE;Pro;Proj.S.VE;2
+Projeto EC;Proj;Projeto EC;0
+ProjRato;Pro;ProjRato;2
+Psic Edu;Psic;Psicologia Edu;2
+Psic_B;PSI;PSI B;1
+Psicologia;Psi;Psicologia;1
+Psicomot;Pmot;Psicomotricidade;2
+PSInf;PSIn;PSInf;1
+PTE;PTE;PTE;1
+Química;QUÍ;QUÍMICA;1
+Química 12A;Quí;Química 12A;0
+Química 12AB;Quí;Química 12AB;0
+Química 12B;Quí;Química 12B;0
+QUÍMICA T1;QQU;QQUÍMICA T1;1
+QUÍMICA T2;QUÍ;QUÍMICA T2;1
+R_Com;RC;RCom;1
+Rádio EB;RadE;Rádio EB;2
+Rádio JB;Rád;Rádio JB;2
+RC T2;RC;RC T2;0
+REG. INTERNO;R.I.;REG. INTERNO;2
+Rep Disc;Rep;Rep Disc;1
+S.O.T1;S.O;S. O;1
+S.O.t2;S.O;S.O.t2;0
+S_Op;Sis;Sist. Op.;1
+Sala Estudo;Sala;Sala de Estudo;2
+SDAC;SDA;SDAC;1
+SDAC T1;SDA;SDAC T1;1
+SDAC T2;SDA;SDAC T2;1
+Sec. Exames;Exam;Sec. Exames;2
+Segurança;Seg;Segurança;2
+SIGHO;SIG;SIGHO;2
+SOS Gramar;SOS;SOS Gramar;1
+SSD;SSD;SSD;2
+SubDiretor;SubD;SubDiretor;1
+Superv;Supe;Superv;1
+SVE;SVE;SVE;1
+TE-BME;TE-;TE-BME;2
+TE-VAE;TE-V;TE-VAE;0
+TE-VAE JB;TE-V;TE-VAE JB;1
+TE Av. Int.;TE;TE Av. Int.;2
+Tea_Tea;Tea&;Tea&Tea;1
+Teat;Teat;Teatro;1
+Teatro;TEA;TEATRO;1
+Tec Manut;Tec;Tec Manut Voc;1
+Tec. Inf. T1;Tec;Tec. Inf. T1;1
+Tec. Inf. T2;Tec;Tec. Inf. T2;1
+Texteis;Tex;Texteis;1
+TIC;TIC;TIC;1
+TIC_7C;TIC_;TIC_7C;2
+TIC_CR;TIC_;TIC_CR;0
+TP/CMA;TP/C;TP/CMA;0
+Trab. Indiv.;TI;Trabalho Indiv;1
+Treino_TP;Trei;Treino_TP;1
+Turma Piloto;Turm;Turma Piloto;1
+Tutoria;Tut;Tutoria;1
+VAE;VAE;Apoio - VAE;0
+VAE JB;VAE;VAE JB;1
+VIDA+;VIDA;VIDA+;2
+VIVAFIT;VVFI;VIVAFIT;2
+Voz;Voz;Voz;0
+W LAB Biol;Ap B;WL Bio;2
+W. LAB  Fr;Ap F;WL FR;2
+W. LAB CN;WLCN;WL CN;2
+W. LAB Eco;WLEC;WL ECO;2
+W. LAB EV;WLEV;WL EV;2
+W. LAB Fil;WLFI;WL FIL;2
+W. LAB FQ;WLFQ;WL FQ;2
+W. LAB GD;WLGD;WL GD;2
+W. LAB Geo;WLGE;WL GEO;2
+W. LAB Hist;WLHS;WL HIST;2
+W. LAB Ing;WLIN;WL ING;2
+W. LAB MACS;WLMC;WL MACS;2
+W. LAB Mat;WLMT;WL MAT;2
+W. LAB Port;WLPT;WL PORT;2
+W.LAB EV;W.LA;W.LAB EV;2
+WorkLab;Work;WorkLab;2
+WTE;WTE;WTE;2

@@ -204,47 +204,16 @@ $(document).ready(function() {
             { "data": 2 }, // Tipo de Avaria
             { "data": 3 }, // Descrição
             { 
-                "data": 4, // Estado
-                "render": function(data, type, row) {
-                    var estadoStyle = '';
-                    var estadoTexto = '';
-                    
-                    switch(data) {
-                        case 'novo':
-                            estadoStyle = 'background-color: #007bff; color: white;';
-                            estadoTexto = 'Novo';
-                            break;
-                        case 'em_resolucao':
-                            estadoStyle = 'background-color: #ffc107; color: #000;';
-                            estadoTexto = 'Em Resolução';
-                            break;
-                        case 'aguarda_peca':
-                            estadoStyle = 'background-color: #17a2b8; color: white;';
-                            estadoTexto = 'Aguarda Peça';
-                            break;
-                        case 'reparado':
-                            estadoStyle = 'background-color: #28a745; color: white;';
-                            estadoTexto = 'Reparado';
-                            break;
-                        case 'anulado':
-                            estadoStyle = 'background-color: #dc3545; color: white;';
-                            estadoTexto = 'Anulado';
-                            break;
-                        default:
-                            estadoStyle = 'background-color: #6c757d; color: white;';
-                            estadoTexto = data;
-                    }
-                    
-                    return '<span class="badge" style="' + estadoStyle + '">' + estadoTexto + '</span>';
-                }
+                "data": 4 // Estado (badge já vem formatado do servidor)
             },
             { 
                 "data": 5, // Prioridade
                 "render": function(data, type, row) {
                     var badgeStyle = '';
                     var prioridadeTexto = '';
-                    var ticketId = row[9]; // ID do ticket (última coluna, oculta)
-                    var estadoTicket = row[4]; // Estado do ticket
+                    var ticketId = row[9]; // ID do ticket
+                    var estadoCodigo = row[10]; // Código do estado (texto)
+                    var estadoFinal = row[11]; // Flag se é estado final
                     var isAdmin = <?= session()->get('level') >= 8 ? 'true' : 'false' ?>;
                     
                     switch(data) {
@@ -270,16 +239,17 @@ $(document).ready(function() {
                             prioridadeTexto = data;
                     }
                     
-                    var cursor = (isAdmin && estadoTicket !== 'reparado') ? 'cursor: pointer;' : '';
-                    var opacity = (estadoTicket === 'reparado') ? 'opacity: 0.7;' : '';
-                    var title = (isAdmin && estadoTicket !== 'reparado') 
+                    var cursor = (isAdmin && !estadoFinal) ? 'cursor: pointer;' : '';
+                    var opacity = (estadoFinal) ? 'opacity: 0.7;' : '';
+                    var title = (isAdmin && !estadoFinal) 
                         ? 'Clique para alterar a prioridade' 
-                        : (estadoTicket === 'reparado' ? 'Não é possível alterar prioridade de ticket reparado' : '');
+                        : (estadoFinal ? 'Não é possível alterar prioridade de ticket finalizado' : '');
                     
                     return '<span class="badge badge-prioridade-meus" style="' + badgeStyle + ' ' + cursor + ' ' + opacity + '" ' +
                            'data-ticket-id="' + ticketId + '" ' +
                            'data-prioridade="' + data + '" ' +
-                           'data-estado="' + estadoTicket + '" ' +
+                           'data-estado="' + estadoCodigo + '" ' +
+                           'data-estado-final="' + estadoFinal + '" ' +
                            'title="' + title + '">' + prioridadeTexto + '</span>';
                 }
             },
@@ -293,35 +263,23 @@ $(document).ready(function() {
                 "data": 9, // ID do ticket (coluna oculta)
                 "visible": false,
                 "searchable": false
+            },
+            { 
+                "data": 10, // Código do estado (coluna oculta)
+                "visible": false,
+                "searchable": false
+            },
+            { 
+                "data": 11, // Flag estado final (coluna oculta)
+                "visible": false,
+                "searchable": false
             }
         ],
         "language": {
             "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json"
         },
         "responsive": true,
-        "autoWidth": false,
-        "rowCallback": function(row, data, index) {
-            // Colorir a linha conforme o estado do ticket
-            var estado = data[4]; // Coluna do estado
-            
-            switch(estado) {
-                case 'novo':
-                    $(row).css('background-color', '#e3f2fd'); // Azul claro
-                    break;
-                case 'em_resolucao':
-                    $(row).css('background-color', '#fff3cd'); // Amarelo claro
-                    break;
-                case 'aguarda_peca':
-                    $(row).css('background-color', '#d1ecf1'); // Ciano claro
-                    break;
-                case 'reparado':
-                    $(row).css('background-color', '#d4edda'); // Verde claro
-                    break;
-                case 'anulado':
-                    $(row).css('background-color', '#f8d7da'); // Vermelho claro
-                    break;
-            }
-        }
+        "autoWidth": false
     });
 
     // Editar Ticket
@@ -481,7 +439,7 @@ $(document).ready(function() {
     // Variável global para armazenar o ticket ID atual
     var currentTicketIdPrioridadeMeus = null;
     
-    // Alterar Prioridade (apenas admins e tickets não reparados)
+    // Alterar Prioridade (apenas admins e tickets não finalizados)
     $(document).on('click', '.badge-prioridade-meus', function() {
         var isAdmin = <?= session()->get('level') >= 8 ? 'true' : 'false' ?>;
         
@@ -490,10 +448,10 @@ $(document).ready(function() {
             return;
         }
         
-        var estadoTicket = $(this).data('estado');
+        var estadoFinal = $(this).data('estado-final');
         
-        if (estadoTicket === 'reparado') {
-            toastr.warning('Não é possível alterar a prioridade de um ticket já reparado.');
+        if (estadoFinal) {
+            toastr.warning('Não é possível alterar a prioridade de um ticket finalizado.');
             return;
         }
         

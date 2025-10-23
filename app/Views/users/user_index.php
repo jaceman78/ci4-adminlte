@@ -21,6 +21,9 @@
             <div class="card-header">
                 <h3 class="card-title">Lista de Utilizadores</h3>
                 <div class="card-tools">
+                    <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalImportarUsers">
+                        <i class="bi bi-file-earmark-arrow-up"></i> Importar CSV
+                    </button>
                     <button type="button" class="btn btn-primary btn-sm" onclick="openCreateModal()">
                         <i class="fas fa-plus"></i> Novo Utilizador
                     </button>
@@ -37,6 +40,7 @@
                             <th>Foto</th>
                             <th>Nome</th>
                             <th>Email</th>
+                            <th>Telefone</th>
                             <th>NIF</th>
                             <th>Nível</th>
                             <th>Status</th>
@@ -85,6 +89,13 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
+                                <label for="userTelefone" class="form-label">Telefone</label>
+                                <input type="text" class="form-control" id="userTelefone" name="telefone" placeholder="+351 912 345 678" maxlength="20">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
                                 <label for="userNIF" class="form-label">NIF</label>
                                 <input type="number" class="form-control" id="userNIF" name="NIF" placeholder="123456789">
                                 <div class="invalid-feedback"></div>
@@ -116,6 +127,7 @@
                                     <option value="2">Professor CP</option>
                                     <option value="3">Moderador</option>
                                     <option value="5">Técnico</option>
+                                    <option value="6">Direção</option>
                                     <option value="8">Administrador</option>
                                     <option value="9">Super Admin</option>
                                 </select>
@@ -188,6 +200,10 @@
                                 <td id="viewUserEmail"></td>
                             </tr>
                             <tr>
+                                <td><strong>Telefone:</strong></td>
+                                <td id="viewUserTelefone"></td>
+                            </tr>
+                            <tr>
                                 <td><strong>NIF:</strong></td>
                                 <td id="viewUserNIF"></td>
                             </tr>
@@ -225,6 +241,80 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Importar Utilizadores CSV -->
+<div class="modal fade" id="modalImportarUsers" tabindex="-1" aria-labelledby="modalImportarUsersTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalImportarUsersTitle">Importar Utilizadores - CSV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formImportarUsers" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> Formato do Ficheiro CSV</h6>
+                        <ul class="mb-0">
+                            <li><strong>Extensão:</strong> .csv</li>
+                            <li><strong>Separador:</strong> Ponto e vírgula (;)</li>
+                            <li><strong>Encoding:</strong> UTF-8 ou Windows-1252</li>
+                            <li><strong>Colunas obrigatórias (ordem fixa):</strong>
+                                <ol class="mt-2">
+                                    <li><code>Name</code> - Nome do utilizador (opcional)</li>
+                                    <li><code>Email</code> - Email válido (obrigatório)</li>
+                                    <li><code>NIF</code> - Número de contribuinte <span class="badge bg-danger">OBRIGATÓRIO</span></li>
+                                    <li><code>Telefone</code> - Número de telefone (opcional)</li>
+                                    <li><code>grupo_id</code> - ID do grupo (opcional, deixar vazio se não aplicável)</li>
+                                </ol>
+                            </li>
+                            <li><strong>Primeira linha:</strong> Cabeçalho (será ignorado)</li>
+                            <li class="text-danger mt-2"><strong>IMPORTANTE:</strong> Linhas sem NIF serão ignoradas e incluídas no relatório de erros</li>
+                        </ul>
+                        <p class="mt-2 mb-0"><strong>Exemplo:</strong><br>
+                        <code>Name;Email;NIF;Telefone;grupo_id<br>
+                        João Silva;joao.silva@exemplo.pt;123456789;912345678;1<br>
+                        Maria Santos;maria.santos@exemplo.pt;987654321;913456789;</code></p>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="csv_file_users">Selecionar Ficheiro CSV *</label>
+                        <input type="file" class="form-control" id="csv_file_users" name="csv_file" accept=".csv" required>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="skip_duplicates_users" name="skip_duplicates" checked>
+                        <label class="form-check-label" for="skip_duplicates_users">
+                            Ignorar emails duplicados (não atualizar registos existentes)
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="download_errors" name="download_errors" checked>
+                        <label class="form-check-label" for="download_errors">
+                            Gerar ficheiro com linhas rejeitadas (download automático)
+                        </label>
+                    </div>
+                    
+                    <!-- Progress bar -->
+                    <div class="progress" id="importProgressUsers" style="display: none;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             style="width: 0%;" id="importProgressBarUsers">0%</div>
+                    </div>
+                    
+                    <!-- Resultado da importação -->
+                    <div id="importResultUsers" class="mt-3" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnImportarUsers">
+                        <i class="bi bi-upload"></i> Importar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?= $this->section('scripts') ?>
 <script>
 $(document).ready(function() {
@@ -246,11 +336,12 @@ $(document).ready(function() {
             { data: 1, name: 'profile_img', orderable: false, searchable: false },
             { data: 2, name: 'name' },
             { data: 3, name: 'email' },
-            { data: 4, name: 'NIF' },
-            { data: 5, name: 'level' },
-            { data: 6, name: 'status' },
-            { data: 7, name: 'created_at' },
-            { data: 8, name: 'actions', orderable: false, searchable: false }
+            { data: 4, name: 'telefone' },
+            { data: 5, name: 'NIF' },
+            { data: 6, name: 'level' },
+            { data: 7, name: 'status' },
+            { data: 8, name: 'created_at' },
+            { data: 9, name: 'actions', orderable: false, searchable: false }
         ],
         language: {
             url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json'
@@ -339,6 +430,7 @@ function editUser(id) {
                 $('#userId').val(user.id);
                 $('#userName').val(user.name);
                 $('#userEmail').val(user.email);
+                $('#userTelefone').val(user.telefone);
                 $('#userNIF').val(user.NIF);
                 $('#userOAuthId').val(user.oauth_id);
                 $('#userGrupoId').val(user.grupo_id);
@@ -370,6 +462,7 @@ function viewUser(id) {
                 $('#viewUserId').text(user.id);
                 $('#viewUserName').text(user.name || 'N/A');
                 $('#viewUserEmail').text(user.email);
+                $('#viewUserTelefone').text(user.telefone || 'N/A');
                 $('#viewUserNIF').text(user.NIF || 'N/A');
                 $('#viewUserOAuthId').text(user.oauth_id || 'N/A');
                 $('#viewUserGrupoId').text(user.grupo_id || 'N/A');
@@ -381,6 +474,7 @@ function viewUser(id) {
                     2: 'Professor CP',
                     3: 'Moderador',
                     5: 'Técnico',
+                    6: 'Direção',
                     8: 'Administrador',
                     9: 'Super Admin'
                 };
@@ -521,6 +615,111 @@ function formatDate(dateString) {
         minute: '2-digit'
     });
 }
+
+// Handler para importação de utilizadores CSV
+$('#formImportarUsers').on('submit', function(e) {
+    e.preventDefault();
+    
+    var formData = new FormData(this);
+    var downloadErrors = $('#download_errors').is(':checked');
+    
+    // Mostrar progress bar
+    $('#importProgressUsers').show();
+    $('#importProgressBarUsers').css('width', '0%').text('0%');
+    $('#importResultUsers').hide();
+    $('#btnImportarUsers').prop('disabled', true);
+    
+    $.ajax({
+        url: '<?= base_url('users/importar') ?>',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        xhr: function() {
+            var xhr = new window.XMLHttpRequest();
+            xhr.upload.addEventListener("progress", function(evt) {
+                if (evt.lengthComputable) {
+                    var percentComplete = (evt.loaded / evt.total) * 100;
+                    $('#importProgressBarUsers').css('width', percentComplete + '%')
+                        .text(Math.round(percentComplete) + '%');
+                }
+            }, false);
+            return xhr;
+        },
+        success: function(response) {
+            $('#importProgressBarUsers').css('width', '100%').text('100%');
+            $('#btnImportarUsers').prop('disabled', false);
+            
+            if(response.success) {
+                var resultHtml = '<div class="alert alert-success">';
+                resultHtml += '<h6><i class="bi bi-check-circle"></i> Importação Concluída!</h6>';
+                resultHtml += '<ul class="mb-0">';
+                resultHtml += '<li><strong>Importados:</strong> ' + response.imported + '</li>';
+                resultHtml += '<li><strong>Ignorados (duplicados):</strong> ' + response.skipped + '</li>';
+                resultHtml += '<li><strong>Erros (sem NIF ou inválidos):</strong> ' + response.errors + '</li>';
+                resultHtml += '</ul>';
+                
+                if(response.message) {
+                    resultHtml += '<p class="mt-2 mb-0"><small>' + response.message + '</small></p>';
+                }
+                
+                // Download do ficheiro de erros se existir
+                if(response.errors > 0 && downloadErrors && response.error_file) {
+                    resultHtml += '<hr>';
+                    resultHtml += '<a href="' + response.error_file + '" class="btn btn-sm btn-danger" download>';
+                    resultHtml += '<i class="bi bi-download"></i> Download Linhas Rejeitadas (' + response.errors + ')';
+                    resultHtml += '</a>';
+                    
+                    // Trigger automático do download
+                    setTimeout(function() {
+                        window.location.href = response.error_file;
+                    }, 1000);
+                }
+                
+                resultHtml += '</div>';
+                $('#importResultUsers').html(resultHtml).show();
+                
+                // Recarregar tabela
+                table.ajax.reload();
+                
+                // Limpar form após 5 segundos
+                setTimeout(function() {
+                    $('#formImportarUsers')[0].reset();
+                    $('#importProgressUsers').hide();
+                    $('#importResultUsers').hide();
+                }, 5000);
+                
+            } else {
+                var resultHtml = '<div class="alert alert-danger">';
+                resultHtml += '<h6><i class="bi bi-x-circle"></i> Erro na Importação</h6>';
+                resultHtml += '<p class="mb-0">' + (response.message || 'Erro desconhecido') + '</p>';
+                resultHtml += '</div>';
+                $('#importResultUsers').html(resultHtml).show();
+            }
+        },
+        error: function(xhr) {
+            $('#btnImportarUsers').prop('disabled', false);
+            var errorMsg = 'Erro ao processar ficheiro';
+            if(xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message;
+            }
+            
+            var resultHtml = '<div class="alert alert-danger">';
+            resultHtml += '<h6><i class="bi bi-x-circle"></i> Erro</h6>';
+            resultHtml += '<p class="mb-0">' + errorMsg + '</p>';
+            resultHtml += '</div>';
+            $('#importResultUsers').html(resultHtml).show();
+        }
+    });
+});
+
+// Resetar modal ao fechar
+$('#modalImportarUsers').on('hidden.bs.modal', function() {
+    $('#formImportarUsers')[0].reset();
+    $('#importProgressUsers').hide();
+    $('#importResultUsers').hide();
+    $('#btnImportarUsers').prop('disabled', false);
+});
 </script>
 <?= $this->endSection() ?>
 <?= $this->endSection() ?>

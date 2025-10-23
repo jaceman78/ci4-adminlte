@@ -39,7 +39,6 @@
                             <table id="tiposEquipamentoTable" class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
                                         <th>Nome</th>
                                         <th>Descrição</th>
                                         <th>Ações</th>
@@ -142,7 +141,6 @@ $(document).ready(function() {
             "type": "POST"
         },
         "columns": [
-            { "data": "id" },
             { "data": "nome" },
             { "data": "descricao" },
             {

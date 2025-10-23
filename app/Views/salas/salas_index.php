@@ -69,6 +69,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Código da Sala</th>
+                            <th>Descrição</th>
                             <th>Escola</th>
                             <th>Data Criação</th>
                             <th>Ações</th>
@@ -111,6 +112,15 @@
                             </div>
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="salaDescricao" class="form-label">Descrição</label>
+                                <textarea class="form-control" id="salaDescricao" name="descricao" rows="3" placeholder="Descrição da sala (opcional)"></textarea>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -142,6 +152,10 @@
                             <tr>
                                 <td><strong>Código da Sala:</strong></td>
                                 <td id="viewSalaCodigoSala"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Descrição:</strong></td>
+                                <td id="viewSalaDescricao"></td>
                             </tr>
                             <tr>
                                 <td><strong>Escola:</strong></td>
@@ -365,9 +379,10 @@ function initializeDataTable() {
         columns: [
             { data: 0, name: 'id', visible: false  },
             { data: 1, name: 'codigo_sala' },
-            { data: 2, name: 'escola_nome' },
-            { data: 3, name: 'created_at' },
-            { data: 4, name: 'actions', orderable: false, searchable: false }
+            { data: 2, name: 'descricao' },
+            { data: 3, name: 'escola_nome' },
+            { data: 4, name: 'created_at' },
+            { data: 5, name: 'actions', orderable: false, searchable: false }
         ],
         language: {
              url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json'
@@ -406,6 +421,7 @@ function editSala(id) {
                 $('#salaEscolaId').val(sala.escola_id);
                 $('#salaEscolaNome').val(sala.escola_nome);
                 $('#salaCodigoSala').val(sala.codigo_sala);
+                $('#salaDescricao').val(sala.descricao || '');
                 
                 $('#salaModalLabel').text('Editar Sala');
                 $('#salaModal').modal('show');
@@ -430,6 +446,7 @@ function viewSala(id) {
                 
                 $('#viewSalaId').text(sala.id);
                 $('#viewSalaCodigoSala').text(sala.codigo_sala);
+                $('#viewSalaDescricao').text(sala.descricao || 'N/A');
                 $('#viewSalaEscolaNome').text(sala.escola_nome);
                 $('#viewSalaCreated').text(formatDate(sala.created_at));
                 $('#viewSalaUpdated').text(sala.updated_at ? formatDate(sala.updated_at) : 'N/A');

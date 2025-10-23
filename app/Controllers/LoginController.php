@@ -103,13 +103,17 @@ class LoginController extends BaseController
             $userId = $this->userModel->getInsertID();
         }
 
+        // Buscar dados completos do usuário da base de dados (incluindo NIF)
+        $fullUserData = $this->userModel->find($userId);
+
         // Definir dados da sessão
         session()->set('user_id', $userId);
         session()->set('isLoggedIn', true);
         session()->set('level', $userlevel);
-        session()->set('LoggedUserData', $userdata);
+        session()->set('LoggedUserData', $fullUserData); // Usar dados completos do BD
+        session()->set('id', $userId); // Adicionar ID direto na sessão
 
-        return redirect()->to('layout/dashboard');
+        return redirect()->to('dashboard');
     }
 
     public function profile()
@@ -119,13 +123,9 @@ class LoginController extends BaseController
         if (!$userData) {
             return redirect()->to('/login')->with('error', 'Faça login para continuar.');
         }
-           // DEBUG: Mostra dados diretamente para confirmar se estão na sessão
-    // echo '<pre>';
-    // print_r($userData);
-    // echo '</pre>';
-    // exit;
 
-        return view('layout/dashboard', ['user' => $userData]);
+        // Redirecionar para o dashboard personalizado
+        return redirect()->to('dashboard');
     }
 
     public function logout()

@@ -126,7 +126,7 @@ class EquipamentosController extends BaseController
             'marca'          => 'permit_empty|max_length[100]',
             'modelo'         => 'permit_empty|max_length[100]',
             'numero_serie'   => 'permit_empty|max_length[255]|is_unique[equipamentos.numero_serie]',
-            'estado'         => 'required|in_list[ativo,inativo,pendente]',
+            'estado'         => 'required|in_list[ativo,fora_servico,por_atribuir,abate]',
             'data_aquisicao' => 'permit_empty|valid_date',
             'observacoes'    => 'permit_empty|max_length[1000]',
             'sala_id'        => 'permit_empty|is_natural_no_zero'
@@ -180,17 +180,22 @@ class EquipamentosController extends BaseController
      */
     public function update($id = null)
     {
+        // Log para debug
+        log_message('info', 'Update chamado para equipamento ID: ' . $id);
+        log_message('info', 'Dados POST recebidos: ' . json_encode($this->request->getPost()));
+        
         $rules = [
             'tipo_id'        => 'required|is_natural_no_zero',
             'marca'          => 'permit_empty|max_length[100]',
             'modelo'         => 'permit_empty|max_length[100]',
             'numero_serie'   => 'permit_empty|max_length[255]|is_unique[equipamentos.numero_serie,id,' . $id . ']',
-            'estado'         => 'required|in_list[ativo,inativo,pendente]',
+            'estado'         => 'required|in_list[ativo,fora_servico,por_atribuir,abate]',
             'data_aquisicao' => 'permit_empty|valid_date',
             'observacoes'    => 'permit_empty|max_length[1000]'
         ];
 
         if (!$this->validate($rules)) {
+            log_message('error', 'Validação falhou: ' . json_encode($this->validator->getErrors()));
             return $this->failValidationErrors($this->validator->getErrors());
         }
 
@@ -204,9 +209,13 @@ class EquipamentosController extends BaseController
             'observacoes'    => $this->request->getPost('observacoes')
         ];
 
+        log_message('info', 'Dados a atualizar: ' . json_encode($data));
+
         if ($this->equipamentosModel->update($id, $data)) {
+            log_message('info', 'Equipamento atualizado com sucesso');
             return $this->respond(['message' => 'Equipamento atualizado com sucesso.']);
         } else {
+            log_message('error', 'Falha ao atualizar equipamento: ' . json_encode($this->equipamentosModel->errors()));
             return $this->failServerError('Não foi possível atualizar o equipamento.');
         }
     }
@@ -272,7 +281,7 @@ class EquipamentosController extends BaseController
             'marca'          => 'permit_empty|max_length[100]',
             'modelo'         => 'permit_empty|max_length[100]',
             'numero_serie'   => 'permit_empty|max_length[255]|is_unique[equipamentos.numero_serie]',
-            'estado'         => 'required|in_list[ativo,inativo,pendente]',
+            'estado'         => 'required|in_list[ativo,fora_servico,por_atribuir,abate]',
             'data_aquisicao' => 'permit_empty|valid_date',
             'observacoes'    => 'permit_empty|max_length[1000]',
             'sala_id'        => 'permit_empty|is_natural',

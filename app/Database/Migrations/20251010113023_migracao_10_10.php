@@ -88,6 +88,7 @@ class CreateDatabaseTables extends Migration
 
         /**
          * SALAS
+         * NOTA: Campo 'descricao' (TEXT) adicionado posteriormente via migration 2025-10-16-114153_AddDescricaoToSalas
          */
         $this->forge->addField([
             'id'         => ['type' => 'INT', 'constraint' => 5, 'unsigned' => true, 'auto_increment' => true],

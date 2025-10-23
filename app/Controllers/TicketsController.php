@@ -36,6 +36,9 @@ class TicketsController extends BaseController
         $this->userModel = new UserModel();
         $this->equipamentosSalaModel = new \App\Models\EquipamentosSalaModel();
         $this->email = new Email();
+        
+        // Carregar helper de estados
+        helper(['estado']);
     }
 
     // --- Vistas --- //
@@ -382,7 +385,7 @@ class TicketsController extends BaseController
             $row[] = $ticket['codigo_sala'];
             $row[] = $ticket['tipo_avaria_descricao'];
             $row[] = $ticket['descricao'];
-            $row[] = $ticket['estado'];
+            $row[] = getEstadoBadge($ticket['estado'], true); // Badge dinâmico
             $row[] = $ticket['prioridade'];
             $row[] = date('d/m/Y H:i', strtotime($ticket['created_at']));
             $row[] = date('d/m/Y H:i', strtotime($ticket['updated_at']));
@@ -398,6 +401,8 @@ class TicketsController extends BaseController
             }
             $row[] = $options;
             $row[] = $ticket['id']; // ID do ticket (coluna oculta)
+            $row[] = $ticket['estado']; // Código do estado (coluna oculta para JS)
+            $row[] = isEstadoFinal($ticket['estado']) ? 1 : 0; // Flag se é estado final (coluna oculta)
             $data[] = $row;
         }
 
@@ -421,7 +426,7 @@ class TicketsController extends BaseController
             $row[] = $ticket['codigo_sala'];
             $row[] = $ticket['tipo_avaria_descricao'];
             $row[] = $ticket['descricao'];
-            $row[] = $ticket['estado'];
+            $row[] = getEstadoBadge($ticket['estado'], true); // Badge dinâmico
             $row[] = $ticket['prioridade'];
             $row[] = $ticket['created_at'];
             $row[] = $ticket['user_nome'];
@@ -434,6 +439,7 @@ class TicketsController extends BaseController
             }
             $row[] = $options;
             $row[] = $ticket['id']; // ID do ticket (coluna oculta)
+            $row[] = $ticket['estado']; // Código do estado (coluna oculta)
             $data[] = $row;
         }
 
@@ -458,7 +464,7 @@ class TicketsController extends BaseController
             $row[] = $ticket['codigo_sala'];
             $row[] = $ticket['tipo_avaria_descricao'];
             $row[] = $ticket['descricao'];
-            $row[] = $ticket['estado'];
+            $row[] = getEstadoBadge($ticket['estado'], true); // Badge dinâmico
             $row[] = $ticket['prioridade'];
             $row[] = $ticket['created_at'];
             $row[] = $ticket['user_nome'];
@@ -472,6 +478,8 @@ class TicketsController extends BaseController
                 $options .= '<button class="btn btn-sm btn-danger delete-ticket" data-id="' . $ticket['id'] . '" title="Apagar"><i class="fas fa-trash"></i></button>';
             }
             $row[] = $options;
+            $row[] = $ticket['estado']; // Código do estado (coluna oculta)
+            $row[] = isEstadoFinal($ticket['estado']) ? 1 : 0; // Flag estado final (coluna oculta)
             $data[] = $row;
         }
 
@@ -497,7 +505,7 @@ class TicketsController extends BaseController
         $rules = [
             'ticket_id'         => 'required|integer',
             'atribuido_user_id' => 'permit_empty|integer',
-            'estado'            => 'required|in_list[novo,em_resolucao,aguarda_peca,reparado,anulado]'
+            'estado'            => 'required|validar_estado_ticket'
         ];
 
         if (!$this->validate($rules)) {

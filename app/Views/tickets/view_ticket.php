@@ -53,38 +53,7 @@
                                 <div class="col-md-6">
                                     <p>
                                         <strong>Estado:</strong> 
-                                        <?php
-                                        $estadoClass = '';
-                                        $estadoTexto = '';
-                                        switch($ticket['estado']) {
-                                            case 'novo':
-                                                $estadoClass = 'bg-primary';
-                                                $estadoTexto = 'Novo';
-                                                break;
-                                            case 'em_resolucao':
-                                                $estadoClass = 'bg-warning';
-                                                $estadoTexto = 'Em Resolução';
-                                                break;
-                                            case 'aguarda_peca':
-                                                $estadoClass = 'bg-info';
-                                                $estadoTexto = 'Aguarda Peça';
-                                                break;
-                                            case 'reparado':
-                                                $estadoClass = 'bg-success';
-                                                $estadoTexto = 'Reparado';
-                                                break;
-                                            case 'anulado':
-                                                $estadoClass = 'bg-danger';
-                                                $estadoTexto = 'Anulado';
-                                                break;
-                                            default:
-                                                $estadoClass = 'bg-secondary';
-                                                $estadoTexto = $ticket['estado'];
-                                        }
-                                        ?>
-                                        <span class="badge <?= $estadoClass ?> text-white" style="font-size: 1rem; padding: 0.5rem 1rem;">
-                                            <?= $estadoTexto ?>
-                                        </span>
+                                        <?= getEstadoBadge($ticket['estado'], true) ?>
                                     </p>
                                 </div>
                                 <div class="col-md-6">
@@ -116,10 +85,10 @@
                                                 $prioridadeTexto = $ticket['prioridade'];
                                         }
                                         ?>
-                                        <span class="badge badge-prioridade" style="<?= $prioridadeStyle ?> font-size: 1rem; padding: 0.5rem 1rem; <?= $ticket['estado'] != 'reparado' ? 'cursor: pointer;' : 'opacity: 0.7;' ?>" 
+                                        <span class="badge badge-prioridade" style="<?= $prioridadeStyle ?> font-size: 1rem; padding: 0.5rem 1rem; <?= !isEstadoFinal($ticket['estado']) ? 'cursor: pointer;' : 'opacity: 0.7;' ?>" 
                                               data-prioridade="<?= $ticket['prioridade'] ?>"
                                               data-estado="<?= $ticket['estado'] ?>"
-                                              title="<?= $ticket['estado'] != 'reparado' ? 'Clique para alterar a prioridade' : 'Não é possível alterar prioridade de ticket reparado' ?>">
+                                              title="<?= !isEstadoFinal($ticket['estado']) ? 'Clique para alterar a prioridade' : 'Não é possível alterar prioridade de ticket finalizado' ?>">
                                             <?= $prioridadeTexto ?>
                                         </span>
                                     </p>
@@ -194,7 +163,7 @@
                     </div>
 
                     <!-- Atribuir Técnico (apenas para nível 8+) -->
-                    <?php if (session()->get('level') >= 8 && $ticket['estado'] != 'reparado' && $ticket['estado'] != 'anulado'): ?>
+                    <?php if (session()->get('level') >= 8 && !isEstadoFinal($ticket['estado'])): ?>
                     <div class="card">
                         <div class="card-header bg-info">
                             <h3 class="card-title"><i class="fas fa-user-cog"></i> Atribuir Técnico</h3>
@@ -231,11 +200,10 @@
                             // Mostrar botões de aceitar/rejeitar se:
                             // 1. Ticket foi atribuído ao usuário atual
                             // 2. Ticket ainda não foi aceite
-                            // 3. Ticket não está reparado ou anulado
+                            // 3. Ticket não está finalizado
                             if ($ticket['atribuido_user_id'] == session()->get('user_id') 
                                 && !$ticket['ticket_aceite'] 
-                                && $ticket['estado'] != 'reparado' 
-                                && $ticket['estado'] != 'anulado'): 
+                                && !isEstadoFinal($ticket['estado'])): 
                             ?>
                             <div class="alert alert-warning">
                                 <i class="fas fa-exclamation-triangle"></i> Este ticket foi-lhe atribuído. Por favor, aceite ou rejeite.
@@ -248,13 +216,13 @@
                             </button>
                             <?php endif; ?>
                             
-                            <?php if (session()->get('level') >= 5 && $ticket['estado'] != 'reparado' && $ticket['estado'] != 'anulado'): ?>
+                            <?php if (session()->get('level') >= 5 && !isEstadoFinal($ticket['estado'])): ?>
                             <button class="btn btn-success btn-block" id="btnResolverTicket">
                                 <i class="fas fa-check-circle"></i> Resolver Ticket
                             </button>
                             <?php endif; ?>
                             
-                            <?php if (session()->get('level') >= 8 && $ticket['estado'] == 'reparado'): ?>
+                            <?php if (session()->get('level') >= 8 && isEstadoFinal($ticket['estado'])): ?>
                             <button class="btn btn-warning btn-block" id="btnReabrirTicket">
                                 <i class="fas fa-redo-alt"></i> Reabrir Ticket
                             </button>
@@ -409,13 +377,12 @@
 <script>
 $(document).ready(function() {
     const ticketId = <?= $ticket['id'] ?>;
+    const estadoFinal = <?= isEstadoFinal($ticket['estado']) ? 'true' : 'false' ?>;
     
-    // Alterar Prioridade (bloqueia se ticket estiver reparado)
+    // Alterar Prioridade (bloqueia se ticket estiver finalizado)
     $('.badge-prioridade').on('click', function() {
-        const estadoTicket = $(this).data('estado');
-        
-        if (estadoTicket === 'reparado') {
-            toastr.warning('Não é possível alterar a prioridade de um ticket já reparado.');
+        if (estadoFinal) {
+            toastr.warning('Não é possível alterar a prioridade de um ticket finalizado.');
             return;
         }
         

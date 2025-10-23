@@ -15,6 +15,7 @@ class SalasModel extends Model
     protected $allowedFields = [
         'escola_id',
         'codigo_sala',
+        'descricao',
         'created_at',
         'updated_at'
     ];
@@ -193,10 +194,11 @@ class SalasModel extends Model
                        ->join('escolas', 'escolas.id = salas.escola_id')
                        ->where('salas.escola_id', $escolaId);
         
-        // Aplicar pesquisa se fornecida
+        // Aplicar pesquisa
         if (!empty($search)) {
             $builder->groupStart()
                    ->like('salas.codigo_sala', $search)
+                   ->orLike('salas.descricao', $search)
                    ->orLike('escolas.nome', $search)
                    ->groupEnd();
         }

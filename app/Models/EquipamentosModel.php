@@ -32,8 +32,9 @@ class EquipamentosModel extends Model
         $stats = [];
         $stats['total'] = $this->countAllResults();
         $stats['ativos'] = $this->where('estado', 'ativo')->countAllResults();
-        $stats['inativos'] = $this->where('estado', 'inativo')->countAllResults();
-        $stats['pendentes'] = $this->where('estado', 'pendente')->countAllResults();
+        $stats['fora_servico'] = $this->where('estado', 'fora_servico')->countAllResults();
+        $stats['por_atribuir'] = $this->where('estado', 'por_atribuir')->countAllResults();
+        $stats['abate'] = $this->where('estado', 'abate')->countAllResults();
 
         // Por tipo
         $builder = $this->builder();

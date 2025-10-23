@@ -1,13 +1,13 @@
 <footer class="app-footer">
         <!--begin::To the end-->
-        <div class="float-end d-none d-sm-inline">rodapé</div>
+        <div class="float-end d-none d-sm-inline">AEJB</div>
         <!--end::To the end-->
         <!--begin::Copyright-->
         <strong>
-          Copyright &copy; 2014-2025&nbsp;
+          Copyright &copy; 2025-2025++&nbsp;
           <a href="#" id="teamPhotoLink" class="text-decoration-none">HardWork550</a>.
         </strong>
-        All rights reserved.
+        Todos os direitos reservados.
         <!--end::Copyright-->
       </footer>
       <!--end::Footer-->
@@ -57,6 +57,9 @@
 <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <!-- Toastr CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 <!-- Toastr JS -->
@@ -76,6 +79,111 @@
       });
     }
   });
+</script>
+
+<!-- Script do Modal de Sugestões -->
+<script>
+(function() {
+  if (typeof jQuery !== 'undefined') {
+    $(document).ready(function() {
+      $('#formSugestao').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+          categoria: $('#sugestao_categoria').val(),
+          prioridade: $('#sugestao_prioridade').val(),
+          titulo: $('#sugestao_titulo').val(),
+          descricao: $('#sugestao_descricao').val(),
+          <?= csrf_token() ?>: '<?= csrf_hash() ?>'
+        };
+
+        $.ajax({
+          url: '<?= base_url('sugestoes/salvar') ?>',
+          method: 'POST',
+          data: formData,
+          dataType: 'json',
+          success: function(response) {
+            if (response.success) {
+              var modalEl = document.getElementById('modalSugestao');
+              var modal = bootstrap.Modal.getInstance(modalEl);
+              
+              // Se não existe instância, criar uma
+              if (!modal && modalEl) {
+                modal = new bootstrap.Modal(modalEl);
+              }
+              
+              if (modal && modalEl) {
+                // Adicionar listener para quando o modal estiver completamente fechado
+                modalEl.addEventListener('hidden.bs.modal', function onModalHidden() {
+                  // Mostrar alerta após modal fechado
+                  if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                      icon: 'success',
+                      title: 'Sugestão Enviada!',
+                      text: response.message,
+                      confirmButtonText: 'OK'
+                    });
+                  } else {
+                    alert('Sugestão enviada com sucesso!');
+                  }
+                }, { once: true });
+                
+                // Limpar formulário e fechar modal
+                $('#formSugestao')[0].reset();
+                modal.hide();
+              } else {
+                // Fallback se não houver modal
+                $('#formSugestao')[0].reset();
+                if (typeof Swal !== 'undefined') {
+                  Swal.fire({
+                    icon: 'success',
+                    title: 'Sugestão Enviada!',
+                    text: response.message,
+                    confirmButtonText: 'OK'
+                  });
+                } else {
+                  alert('Sugestão enviada com sucesso!');
+                }
+              }
+            } else {
+              // Formatar mensagem de erro com detalhes de validação
+              var errorMsg = response.message || 'Erro ao enviar sugestão';
+              if (response.errors) {
+                var errorDetails = Object.values(response.errors).join('\n');
+                errorMsg += '\n\n' + errorDetails;
+              }
+              
+              if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Erro!',
+                  html: errorMsg.replace(/\n/g, '<br>'),
+                  confirmButtonText: 'OK'
+                });
+              } else {
+                alert('Erro: ' + errorMsg);
+              }
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error('Erro AJAX:', status, error);
+            console.error('Response:', xhr.responseText);
+            if (typeof Swal !== 'undefined') {
+              Swal.fire({
+                icon: 'error',
+                title: 'Erro!',
+                text: 'Erro ao processar pedido: ' + error,
+                confirmButtonText: 'OK'
+              });
+            } else {
+              alert('Erro ao processar pedido: ' + error);
+            }
+          }
+        });
+      });
+    });
+  }
+})();
 </script>
   <!--end::Footer scripts-->
 

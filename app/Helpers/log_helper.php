@@ -33,6 +33,27 @@ if (!function_exists('log_activity')) {
 
             $model = new ActivityLogModel();
 
+            // Obter IP do cliente (suporta proxies e load balancers)
+            $ipAddress = null;
+            if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+                $ipAddress = $_SERVER['HTTP_CLIENT_IP'];
+            } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+                $ipAddress = $_SERVER['HTTP_X_FORWARDED_FOR'];
+            } elseif (!empty($_SERVER['HTTP_X_FORWARDED'])) {
+                $ipAddress = $_SERVER['HTTP_X_FORWARDED'];
+            } elseif (!empty($_SERVER['HTTP_FORWARDED_FOR'])) {
+                $ipAddress = $_SERVER['HTTP_FORWARDED_FOR'];
+            } elseif (!empty($_SERVER['HTTP_FORWARDED'])) {
+                $ipAddress = $_SERVER['HTTP_FORWARDED'];
+            } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
+                $ipAddress = $_SERVER['REMOTE_ADDR'];
+            }
+            
+            // Converter ::1 (localhost IPv6) para 127.0.0.1
+            if ($ipAddress === '::1') {
+                $ipAddress = '127.0.0.1';
+            }
+
             $data = [
                 'user_id'         => $userId,
                 'modulo'          => $modulo,
@@ -41,7 +62,7 @@ if (!function_exists('log_activity')) {
                 'registro_id'     => $registroId,
                 'dados_anteriores'=> $dadosAnteriores ? json_encode($dadosAnteriores) : null,
                 'dados_novos'     => $dadosNovos ? json_encode($dadosNovos) : null,
-                'ip_address'      => $_SERVER['REMOTE_ADDR'] ?? null,
+                'ip_address'      => $ipAddress,
                 'user_agent'      => $_SERVER['HTTP_USER_AGENT'] ?? null,
                 'detalhes'        => $detalhes ? json_encode($detalhes) : null,
                 'criado_em'       => date('Y-m-d H:i:s')

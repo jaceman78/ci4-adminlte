@@ -261,6 +261,3 @@ window.toast = {
     loading: showLoadingToast,
     hideLoading: hideLoadingToast
 };
-
-// Log de inicialização
-console.log('🍞 Sistema de Toast inicializado com sucesso!');

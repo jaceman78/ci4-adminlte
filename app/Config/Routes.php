@@ -6,8 +6,8 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
-// Rota inicial
-$routes->get('/', 'Home::index');
+// Rota inicial -> redireciona para login
+$routes->get('/', 'LoginController::index');
 
 // Rota para teste de toasts (apenas desenvolvimento)
 $routes->get('teste-toasts', function() {
@@ -19,6 +19,10 @@ $routes->get('debug/session', 'DebugController::checkSession');
 $routes->get('debug/fix-session', 'DebugController::fixSession');
 $routes->get('debug/test-email', 'DebugController::testEmailPage');
 $routes->post('debug/test-email', 'DebugController::testEmail');
+$routes->get('test-email-permuta', 'PermutasController::testeEmail'); // TESTE EMAIL PERMUTAS
+$routes->get('test/horarios', 'TestHorariosController::index');
+$routes->get('test/disciplinas', 'VerificarDisciplinasController::index');
+$routes->get('test/criar-disciplinas', 'CriarDisciplinasFaltantesController::index');
 
 // ---------------------------
 // 🔐 Autenticação / Login
@@ -35,6 +39,15 @@ $routes->get('layout/dashboard', 'LoginController::profile');
 
 // Logout
 $routes->get('logout', 'LoginController::logout');
+
+// ---------------------------
+// 📊 Dashboard Personalizado
+// ---------------------------
+$routes->group('dashboard', function($routes) {
+    $routes->get('/', 'DashboardController::index'); // Dashboard principal (redireciona por nível)
+    $routes->get('stats', 'DashboardController::getStats'); // API para estatísticas
+    $routes->get('charts/(:any)', 'DashboardController::getChartData/$1'); // API para gráficos
+});
 
 // ---------------------------
 // 👥 Gestão de Utilizadores (CRUD)
@@ -58,6 +71,7 @@ $routes->group('users', function($routes) {
     $routes->get('getStats', 'UserController::getStats');
     $routes->get('search', 'UserController::search');
     $routes->get('exportCSV', 'UserController::exportCSV');
+    $routes->post('importar', 'UserController::importar');
 });
 
 // Rotas para gestão de escolas
@@ -204,6 +218,115 @@ $routes->group("tickets", function ($routes) {
     $routes->get("statistics", "TicketsController::getStatistics");
     $routes->get("advanced-statistics", "TicketsController::getAdvancedStatistics");
     $routes->get("export-excel", "TicketsController::exportToExcel");
+});
+
+// ---------------------------
+// 📚 Gestão Letiva
+// ---------------------------
+
+// Rotas para Gestão de Turmas
+$routes->group('turmas', function($routes) {
+    $routes->get('/', 'TurmasController::index');
+    $routes->post('getDataTable', 'TurmasController::getDataTable');
+    $routes->get('getDataTable', 'TurmasController::getDataTable');
+    $routes->get('get/(:num)', 'TurmasController::get/$1');
+    $routes->post('create', 'TurmasController::create');
+    $routes->post('update/(:num)', 'TurmasController::update/$1');
+    $routes->post('delete/(:num)', 'TurmasController::delete/$1');
+    $routes->post('importar', 'TurmasController::importar');
+});
+
+// Rotas para Gestão de Disciplinas
+$routes->group('disciplinas', function($routes) {
+    $routes->get('/', 'DisciplinasController::index');
+    $routes->post('getDataTable', 'DisciplinasController::getDataTable');
+    $routes->get('getDataTable', 'DisciplinasController::getDataTable');
+    $routes->get('get/(:num)', 'DisciplinasController::get/$1');
+    $routes->post('create', 'DisciplinasController::create');
+    $routes->post('update/(:num)', 'DisciplinasController::update/$1');
+    $routes->post('delete/(:num)', 'DisciplinasController::delete/$1');
+    $routes->post('importar', 'DisciplinasController::importar');
+});
+
+// Rotas para Gestão de Horários
+$routes->group('horarios', function($routes) {
+    $routes->get('/', 'HorariosController::index');
+    $routes->post('getDataTable', 'HorariosController::getDataTable');
+    $routes->get('getDataTable', 'HorariosController::getDataTable');
+    $routes->get('get/(:num)', 'HorariosController::get/$1');
+    $routes->post('create', 'HorariosController::create');
+    $routes->post('update/(:num)', 'HorariosController::update/$1');
+    $routes->post('delete/(:num)', 'HorariosController::delete/$1');
+    $routes->post('importarCSV', 'HorariosController::importarCSV');
+});
+
+// Rotas para Permutas
+$routes->group('permutas', function($routes) {
+    // TESTE DE EMAIL (TEMPORÁRIO)
+    $routes->get('testeEmail', 'PermutasController::testeEmail');            // Teste de envio de email
+    
+    // Visualização de horário e permutas
+    $routes->get('/', 'PermutasController::index');                          // Meu Horário
+    $routes->get('minhas', 'PermutasController::minhasPermutas');             // As Minhas Permutas
+    $routes->get('aprovar', 'PermutasController::aprovarPermutas');           // Lista para aprovação (admin)
+    $routes->get('ver/(:num)', 'PermutasController::verPermuta/$1');         // Ver detalhes de uma permuta
+    
+    // Criar e gerir permutas
+    $routes->get('pedir/(:num)', 'PermutasController::pedirPermuta/$1');     // Formulário pedir permuta
+    $routes->post('salvar', 'PermutasController::salvarPermuta');            // Salvar permuta
+    $routes->post('cancelar/(:num)', 'PermutasController::cancelarPermuta/$1'); // Cancelar permuta (autor)
+    $routes->post('getSalasLivres', 'PermutasController::getSalasLivres');   // AJAX: Buscar salas livres
+    
+    // Gestão administrativa (aprovação/rejeição)
+    $routes->post('aprovar/(:num)', 'PermutasController::aprovarPermuta/$1');   // Aprovar permuta individual (admin)
+    $routes->post('rejeitar', 'PermutasController::rejeitarPermuta');           // Rejeitar permuta individual (admin)
+    $routes->post('aprovarGrupo', 'PermutasController::aprovarGrupo');          // Aprovar grupo de permutas (admin)
+    $routes->post('rejeitarGrupo', 'PermutasController::rejeitarGrupo');        // Rejeitar grupo de permutas (admin)
+});
+
+// Rotas para Caixa de Sugestões
+$routes->group('sugestoes', function($routes) {
+    $routes->get('/', 'SugestoesController::index');                          // Lista de sugestões (admin)
+    $routes->get('getDataTable', 'SugestoesController::getDataTable');        // DataTable AJAX (admin)
+    $routes->post('getDataTable', 'SugestoesController::getDataTable');       // DataTable AJAX (admin)
+    $routes->post('salvar', 'SugestoesController::salvar');                   // Salvar nova sugestão (user)
+    $routes->post('responder/(:num)', 'SugestoesController::responder/$1');   // Responder sugestão (admin)
+    $routes->post('alterarEstado/(:num)', 'SugestoesController::alterarEstado/$1'); // Alterar estado (admin)
+    $routes->post('excluir/(:num)', 'SugestoesController::excluir/$1');       // Excluir sugestão (admin)
+});
+
+// Rotas para Gestão de Blocos Horários
+$routes->group('blocos', function($routes) {
+    $routes->get('/', 'BlocosController::index');
+    $routes->post('getDataTable', 'BlocosController::getDataTable');
+    $routes->get('getDataTable', 'BlocosController::getDataTable');
+    $routes->get('get/(:num)', 'BlocosController::get/$1');
+    $routes->post('create', 'BlocosController::create');
+    $routes->post('update/(:num)', 'BlocosController::update/$1');
+    $routes->post('delete/(:num)', 'BlocosController::delete/$1');
+});
+
+// Rotas para Gestão de Tipologias
+$routes->group('tipologias', function($routes) {
+    $routes->get('/', 'TipologiasController::index');
+    $routes->post('getDataTable', 'TipologiasController::getDataTable');
+    $routes->get('getDataTable', 'TipologiasController::getDataTable');
+    $routes->get('get/(:num)', 'TipologiasController::get/$1');
+    $routes->post('create', 'TipologiasController::create');
+    $routes->post('update/(:num)', 'TipologiasController::update/$1');
+    $routes->post('delete/(:num)', 'TipologiasController::delete/$1');
+});
+
+// Rotas para Gestão de Anos Letivos
+$routes->group('anos-letivos', function($routes) {
+    $routes->get('/', 'AnosLetivosController::index');
+    $routes->post('getDataTable', 'AnosLetivosController::getDataTable');
+    $routes->get('getDataTable', 'AnosLetivosController::getDataTable');
+    $routes->get('get/(:num)', 'AnosLetivosController::get/$1');
+    $routes->post('create', 'AnosLetivosController::create');
+    $routes->post('update/(:num)', 'AnosLetivosController::update/$1');
+    $routes->post('delete/(:num)', 'AnosLetivosController::delete/$1');
+    $routes->post('ativar/(:num)', 'AnosLetivosController::ativar/$1');
 });
 
 // Rotas para obter dados para selects em modais

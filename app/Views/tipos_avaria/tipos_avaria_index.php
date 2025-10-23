@@ -39,7 +39,6 @@
                             <table id="tiposAvariaTable" class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
                                         <th>Descrição</th>
                                         <th>Ações</th>
                                     </tr>
@@ -100,6 +99,33 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Confirmação de Eliminação -->
+<div class="modal fade" id="modalDeleteTipoAvaria" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Eliminação
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Tem a certeza que deseja eliminar este tipo de avaria?</p>
+                <p class="text-muted small mb-0">Esta ação não pode ser revertida.</p>
+                <input type="hidden" id="deleteTipoAvariaId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteTipoAvaria()">
+                    <i class="bi bi-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <?= $this->endSection() ?>
 
 <?= $this->section("scripts") ?>
@@ -114,7 +140,6 @@ $(document).ready(function() {
             "type": "POST"
         },
         "columns": [
-            { "data": "id" },
             { "data": "descricao" },
             {
                 "data": null,
@@ -214,20 +239,32 @@ function viewTipoAvaria(id) {
 }
 
 function deleteTipoAvaria(id) {
-    if (confirm("Tem a certeza que deseja eliminar este tipo de avaria?")) {
-        $.ajax({
-            url: "<?= base_url("tipos_avaria/delete") ?>/" + id,
-            type: "POST",
-            success: function(response) {
-                $("#tiposAvariaTable").DataTable().ajax.reload();
-                showToast("success", response.message || "Tipo de avaria eliminado com sucesso!");
-            },
-            error: function(xhr) {
-                var response = JSON.parse(xhr.responseText);
-                showToast("error", response.message || "Erro ao eliminar tipo de avaria.");
-            }
-        });
-    }
+    $("#deleteTipoAvariaId").val(id);
+    var modalDelete = new bootstrap.Modal(document.getElementById("modalDeleteTipoAvaria"));
+    modalDelete.show();
+}
+
+function confirmDeleteTipoAvaria() {
+    var id = $("#deleteTipoAvariaId").val();
+    
+    $.ajax({
+        url: "<?= base_url("tipos_avaria/delete") ?>/" + id,
+        type: "POST",
+        success: function(response) {
+            var modalDelete = bootstrap.Modal.getInstance(document.getElementById("modalDeleteTipoAvaria"));
+            modalDelete.hide();
+            
+            $("#tiposAvariaTable").DataTable().ajax.reload();
+            showToast("success", response.message || "Tipo de avaria eliminado com sucesso!");
+        },
+        error: function(xhr) {
+            var modalDelete = bootstrap.Modal.getInstance(document.getElementById("modalDeleteTipoAvaria"));
+            modalDelete.hide();
+            
+            var response = JSON.parse(xhr.responseText);
+            showToast("error", response.message || "Erro ao eliminar tipo de avaria.");
+        }
+    });
 }
 
 function loadStatistics() {

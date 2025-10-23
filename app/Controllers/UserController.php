@@ -75,7 +75,7 @@ class UserController extends BaseController
         $orderDir = 'asc';
         
         if (isset($request['order'][0])) {
-            $columns = ['id', 'name', 'email', 'NIF', 'level', 'status', 'created_at'];
+            $columns = ['id', 'name', 'email', 'telefone', 'NIF', 'level', 'status', 'created_at'];
             $orderColumnIndex = $request['order'][0]['column'];
             $orderColumn = $columns[$orderColumnIndex] ?? 'id';
             $orderDir = $request['order'][0]['dir'] ?? 'asc';
@@ -127,6 +127,7 @@ class UserController extends BaseController
                 $profileImg,
                 $user['name'] ?? 'N/A',
                 $user['email'],
+                $user['telefone'] ?? 'N/A',
                 $user['NIF'] ?? 'N/A',
                 $user['level'],
                 $statusBadge,
@@ -204,6 +205,7 @@ class UserController extends BaseController
             'oauth_id' => $data['oauth_id'] ?? null,
             'name' => $data['name'] ?? null,
             'email' => $data['email'],
+            'telefone' => $data['telefone'] ?? null,
             'NIF' => $data['NIF'] ?? null,
             'profile_img' => $data['profile_img'] ?? 'default.png',
             'grupo_id' => $data['grupo_id'] ?? null,
@@ -292,6 +294,7 @@ class UserController extends BaseController
             'oauth_id' => $data['oauth_id'] ?? null,
             'name' => $data['name'] ?? null,
             'email' => $data['email'],
+            'telefone' => $data['telefone'] ?? null,
             'NIF' => $data['NIF'] ?? null,
             'grupo_id' => $data['grupo_id'] ?? null,
             'level' => $data['level'] ?? 0,
@@ -716,6 +719,202 @@ class UserController extends BaseController
         // log_user_activity("view_technicians", "Visualizou lista de técnicos", null, null, ["count" => count($technicians)]);
 
         return $this->respond($technicians);
+    }
+
+    /**
+     * Importar utilizadores a partir de ficheiro CSV
+     */
+    public function importar()
+    {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 5) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Acesso negado'
+            ]);
+        }
+
+        $file = $this->request->getFile('csv_file');
+        $skipDuplicates = $this->request->getPost('skip_duplicates') === 'on';
+        $downloadErrors = $this->request->getPost('download_errors') === 'on';
+
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Ficheiro inválido ou não enviado'
+            ]);
+        }
+
+        // Verificar extensão
+        if ($file->getExtension() !== 'csv') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Apenas ficheiros .csv são permitidos'
+            ]);
+        }
+
+        $imported = 0;
+        $skipped = 0;
+        $errors = 0;
+        $errorLines = [];
+        $errorLines[] = "Name;Email;NIF;Telefone;grupo_id;Motivo_Erro"; // Cabeçalho
+
+        try {
+            // Ler ficheiro CSV
+            $csvData = file_get_contents($file->getTempName());
+            
+            // Tentar diferentes encodings
+            $encodings = ['UTF-8', 'Windows-1252', 'ISO-8859-1'];
+            foreach ($encodings as $encoding) {
+                if (mb_check_encoding($csvData, $encoding)) {
+                    $csvData = mb_convert_encoding($csvData, 'UTF-8', $encoding);
+                    break;
+                }
+            }
+
+            // Processar linhas
+            $lines = explode("\n", $csvData);
+            $isFirstLine = true;
+
+            foreach ($lines as $lineNum => $line) {
+                // Ignorar primeira linha (cabeçalho)
+                if ($isFirstLine) {
+                    $isFirstLine = false;
+                    continue;
+                }
+
+                // Ignorar linhas vazias
+                $line = trim($line);
+                if (empty($line)) {
+                    continue;
+                }
+
+                // Separar por ponto e vírgula
+                $fields = str_getcsv($line, ';');
+
+                // Verificar se tem pelo menos 5 colunas
+                if (count($fields) < 5) {
+                    $errors++;
+                    $errorLines[] = $line . ";Número de colunas insuficiente";
+                    continue;
+                }
+
+                $name = trim($fields[0]);
+                $email = trim($fields[1]);
+                $nif = trim($fields[2]);
+                $telefone = trim($fields[3]);
+                $grupo_id = trim($fields[4]);
+
+                // VALIDAÇÃO OBRIGATÓRIA: NIF deve existir
+                if (empty($nif)) {
+                    $errors++;
+                    $errorLines[] = $line . ";NIF obrigatório (campo vazio)";
+                    continue;
+                }
+
+                // Validar email obrigatório
+                if (empty($email)) {
+                    $errors++;
+                    $errorLines[] = $line . ";Email obrigatório (campo vazio)";
+                    continue;
+                }
+
+                // Validar formato de email
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $errors++;
+                    $errorLines[] = $line . ";Email inválido";
+                    continue;
+                }
+
+                // Verificar se email já existe
+                $existingUser = $this->userModel->getUserByEmail($email);
+                if ($existingUser) {
+                    if ($skipDuplicates) {
+                        $skipped++;
+                        continue;
+                    } else {
+                        $errors++;
+                        $errorLines[] = $line . ";Email já existe";
+                        continue;
+                    }
+                }
+
+                // Preparar dados
+                $userData = [
+                    'name' => !empty($name) ? $name : null,
+                    'email' => $email,
+                    'NIF' => $nif,
+                    'telefone' => !empty($telefone) ? $telefone : null,
+                    'grupo_id' => !empty($grupo_id) && is_numeric($grupo_id) ? (int)$grupo_id : null,
+                    'level' => 0, // Nível padrão para novos utilizadores
+                    'status' => 2, // Status pendente - será ativado no primeiro login
+                    'profile_img' => 'default.png'
+                ];
+
+                // Inserir
+                if ($this->userModel->insert($userData)) {
+                    $imported++;
+                    
+                    // Log de importação
+                    log_activity(
+                        session()->get('user_id'),
+                        'users',
+                        'import',
+                        'Importou utilizador via CSV: ' . $email,
+                        $this->userModel->getInsertID()
+                    );
+                } else {
+                    $errors++;
+                    $validationErrors = $this->userModel->errors();
+                    $errorMsg = !empty($validationErrors) ? implode(', ', $validationErrors) : 'Erro ao inserir';
+                    $errorLines[] = $line . ";" . $errorMsg;
+                }
+            }
+
+            // Gerar ficheiro de erros se existirem e se solicitado
+            $errorFile = null;
+            if ($errors > 0 && $downloadErrors && count($errorLines) > 1) {
+                $errorFileName = 'users_import_errors_' . date('YmdHis') . '.csv';
+                $errorFilePath = FCPATH . 'upload/' . $errorFileName;
+                
+                // Criar diretório se não existir
+                if (!is_dir(FCPATH . 'upload')) {
+                    mkdir(FCPATH . 'upload', 0755, true);
+                }
+                
+                file_put_contents($errorFilePath, implode("\n", $errorLines));
+                $errorFile = base_url('upload/' . $errorFileName);
+            }
+
+            // Resposta de sucesso
+            $message = "Importação concluída!";
+            if ($errors > 0 && !$downloadErrors) {
+                $message .= " Utilize a opção 'Gerar ficheiro com linhas rejeitadas' para ver detalhes dos erros.";
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message,
+                'imported' => $imported,
+                'skipped' => $skipped,
+                'errors' => $errors,
+                'error_file' => $errorFile
+            ]);
+
+        } catch (\Exception $e) {
+            log_activity(
+                session()->get('user_id'),
+                'users',
+                'import_failed',
+                'Erro ao importar CSV: ' . $e->getMessage()
+            );
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Erro ao processar ficheiro: ' . $e->getMessage()
+            ]);
+        }
     }
 
 }

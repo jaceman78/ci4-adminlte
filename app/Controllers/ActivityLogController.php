@@ -117,26 +117,36 @@ class ActivityLogController extends BaseController
         foreach ($result['data'] as $log) {
             // Badge do módulo
             $moduloBadges = [
-                'users' => 'bg-primary',
-                'escolas' => 'bg-success',
-                'salas' => 'bg-info',
-                'auth' => 'bg-warning',
-                'system' => 'bg-secondary',
-                'logs' => 'bg-dark'
+                'users' => 'bg-primary text-dark',
+                'escolas' => 'bg-success text-dark',
+                'salas' => 'bg-info text-dark',
+                'auth' => 'bg-warning text-dark',
+                'system' => 'bg-secondary text-white',
+                'logs' => 'bg-dark text-white',
+                'datatable_query' => 'bg-info text-dark',
+                // GESTÃO LETIVA
+                'turmas' => 'bg-primary text-dark',
+                'disciplinas' => 'bg-success text-dark',
+                'horarios' => 'bg-info text-dark',
+                'blocos' => 'bg-warning text-dark',
+                'tipologias' => 'bg-secondary text-white',
+                'anos_letivos' => 'bg-primary text-dark'
             ];
-            $moduloBadge = '<span class="badge ' . ($moduloBadges[$log['modulo']] ?? 'bg-light') . '">' . ucfirst($log['modulo']) . '</span>';
+            $moduloBadge = '<span class="badge ' . ($moduloBadges[$log['modulo']] ?? 'bg-light text-dark') . '">' . ucfirst($log['modulo']) . '</span>';
 
             // Badge da ação
             $acaoBadges = [
-                'create' => 'bg-success',
-                'update' => 'bg-primary',
-                'delete' => 'bg-danger',
-                'view' => 'bg-info',
-                'login' => 'bg-success',
-                'logout' => 'bg-warning',
-                'export' => 'bg-secondary'
+                'create' => 'bg-success text-dark',
+                'update' => 'bg-primary text-dark',
+                'delete' => 'bg-danger text-white',
+                'view' => 'bg-info text-dark',
+                'login' => 'bg-success text-dark',
+                'logout' => 'bg-warning text-dark',
+                'export' => 'bg-secondary text-white',
+                'import' => 'bg-info text-dark',
+                'activate' => 'bg-success text-dark'
             ];
-            $acaoBadge = '<span class="badge ' . ($acaoBadges[$log['acao']] ?? 'bg-light') . '">' . ucfirst($log['acao']) . '</span>';
+            $acaoBadge = '<span class="badge ' . ($acaoBadges[$log['acao']] ?? 'bg-light text-dark') . '">' . ucfirst($log['acao']) . '</span>';
 
             // Nome do utilizador
             $userName = $log['user_name'] ?? null;
@@ -174,7 +184,6 @@ class ActivityLogController extends BaseController
             $actions .= '</div>';
             
             $data[] = [
-                $log['id'],
                 $displayUser,
                 $moduloBadge,
                 $acaoBadge,
@@ -474,7 +483,41 @@ class ActivityLogController extends BaseController
         $data = $this->request->getPost();
         $days = $data['days'] ?? 90;
 
-        // Validar número de dias
+        // Validar número de dias ou "all"
+        if ($days === 'all') {
+            // Eliminar TODOS os logs
+            $logsToDelete = $this->activityLogModel->countAllResults();
+            
+            if ($logsToDelete == 0) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Nenhum log encontrado para eliminar',
+                    'deleted_count' => 0
+                ]);
+            }
+            
+            // Eliminar todos
+            $this->activityLogModel->truncate();
+            
+            // Log da limpeza (será o primeiro após limpar tudo)
+            log_activity(
+                get_current_user_id(),
+                'logs',
+                'clean_all',
+                "Eliminou TODOS os logs - {$logsToDelete} registos eliminados",
+                null,
+                null,
+                null,
+                ['deleted_count' => $logsToDelete]
+            );
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => "TODOS os logs foram eliminados ({$logsToDelete} registos)",
+                'deleted_count' => $logsToDelete
+            ]);
+        }
+        
         if (!is_numeric($days) || $days < 1) {
             return $this->response->setJSON([
                 'success' => false,

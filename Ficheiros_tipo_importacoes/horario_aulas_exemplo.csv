@@ -1,0 +1,6 @@
+codigo_turma	disciplina_id	user_nif	sala_id	Turno	dia	tempo	intervalo	hora_inicio	hora_fim
+10A	MAT	194341402	A101	T1	2	45		08:00	08:45
+10A	PORT	194341402	A101	T1	2	90		09:00	10:30
+10B	FQ	194341402	B202	T2	3	45		08:00	08:45
+10B	MAT	194341402		T1	3	90		09:00	10:30
+10C	HIST	194341402	C303		4	45		14:00	14:45

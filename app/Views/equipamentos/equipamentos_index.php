@@ -78,13 +78,14 @@
                             <table id="equipamentosTable" class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
-                                        <th>Escola</th>
                                         <th>Sala</th>
                                         <th>Tipo</th>
-                                        <th>Marca/Modelo</th>
+                                        <th>Marca</th>
+                                        <th>Modelo</th>
                                         <th>Número de Série</th>
                                         <th>Estado</th>
+                                        <th>Data Aquisição</th>
+                                        <th>Observações</th>
                                         <th>Ações</th>
                                     </tr>
                                 </thead>
@@ -407,7 +408,6 @@ $(document).ready(function() {
             "type": "POST"
         },
         "columns": [
-            { "data": "id" },
             { "data": "sala_nome" },
             { "data": "tipo_nome" },
             { "data": "marca" },
@@ -476,6 +476,13 @@ $(document).ready(function() {
             '<?= base_url('equipamentos/update') ?>/' + equipamentoId : 
             '<?= base_url('equipamentos/create') ?>';
         
+        // Debug: mostrar dados do formulário
+        console.log('Estado antes de enviar:', $('#estado').val());
+        console.log('FormData completo:');
+        for (var pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+        
         $.ajax({
             url: url,
             type: 'POST',
@@ -489,6 +496,7 @@ $(document).ready(function() {
                 showToast('success', response.message || 'Operação realizada com sucesso!');
             },
             error: function(xhr) {
+                console.log('Erro na resposta:', xhr.responseText);
                 var response = JSON.parse(xhr.responseText);
                 if (response.messages) {
                     var errors = Object.values(response.messages).join('<br>');
@@ -542,6 +550,9 @@ function editEquipamento(id) {
         url: '<?= base_url('equipamentos/getEquipamento') ?>/' + id,
         type: 'GET',
         success: function(data) {
+            console.log('Dados do equipamento:', data);
+            console.log('Estado recebido:', data.estado);
+            
             $('#equipamentoModalLabel').text('Editar Equipamento');
             $('#equipamento_id').val(data.id);
             $('#sala_id').val(data.sala_id);
@@ -550,6 +561,9 @@ function editEquipamento(id) {
             $('#modelo').val(data.modelo);
             $('#numero_serie').val(data.numero_serie);
             $('#estado').val(data.estado);
+            
+            console.log('Estado selecionado no select:', $('#estado').val());
+            
             $('#data_aquisicao').val(data.data_aquisicao);
             $('#observacoes').val(data.observacoes);
             $('#saveButton').text('Atualizar');

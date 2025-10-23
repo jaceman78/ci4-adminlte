@@ -57,11 +57,103 @@
 </li>
 
 <?php 
-// Verificar se está em alguma página do Dashboard
-$segments = explode('/', trim(uri_string(), '/'));
-$dashboardPages = ['users', 'escolas', 'salas', 'equipamentos', 'tipos_equipamentos', 'tipos_avaria', 'materiais', 'logs'];
-$isDashboardActive = in_array($segments[0] ?? '', $dashboardPages);
+// Verificar se está em alguma página de Permutas
+$isPermutas = ($segments[0] ?? '') === 'permutas';
+?>
+<li class="nav-item <?= $isPermutas ? 'menu-open' : '' ?>">
+  <a href="#" class="nav-link <?= $isPermutas ? 'active' : '' ?>">
+    <i class="nav-icon bi bi-calendar-week"></i>
+    <p>
+      Horário & Permutas
+      <i class="nav-arrow bi bi-chevron-right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="<?= base_url('permutas') ?>" class="nav-link <?= $isPermutas && (($segments[1] ?? '') === '' || !isset($segments[1])) ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-eye"></i>
+        <p>Meu Horário</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('permutas/minhas') ?>" class="nav-link <?= $isPermutas && (($segments[1] ?? '') === 'minhas') ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-list-check"></i>
+        <p>As Minhas Permutas</p>
+      </a>
+    </li>
+    <?php $userLevel = session()->get('LoggedUserData')['level'] ?? 0; ?>
+    <?php if ($userLevel >= 6): ?>
+    <li class="nav-item">
+      <a href="<?= base_url('permutas/aprovar') ?>" class="nav-link <?= $isPermutas && (($segments[1] ?? '') === 'aprovar') ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-check-circle"></i>
+        <p>Aprovar Permutas</p>
+      </a>
+    </li>
+    <?php endif; ?>
+  </ul>
+</li>
+
+<?php 
+// Verificar se está em alguma página de Gestão Letiva
+$gestaoLetivaPages = ['turmas', 'disciplinas', 'horarios', 'blocos', 'tipologias', 'anos-letivos'];
+$isGestaoLetivaActive = in_array($segments[0] ?? '', $gestaoLetivaPages);
 $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+?>
+
+<?php if ($userLevel >= 6): ?>
+<li class="nav-item <?= $isGestaoLetivaActive ? 'menu-open' : '' ?>">
+  <a href="#" class="nav-link <?= $isGestaoLetivaActive ? 'active' : '' ?>">
+    <i class="nav-icon bi bi-calendar-check"></i>
+    <p>
+      Gestão Letiva
+      <i class="nav-arrow bi bi-chevron-right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="<?= base_url('turmas') ?>" class="nav-link <?= ($segments[0] ?? '') == 'turmas' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-people-fill"></i>
+        <p>Gestão de Turmas</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('disciplinas') ?>" class="nav-link <?= ($segments[0] ?? '') == 'disciplinas' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-book"></i>
+        <p>Gestão de Disciplinas</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('horarios') ?>" class="nav-link <?= ($segments[0] ?? '') == 'horarios' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-calendar3"></i>
+        <p>Gestão de Horários</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('blocos') ?>" class="nav-link <?= ($segments[0] ?? '') == 'blocos' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-clock"></i>
+        <p>Gestão de Blocos</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('tipologias') ?>" class="nav-link <?= ($segments[0] ?? '') == 'tipologias' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-tags"></i>
+        <p>Gestão de Tipologias</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('anos-letivos') ?>" class="nav-link <?= ($segments[0] ?? '') == 'anos-letivos' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-calendar-range"></i>
+        <p>Gestão de Anos Letivos</p>
+      </a>
+    </li>
+  </ul>
+</li>
+<?php endif; ?>
+
+<?php 
+// Verificar se está em alguma página do Dashboard
+$dashboardPages = ['users', 'escolas', 'salas', 'equipamentos', 'tipos_equipamentos', 'tipos_avaria', 'materiais', 'logs', 'sugestoes'];
+$isDashboardActive = in_array($segments[0] ?? '', $dashboardPages);
 ?>
 
 <?php if ($userLevel >= 5): ?>
@@ -74,6 +166,14 @@ $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
     </p>
   </a>
   <ul class="nav nav-treeview">
+    <?php if ($userLevel >= 6): ?>
+    <li class="nav-item">
+      <a href="<?= base_url('sugestoes') ?>" class="nav-link <?= ($segments[0] ?? '') == 'sugestoes' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-lightbulb"></i>
+        <p>Caixa de Sugestões</p>
+      </a>
+    </li>
+    <?php endif; ?>
     <li class="nav-item">
       <a href="<?= base_url('users') ?>" class="nav-link <?= ($segments[0] ?? '') == 'users' ? 'active' : '' ?>">
         <i class="nav-icon bi bi-circle"></i>

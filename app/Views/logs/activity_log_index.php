@@ -134,11 +134,10 @@ if ((session()->get('LoggedUserData')['level'] ?? 0) != 9) {
                     <table id="logsTable" class="table table-bordered table-striped table-hover">
                         <thead>
                             <tr>
-                                <th width="5%">ID</th>
                                 <th width="15%">Utilizador</th>
                                 <th width="10%">Módulo</th>
                                 <th width="10%">Ação</th>
-                                <th width="35%">Descrição</th>
+                                <th width="40%">Descrição</th>
                                 <th width="10%">IP</th>
                                 <th width="10%">Data/Hora</th>
                                 <th width="5%">Ações</th>
@@ -297,12 +296,18 @@ if ((session()->get('LoggedUserData')['level'] ?? 0) != 9) {
                     <div class="form-group">
                         <label for="cleanLogsDays">Eliminar logs com mais de quantos dias?</label>
                         <select class="form-control" id="cleanLogsDays" name="days" required>
-                            <option value="30">30 dias</option>
+                            <option value="7">7 dias (última semana)</option>
+                            <option value="14">14 dias</option>
+                            <option value="30" selected>30 dias (último mês)</option>
                             <option value="60">60 dias</option>
-                            <option value="90" selected>90 dias</option>
-                            <option value="180">180 dias</option>
+                            <option value="90">90 dias</option>
+                            <option value="180">180 dias (6 meses)</option>
                             <option value="365">1 ano</option>
+                            <option value="all">⚠️ TODOS os logs</option>
                         </select>
+                        <small class="form-text text-muted">
+                            Serão mantidos apenas os logs dos últimos X dias.
+                        </small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -318,7 +323,16 @@ if ((session()->get('LoggedUserData')['level'] ?? 0) != 9) {
     </div>
 </div>
 <?php endif; ?>
+
+<?= $this->section("styles") ?>
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" rel="stylesheet">
+<?= $this->endSection() ?>
+
 <?= $this->section("scripts") ?>
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
     // Inicializar DataTable
@@ -342,16 +356,15 @@ $(document).ready(function() {
             }
         },
         columns: [
-            { data: 0, name: "id" },
-            { data: 1, name: "user_name", orderable: false },
-            { data: 2, name: "modulo" },
-            { data: 3, name: "acao" },
-            { data: 4, name: "descricao", orderable: false },
-            { data: 5, name: "ip_address", orderable: false },
-            { data: 6, name: "criado_em" },
-            { data: 7, name: "actions", orderable: false, searchable: false }
+            { data: 0, name: "user_name", orderable: false },
+            { data: 1, name: "modulo" },
+            { data: 2, name: "acao" },
+            { data: 3, name: "descricao", orderable: false },
+            { data: 4, name: "ip_address", orderable: false },
+            { data: 5, name: "criado_em" },
+            { data: 6, name: "actions", orderable: false, searchable: false }
         ],
-        order: [[6, "desc"]], // Ordenar por data/hora decrescente
+        order: [[5, "desc"]], // Ordenar por data/hora decrescente
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
         language: {
@@ -389,8 +402,24 @@ $(document).ready(function() {
     $("#cleanLogsForm").on("submit", function(e) {
         e.preventDefault();
         
-        if (!confirm("Tem a certeza que deseja eliminar os logs antigos? Esta ação não pode ser desfeita.")) {
-            return;
+        var days = $("#cleanLogsDays").val();
+        var confirmMessage = "Tem a certeza que deseja eliminar os logs antigos? Esta ação não pode ser desfeita.";
+        
+        if (days === "all") {
+            confirmMessage = "⚠️ ATENÇÃO! Vai eliminar TODOS os logs do sistema!\n\nEsta ação é IRREVERSÍVEL e irá apagar TODO o histórico.\n\nTem ABSOLUTA certeza que deseja continuar?";
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Confirmação extra para "Todos"
+            if (!confirm("ÚLTIMA CONFIRMAÇÃO: Confirma que deseja apagar TODOS os logs?")) {
+                return;
+            }
+        } else {
+            if (!confirm(confirmMessage)) {
+                return;
+            }
         }
         
         var formData = $(this).serialize();
@@ -430,7 +459,7 @@ function loadFilterData() {
                 var userSelect = $("#filterUser");
                 userSelect.empty().append("<option value=\"\">Todos os utilizadores</option>");
                 $.each(response.data.users, function(index, user) {
-                    userSelect.append("<option value=\"" + user.id + "\">" + user.name + " (" + user.email + ")</option>");
+                    userSelect.append("<option value=\"" + user.user_id + "\">" + user.user_name + " (" + user.user_email + ")</option>");
                 });
 
                 // Carregar módulos
@@ -488,8 +517,8 @@ $("#viewLogUser").html(log.user_name ?
     "<strong>" + log.user_name + "</strong> <small>" + (log.user_email || "") + "</small>" : 
     "<span class=\"text-muted\">Sistema</span>"
 );
-                $("#viewLogModulo").html("<span class=\"badge bg-primary\">" + log.modulo.charAt(0).toUpperCase() + log.modulo.slice(1) + "</span>");
-                $("#viewLogAcao").html("<span class=\"badge bg-info\">" + log.acao.charAt(0).toUpperCase() + log.acao.slice(1) + "</span>");
+                $("#viewLogModulo").html("<span class=\"badge bg-primary text-dark\">" + log.modulo.charAt(0).toUpperCase() + log.modulo.slice(1) + "</span>");
+                $("#viewLogAcao").html("<span class=\"badge bg-info text-dark\">" + log.acao.charAt(0).toUpperCase() + log.acao.slice(1) + "</span>");
                 $("#viewLogRegistroId").text(log.registro_id || "N/A");
                 $("#viewLogDataHora").text(new Date(log.criado_em).toLocaleString("pt-PT"));
                 $("#viewLogIp").text(log.ip_address || "N/A");

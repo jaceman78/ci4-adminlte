@@ -48,7 +48,7 @@ class SalaController extends BaseController
     public function all()
     {
         $salas = $this->salasModel
-            ->select('salas.id, salas.codigo_sala, escolas.nome as escola_nome')
+            ->select('salas.id, salas.codigo_sala, salas.descricao, escolas.nome as escola_nome')
             ->join('escolas', 'escolas.id = salas.escola_id', 'left')
             ->orderBy('escolas.nome', 'ASC')
             ->orderBy('salas.codigo_sala', 'ASC')
@@ -88,7 +88,7 @@ class SalaController extends BaseController
         $orderDir = 'asc';
         
         if (isset($request['order'][0])) {
-            $columns = ['id', 'codigo_sala', 'escola_nome', 'created_at'];
+            $columns = ['id', 'codigo_sala', 'descricao', 'escola_nome', 'created_at'];
             $orderColumnIndex = $request['order'][0]['column'];
             $orderColumn = $columns[$orderColumnIndex] ?? 'id';
             $orderDir = $request['order'][0]['dir'] ?? 'asc';
@@ -115,6 +115,7 @@ class SalaController extends BaseController
             $data[] = [
                 $sala['id'],
                 $sala['codigo_sala'],
+                $sala['descricao'] ?? '',
                 $sala['escola_nome'],
                 date('d/m/Y H:i', strtotime($sala['created_at'])),
                 $actions
@@ -185,7 +186,8 @@ class SalaController extends BaseController
         // Preparar dados para inserção
         $salaData = [
             'escola_id' => $data['escola_id'],
-            'codigo_sala' => $data['codigo_sala']
+            'codigo_sala' => $data['codigo_sala'],
+            'descricao' => $data['descricao'] ?? null
         ];
 
         $salaId = $this->salasModel->insert($salaData);
@@ -253,7 +255,8 @@ class SalaController extends BaseController
         // Preparar dados para atualização
         $salaData = [
             'escola_id' => $data['escola_id'],
-            'codigo_sala' => $data['codigo_sala']
+            'codigo_sala' => $data['codigo_sala'],
+            'descricao' => $data['descricao'] ?? null
         ];
 
         $result = $this->salasModel->update($id, $salaData);

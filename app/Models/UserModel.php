@@ -16,6 +16,7 @@ class UserModel extends Model
         'oauth_id',
         'name', 
         'email',
+        'telefone',
         'NIF',
         'profile_img',
         'grupo_id',
@@ -35,6 +36,7 @@ class UserModel extends Model
     protected $validationRules = [
         'email' => 'required|valid_email|is_unique[user.email,id,{id}]',
         'name' => 'permit_empty|max_length[100]',
+        'telefone' => 'permit_empty|max_length[20]',
         'NIF' => 'permit_empty|integer|max_length[11]',
         'profile_img' => 'permit_empty|max_length[500]',
         'grupo_id' => 'permit_empty|integer',
@@ -51,6 +53,9 @@ class UserModel extends Model
         ],
         'name' => [
             'max_length' => 'O nome não pode ter mais de 100 caracteres.'
+        ],
+        'telefone' => [
+            'max_length' => 'O telefone não pode ter mais de 20 caracteres.'
         ],
         'NIF' => [
             'integer' => 'O NIF deve ser um número.',
@@ -109,6 +114,7 @@ class UserModel extends Model
         return $this->groupStart()
                     ->like('name', $search)
                     ->orLike('email', $search)
+                    ->orLike('telefone', $search)
                     ->groupEnd()
                     ->orderBy('name', 'ASC')
                     ->findAll();
@@ -240,6 +246,7 @@ class UserModel extends Model
             $builder->groupStart()
                    ->like('name', $search)
                    ->orLike('email', $search)
+                   ->orLike('telefone', $search)
                    ->orLike('NIF', $search)
                    ->groupEnd();
         }

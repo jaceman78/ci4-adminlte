@@ -37,7 +37,7 @@ class TicketsModel extends Model
         'tipo_avaria_id' => 'required|integer',
         'user_id'        => 'required|integer',
         'descricao'      => 'required|min_length[10]',
-        'estado'         => 'required|in_list[novo,em_resolucao,aguarda_peca,reparado,anulado]',
+        'estado'         => 'required|validar_estado_ticket',
         'prioridade'     => 'required|in_list[baixa,media,alta,critica]',
     ];
     protected $validationMessages = [];

@@ -32,7 +32,6 @@
         <table id="materiaisTable" class="table table-bordered table-striped">
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Nome</th>
                     <th>Referência</th>
                     <th>Stock Atual</th>
@@ -150,7 +149,6 @@
                 'type': 'POST'
             },
             'columns': [
-                { 'data': 0, 'name': 'id' },
                 { 'data': 1, 'name': 'nome' },
                 { 'data': 2, 'name': 'referencia' },
                 { 'data': 3, 'name': 'stock_atual' },
