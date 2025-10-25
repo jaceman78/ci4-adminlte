@@ -79,8 +79,8 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="descricao">Descrição da Avaria <span class="text-danger">*</span></label>
-                                    <textarea class="form-control" id="descricao" name="descricao" rows="5" placeholder="Descreva detalhadamente a avaria..." required></textarea>
-                                    <small class="form-text text-muted">Mínimo de 10 caracteres.</small>
+                                    <textarea class="form-control" id="descricao" name="descricao" rows="5" placeholder="Descreva detalhadamente a avaria..." required minlength="10"></textarea>
+                                    <small class="form-text text-muted">Mínimo de 10 caracteres. <span id="charCount" class="text-info">(0/10)</span></small>
                                 </div>
                             </div>
                             <!-- /.card-body -->
@@ -179,6 +179,26 @@
 <?= $this->section('scripts') ?>
 <script>
 $(document).ready(function() {
+    // Contador de caracteres para a descrição
+    $('#descricao').on('input', function() {
+        var length = $(this).val().length;
+        var $charCount = $('#charCount');
+        
+        if (!$charCount.length) {
+            // Se não existe, criar o span
+            $(this).next('.form-text').append(' <span id="charCount" class="text-info"></span>');
+            $charCount = $('#charCount');
+        }
+        
+        $charCount.text('(' + length + '/10)');
+        
+        if (length < 10) {
+            $charCount.removeClass('text-success').addClass('text-danger');
+        } else {
+            $charCount.removeClass('text-danger').addClass('text-success');
+        }
+    });
+    
     // Quando a escola é selecionada, carregar as salas dessa escola
     $('#escola_id').on('change', function() {
         var escolaId = $(this).val();
@@ -375,6 +395,14 @@ $(document).ready(function() {
     $('#novoTicketForm').on('submit', function(e) {
         e.preventDefault();
         
+        // Validar descrição antes de enviar
+        var descricao = $('#descricao').val().trim();
+        if (descricao.length < 10) {
+            toastr.warning('A descrição da avaria deve ter pelo menos 10 caracteres.', 'Campo Obrigatório');
+            $('#descricao').focus();
+            return false;
+        }
+        
         var formData = $(this).serialize();
         console.log('Dados do formulário:', formData);
         
@@ -422,9 +450,17 @@ $(document).ready(function() {
                             // Erros de validação múltiplos
                             var errors = [];
                             $.each(response.messages.error, function(field, message) {
-                                errors.push(field + ': ' + message);
+                                // Traduzir nomes dos campos para português
+                                var fieldNames = {
+                                    'equipamento_id': 'Equipamento',
+                                    'sala_id': 'Sala',
+                                    'tipo_avaria_id': 'Tipo de Avaria',
+                                    'descricao': 'Descrição'
+                                };
+                                var fieldLabel = fieldNames[field] || field;
+                                errors.push('<strong>' + fieldLabel + ':</strong> ' + message);
                             });
-                            toastr.error(errors.join('<br>'), 'Erros de Validação');
+                            toastr.error(errors.join('<br>'), 'Erros de Validação', {timeOut: 5000});
                         } else {
                             toastr.error(response.messages.error, 'Erro');
                         }

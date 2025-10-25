@@ -1,6 +1,13 @@
 <footer class="app-footer">
         <!--begin::To the end-->
-        <div class="float-end d-none d-sm-inline">AEJB</div>
+        <div class="float-end d-none d-sm-inline">
+          <a href="<?= site_url('privacy') ?>" class="text-decoration-none me-2" target="_blank">
+            <i class="fas fa-shield-alt"></i> Privacidade
+          </a>
+          <a href="<?= site_url('privacy/terms') ?>" class="text-decoration-none" target="_blank">
+            <i class="fas fa-file-contract"></i> Termos
+          </a>
+        </div>
         <!--end::To the end-->
         <!--begin::Copyright-->
         <strong>

@@ -79,32 +79,43 @@
             </div>
             <form id="editTicketForm">
                 <div class="modal-body">
-                    <input type="hidden" id="edit_ticket_id" name="ticket_id">
-                    <div class="form-group">
-                        <label for="edit_equipamento_id">Equipamento</label>
-                        <select class="form-control" id="edit_equipamento_id" name="equipamento_id" required>
-                            <option value="">Selecione um equipamento</option>
-                            <!-- Opções carregadas via AJAX -->
-                        </select>
+                    <!-- Loading spinner -->
+                    <div id="editTicketLoading" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-2">A carregar dados do ticket...</p>
                     </div>
-                    <div class="form-group">
-                        <label for="edit_sala_id">Sala</label>
-                        <select class="form-control" id="edit_sala_id" name="sala_id" required>
-                            <option value="">Selecione uma sala</option>
-                            <!-- Opções carregadas via AJAX -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit_tipo_avaria_id">Tipo de Avaria</label>
-                        <select class="form-control" id="edit_tipo_avaria_id" name="tipo_avaria_id" required>
-                            <option value="">Selecione um tipo de avaria</option>
-                            <!-- Opções carregadas via AJAX -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit_descricao">Descrição da Avaria</label>
-                        <textarea class="form-control" id="edit_descricao" name="descricao" rows="5" required></textarea>
-                        <small class="form-text text-muted">Mínimo de 10 caracteres.</small>
+                    
+                    <!-- Conteúdo do formulário -->
+                    <div id="editTicketFormContent">
+                        <input type="hidden" id="edit_ticket_id" name="ticket_id">
+                        <div class="form-group">
+                            <label for="edit_equipamento_id">Equipamento</label>
+                            <select class="form-control" id="edit_equipamento_id" name="equipamento_id" required>
+                                <option value="">Selecione um equipamento</option>
+                                <!-- Opções carregadas via AJAX -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_sala_id">Sala</label>
+                            <select class="form-control" id="edit_sala_id" name="sala_id" required>
+                                <option value="">Selecione uma sala</option>
+                                <!-- Opções carregadas via AJAX -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_tipo_avaria_id">Tipo de Avaria</label>
+                            <select class="form-control" id="edit_tipo_avaria_id" name="tipo_avaria_id" required>
+                                <option value="">Selecione um tipo de avaria</option>
+                                <!-- Opções carregadas via AJAX -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_descricao">Descrição da Avaria</label>
+                            <textarea class="form-control" id="edit_descricao" name="descricao" rows="5" required></textarea>
+                            <small class="form-text text-muted">Mínimo de 10 caracteres.</small>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -300,34 +311,45 @@ $(document).ready(function() {
     $('#editTicketForm').on('submit', function(e) {
         e.preventDefault();
         var ticketId = $('#edit_ticket_id').val();
-        var formData = $(this).serialize();
+        var formData = new FormData(this);
         
         $.ajax({
             url: '<?= site_url("tickets/update/") ?>' + ticketId,
-            type: 'PUT',
+            type: 'POST',
             data: formData,
+            processData: false,
+            contentType: false,
             dataType: 'json',
             beforeSend: function() {
                 $('button[type="submit"]', '#editTicketForm').prop('disabled', true).text('Atualizando...');
             },
             success: function(response) {
-                // respondUpdated retorna com status HTTP 200, response tem a mensagem
-                toastr.success(response.message || 'Ticket atualizado com sucesso!');
-                $('#editTicketModal').modal('hide');
-                table.ajax.reload();
+                if (response.status === 200) {
+                    toastr.success(response.message || 'Ticket atualizado com sucesso!');
+                    $('#editTicketModal').modal('hide');
+                    table.ajax.reload();
+                } else {
+                    toastr.error('Erro ao atualizar ticket.');
+                }
             },
             error: function(xhr) {
-                var response = JSON.parse(xhr.responseText);
-                if (response.messages && response.messages.error) {
-                    if (typeof response.messages.error === 'object') {
-                        $.each(response.messages.error, function(field, message) {
-                            toastr.error(message);
-                        });
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.messages && response.messages.error) {
+                        if (typeof response.messages.error === 'object') {
+                            $.each(response.messages.error, function(field, message) {
+                                toastr.error(message);
+                            });
+                        } else {
+                            toastr.error(response.messages.error);
+                        }
+                    } else if (response.message) {
+                        toastr.error(response.message);
                     } else {
-                        toastr.error(response.messages.error);
+                        toastr.error('Erro interno do servidor.');
                     }
-                } else {
-                    toastr.error('Erro interno do servidor.');
+                } catch(e) {
+                    toastr.error('Erro ao processar resposta do servidor.');
                 }
             },
             complete: function() {
@@ -337,34 +359,44 @@ $(document).ready(function() {
     });
 
     function loadTicketForEdit(ticketId) {
-        // Primeiro carregar os selects
-        loadSelectOptions(function() {
-            // Depois carregar os dados do ticket
-            $.ajax({
-                url: '<?= site_url("tickets/get/") ?>' + ticketId,
-                type: 'GET',
-                dataType: 'json',
-                success: function(ticket) {
-                    console.log('Ticket carregado:', ticket);
-                    // O response já é o ticket diretamente
+        // Mostrar loading e abrir modal
+        $('#editTicketLoading').show();
+        $('#editTicketFormContent').hide();
+        $('#editTicketModal').modal('show');
+        
+        // Carregar dados do ticket
+        $.ajax({
+            url: '<?= site_url("tickets/get/") ?>' + ticketId,
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 200 && response.data) {
+                    var ticket = response.data;
+                    
+                    // Preencher campos simples
                     $('#edit_ticket_id').val(ticket.id);
-                    $('#edit_equipamento_id').val(ticket.equipamento_id);
-                    $('#edit_sala_id').val(ticket.sala_id);
-                    $('#edit_tipo_avaria_id').val(ticket.tipo_avaria_id);
                     $('#edit_descricao').val(ticket.descricao);
                     
-                    $('#editTicketModal').modal('show');
-                },
-                error: function(xhr) {
-                    console.error('Erro ao carregar ticket:', xhr);
-                    try {
-                        var response = JSON.parse(xhr.responseText);
-                        toastr.error(response.message || 'Erro ao carregar dados do ticket.');
-                    } catch (e) {
-                        toastr.error('Erro ao carregar dados do ticket.');
-                    }
+                    // Carregar selects e depois definir valores
+                    loadSelectOptions(ticket).done(function() {
+                        $('#editTicketLoading').hide();
+                        $('#editTicketFormContent').show();
+                    });
+                } else {
+                    toastr.error('Erro ao carregar dados do ticket.');
+                    $('#editTicketModal').modal('hide');
                 }
-            });
+            },
+            error: function(xhr) {
+                console.error('Erro ao carregar ticket:', xhr);
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    toastr.error(response.message || 'Erro ao carregar dados do ticket.');
+                } catch (e) {
+                    toastr.error('Erro ao carregar dados do ticket.');
+                }
+                $('#editTicketModal').modal('hide');
+            }
         });
     }
 
@@ -389,51 +421,67 @@ $(document).ready(function() {
         });
     }
 
-    function loadSelectOptions(callback) {
-        var promises = [];
+    function loadSelectOptions(ticket) {
+        var ajaxCalls = [];
         
         // Carregar equipamentos
-        promises.push(
-            $.get('<?= site_url("equipamentos/all") ?>', function(data) {
-                $('#edit_equipamento_id').empty().append('<option value="">Selecione um equipamento</option>');
-                $.each(data, function(key, value) {
-                    var equipamentoLabel = (value.tipo_nome || 'N/A') + ' - ' + (value.marca || '') + ' ' + (value.modelo || '');
-                    if (value.numero_serie) {
-                        equipamentoLabel += ' (S/N: ' + value.numero_serie + ')';
-                    }
-                    $('#edit_equipamento_id').append('<option value="' + value.id + '">' + equipamentoLabel + '</option>');
-                });
+        ajaxCalls.push(
+            $.ajax({
+                url: '<?= site_url("equipamentos/all") ?>',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    $('#edit_equipamento_id').empty().append('<option value="">Selecione um equipamento</option>');
+                    $.each(data, function(key, value) {
+                        var equipamentoLabel = (value.tipo_nome || 'N/A') + ' - ' + (value.marca || '') + ' ' + (value.modelo || '');
+                        if (value.numero_serie) {
+                            equipamentoLabel += ' (S/N: ' + value.numero_serie + ')';
+                        }
+                        $('#edit_equipamento_id').append('<option value="' + value.id + '">' + equipamentoLabel + '</option>');
+                    });
+                    if (ticket) $('#edit_equipamento_id').val(ticket.equipamento_id);
+                }
             })
         );
 
         // Carregar salas
-        promises.push(
-            $.get('<?= site_url("salas/all") ?>', function(data) {
-                $('#edit_sala_id').empty().append('<option value="">Selecione uma sala</option>');
-                $.each(data, function(key, value) {
-                    var salaLabel = value.codigo_sala;
-                    if (value.escola_nome) {
-                        salaLabel += ' (' + value.escola_nome + ')';
-                    }
-                    $('#edit_sala_id').append('<option value="' + value.id + '">' + salaLabel + '</option>');
-                });
+        ajaxCalls.push(
+            $.ajax({
+                url: '<?= site_url("salas/all") ?>',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    $('#edit_sala_id').empty().append('<option value="">Selecione uma sala</option>');
+                    $.each(data, function(key, value) {
+                        var salaLabel = value.codigo_sala;
+                        if (value.escola_nome) {
+                            salaLabel += ' (' + value.escola_nome + ')';
+                        }
+                        $('#edit_sala_id').append('<option value="' + value.id + '">' + salaLabel + '</option>');
+                    });
+                    if (ticket) $('#edit_sala_id').val(ticket.sala_id);
+                }
             })
         );
 
         // Carregar tipos de avaria
-        promises.push(
-            $.get('<?= site_url("tipos-avaria/all") ?>', function(data) {
-                $('#edit_tipo_avaria_id').empty().append('<option value="">Selecione um tipo de avaria</option>');
-                $.each(data, function(key, value) {
-                    $('#edit_tipo_avaria_id').append('<option value="' + value.id + '">' + value.descricao + '</option>');
-                });
+        ajaxCalls.push(
+            $.ajax({
+                url: '<?= site_url("tipos-avaria/all") ?>',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    $('#edit_tipo_avaria_id').empty().append('<option value="">Selecione um tipo de avaria</option>');
+                    $.each(data, function(key, value) {
+                        $('#edit_tipo_avaria_id').append('<option value="' + value.id + '">' + value.descricao + '</option>');
+                    });
+                    if (ticket) $('#edit_tipo_avaria_id').val(ticket.tipo_avaria_id);
+                }
             })
         );
 
-        // Quando todos os selects estiverem carregados, executar callback
-        $.when.apply($, promises).done(function() {
-            if (callback) callback();
-        });
+        // Retornar promise que aguarda todos os AJAX
+        return $.when.apply($, ajaxCalls);
     }
     
     // Variável global para armazenar o ticket ID atual

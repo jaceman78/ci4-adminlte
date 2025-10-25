@@ -232,57 +232,80 @@ class TicketsController extends BaseController
 
     public function update($id = null)
     {
-        if (!$this->request->isAJAX()) {
-            return $this->failUnauthorized('Acesso não autorizado.');
-        }
-
-        $ticket = $this->ticketsModel->find($id);
-        if (!$ticket) {
-            return $this->failNotFound('Ticket não encontrado.');
-        }
-
-        // Apenas o criador pode editar se o estado for 'novo', ou admins (nível 8+)
-        $userId = session()->get('user_id');
-        $userLevel = session()->get('level') ?? 0;
-        
-        $isOwner = $ticket['user_id'] == $userId && $ticket['estado'] == 'novo';
-        $isAdmin = $userLevel >= 8;
-        
-        if (!$isOwner && !$isAdmin) {
-            return $this->failUnauthorized('Não tem permissão para editar este ticket.');
-        }
-
-        $rules = [
-            'equipamento_id' => 'required|integer',
-            'sala_id'        => 'required|integer',
-            'tipo_avaria_id' => 'required|integer',
-            'descricao'      => 'required|min_length[10]'
-        ];
-
-        if (!$this->validate($rules)) {
-            return $this->failValidationErrors($this->validator->getErrors());
-        }
-
-        $data = [
-            'equipamento_id' => $this->request->getPost('equipamento_id'),
-            'sala_id'        => $this->request->getPost('sala_id'),
-            'tipo_avaria_id' => $this->request->getPost('tipo_avaria_id'),
-            'descricao'      => $this->request->getPost('descricao'),
-        ];
-
-        if ($this->ticketsModel->update($id, $data)) {
-            $ticketDetails = $this->ticketsModel->getTicketDetails($id);
-            
-            // Tentar enviar email de atualização (não bloqueia se falhar)
-            try {
-                $this->sendTicketUpdateEmail($ticketDetails);
-            } catch (\Exception $e) {
-                log_message('warning', 'Falha ao enviar email de atualização: ' . $e->getMessage());
+        try {
+            if (!$this->request->isAJAX()) {
+                return $this->failUnauthorized('Acesso não autorizado.');
             }
+
+            $ticket = $this->ticketsModel->find($id);
+            if (!$ticket) {
+                return $this->failNotFound('Ticket não encontrado.');
+            }
+
+            // Apenas o criador pode editar se o estado for 'novo', ou admins (nível 8+)
+            $userId = session()->get('user_id');
+            $userLevel = (int) session()->get('level') ?? 0;
             
-            return $this->respondUpdated(['message' => 'Ticket atualizado com sucesso!']);
-        } else {
-            return $this->failServerError('Não foi possível atualizar o ticket.');
+            $isOwner = $ticket['user_id'] == $userId && $ticket['estado'] == 'novo';
+            $isAdmin = $userLevel >= 8;
+            
+            if (!$isOwner && !$isAdmin) {
+                return $this->failUnauthorized('Não tem permissão para editar este ticket.');
+            }
+
+            $rules = [
+                'equipamento_id' => 'permit_empty|integer',
+                'sala_id'        => 'permit_empty|integer',
+                'tipo_avaria_id' => 'required|integer',
+                'descricao'      => 'required|min_length[10]'
+            ];
+
+            if (!$this->validate($rules)) {
+                return $this->failValidationErrors($this->validator->getErrors());
+            }
+
+            $data = [
+                'tipo_avaria_id' => $this->request->getPost('tipo_avaria_id'),
+                'descricao'      => $this->request->getPost('descricao'),
+            ];
+
+            // Adicionar campos opcionais apenas se foram enviados
+            if ($this->request->getPost('equipamento_id')) {
+                $data['equipamento_id'] = $this->request->getPost('equipamento_id');
+            }
+            if ($this->request->getPost('sala_id')) {
+                $data['sala_id'] = $this->request->getPost('sala_id');
+            }
+            if ($this->request->getPost('estado')) {
+                $data['estado'] = $this->request->getPost('estado');
+            }
+            if ($this->request->getPost('prioridade')) {
+                $data['prioridade'] = $this->request->getPost('prioridade');
+            }
+            if ($this->request->getPost('atribuido_user_id') !== null) {
+                $data['atribuido_user_id'] = $this->request->getPost('atribuido_user_id') ?: null;
+            }
+
+            if ($this->ticketsModel->update($id, $data)) {
+                $ticketDetails = $this->ticketsModel->getTicketDetails($id);
+                
+                // Tentar enviar email de atualização (não bloqueia se falhar)
+                try {
+                    $this->sendTicketUpdateEmail($ticketDetails);
+                } catch (\Exception $e) {
+                    log_message('warning', 'Falha ao enviar email de atualização: ' . $e->getMessage());
+                }
+                
+                return $this->respond([
+                    'status' => 200,
+                    'message' => 'Ticket atualizado com sucesso!'
+                ]);
+            } else {
+                return $this->failServerError('Não foi possível atualizar o ticket.');
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Erro no update: ' . $e->getMessage());
+            return $this->fail('Erro ao atualizar ticket: ' . $e->getMessage(), 500);
         }
     }
 
@@ -344,7 +367,12 @@ class TicketsController extends BaseController
             return $this->failUnauthorized('Não tem permissão para ver este ticket.');
         }
 
-        return $this->respond($ticket);
+        // Retornar no formato esperado pelo JavaScript
+        return $this->respond([
+            'status' => 200,
+            'data' => $ticket,
+            'message' => 'Ticket encontrado com sucesso.'
+        ]);
     }
 
     // --- Métodos AJAX para DataTables --- //
@@ -453,6 +481,8 @@ class TicketsController extends BaseController
         }
 
         // Nível de acesso já verificado na função todosTickets()
+        
+        $userLevel = (int) session()->get('level');
 
         $tickets = $this->ticketsModel->getAllTicketsOrdered();
 
@@ -473,7 +503,8 @@ class TicketsController extends BaseController
             
             // Botão para ver detalhes (link direto)
             $options = '<a href="' . base_url('tickets/view/' . $ticket['id']) . '" class="btn btn-sm btn-info" title="Ver Detalhes"><i class="fas fa-eye"></i></a> ';
-            if (session()->get('level') >= 8) { // Admins (8) e Super Admins (9) podem editar e apagar
+            
+            if ($userLevel >= 8) { // Admins (8) e Super Admins (9) podem editar e apagar
                 $options .= '<button class="btn btn-sm btn-warning edit-ticket" data-id="' . $ticket['id'] . '" title="Editar"><i class="fas fa-edit"></i></button> ';
                 $options .= '<button class="btn btn-sm btn-danger delete-ticket" data-id="' . $ticket['id'] . '" title="Apagar"><i class="fas fa-trash"></i></button>';
             }
@@ -612,8 +643,8 @@ class TicketsController extends BaseController
 
         $this->email->initialize($config);
 
-        $this->email->setFrom(getenv('email.fromEmail') ?: 'escoladigitaljb@aejoaodebarros.pt', 
-                              getenv('email.fromName') ?: 'Escola Digital JB');
+        $this->email->setFrom(getenv('email.fromEmail') ?: 'antonioneto@aejoaodebarros.pt', 
+                              getenv('email.fromName') ?: 'António Neto - Escola Digital JB');
         $this->email->setTo($to);
         $this->email->setSubject($subject);
         $this->email->setMessage($message);

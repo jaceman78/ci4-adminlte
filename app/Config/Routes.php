@@ -9,6 +9,12 @@ use CodeIgniter\Router\RouteCollection;
 // Rota inicial -> redireciona para login
 $routes->get('/', 'LoginController::index');
 
+// ---------------------------
+// 🔒 Política de Privacidade e Termos (Público - para Google OAuth)
+// ---------------------------
+$routes->get('privacy', 'PrivacyController::index');
+$routes->get('privacy/terms', 'PrivacyController::terms');
+
 // Rota para teste de toasts (apenas desenvolvimento)
 $routes->get('teste-toasts', function() {
     return view('teste_toasts');
@@ -196,7 +202,7 @@ $routes->group("tickets", function ($routes) {
 
     // Rotas AJAX para CRUD e DataTables
     $routes->post("create", "TicketsController::create");
-    $routes->put("update/(:num)", "TicketsController::update/$1");
+    $routes->match(['post', 'put'], "update/(:num)", "TicketsController::update/$1");
     $routes->delete("delete/(:num)", "TicketsController::delete/$1");
     $routes->get("get/(:num)", "TicketsController::get/$1"); // Para carregar detalhes do ticket para edição/visualização via AJAX
 
