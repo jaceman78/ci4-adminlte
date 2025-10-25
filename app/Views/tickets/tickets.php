@@ -151,8 +151,18 @@
             </div>
             <form id="editTicketForm">
                 <div class="modal-body">
-                    <input type="hidden" id="edit_ticket_id" name="ticket_id">
-                    <div class="row">
+                    <!-- Loading indicator -->
+                    <div id="editTicketLoading" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">A carregar...</span>
+                        </div>
+                        <p class="mt-2">A carregar dados do ticket...</p>
+                    </div>
+                    
+                    <!-- Form content -->
+                    <div id="editTicketFormContent">
+                        <input type="hidden" id="edit_ticket_id" name="ticket_id">
+                        <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="edit_equipamento_id">Equipamento</label>
@@ -217,6 +227,7 @@
                         <label for="edit_descricao">Descrição da Avaria</label>
                         <textarea class="form-control" id="edit_descricao" name="descricao" rows="4" required></textarea>
                     </div>
+                    </div><!-- Fim editTicketFormContent -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -271,6 +282,39 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Confirmação de Eliminação -->
+<div class="modal fade" id="deleteTicketModal" tabindex="-1" aria-labelledby="deleteTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteTicketModalLabel">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmar Eliminação
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-trash-alt fa-3x text-danger"></i>
+                </div>
+                <p class="text-center mb-2"><strong>Tem certeza que deseja eliminar este ticket?</strong></p>
+                <p class="text-muted text-center small mb-0">
+                    Esta ação não pode ser desfeita. Todos os dados associados ao ticket serão permanentemente removidos.
+                </p>
+                <input type="hidden" id="deleteTicketId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteTicket">
+                    <i class="fas fa-trash"></i> Eliminar Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
@@ -386,31 +430,43 @@ $(document).ready(function() {
         loadTicketForEdit(ticketId);
     });
 
-    // Apagar Ticket
+    // Apagar Ticket - Abrir modal de confirmação
     $(document).on('click', '.delete-ticket', function() {
         var ticketId = $(this).data('id');
-        if (confirm('Tem certeza de que deseja apagar este ticket? Esta ação não pode ser desfeita.')) {
-            deleteTicket(ticketId);
-        }
+        $('#deleteTicketId').val(ticketId);
+        
+        var deleteModal = new bootstrap.Modal(document.getElementById('deleteTicketModal'));
+        deleteModal.show();
+    });
+    
+    // Confirmar eliminação do ticket
+    $('#confirmDeleteTicket').on('click', function() {
+        var ticketId = $('#deleteTicketId').val();
+        var deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteTicketModal'));
+        
+        deleteModal.hide();
+        deleteTicket(ticketId);
     });
 
     // Submeter formulário de edição
     $('#editTicketForm').on('submit', function(e) {
         e.preventDefault();
         var ticketId = $('#edit_ticket_id').val();
-        var formData = $(this).serialize();
+        var formData = new FormData(this);
         
         $.ajax({
             url: '<?= site_url("tickets/update/") ?>' + ticketId,
-            type: 'PUT',
+            type: 'POST',
             data: formData,
+            processData: false,
+            contentType: false,
             dataType: 'json',
             beforeSend: function() {
                 $('button[type="submit"]', '#editTicketForm').prop('disabled', true).text('Atualizando...');
             },
             success: function(response) {
                 if (response.status === 200) {
-                    toastr.success(response.messages.success || 'Ticket atualizado com sucesso!');
+                    toastr.success(response.message || 'Ticket atualizado com sucesso!');
                     $('#editTicketModal').modal('hide');
                     table.ajax.reload();
                     loadBasicStatistics();
@@ -419,17 +475,23 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
-                var response = JSON.parse(xhr.responseText);
-                if (response.messages && response.messages.error) {
-                    if (typeof response.messages.error === 'object') {
-                        $.each(response.messages.error, function(field, message) {
-                            toastr.error(message);
-                        });
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.messages && response.messages.error) {
+                        if (typeof response.messages.error === 'object') {
+                            $.each(response.messages.error, function(field, message) {
+                                toastr.error(message);
+                            });
+                        } else {
+                            toastr.error(response.messages.error);
+                        }
+                    } else if (response.message) {
+                        toastr.error(response.message);
                     } else {
-                        toastr.error(response.messages.error);
+                        toastr.error('Erro interno do servidor.');
                     }
-                } else {
-                    toastr.error('Erro interno do servidor.');
+                } catch(e) {
+                    toastr.error('Erro ao processar resposta do servidor.');
                 }
             },
             complete: function() {
@@ -499,6 +561,13 @@ $(document).ready(function() {
     }
 
     function loadTicketForEdit(ticketId) {
+        // Mostrar loading e esconder form
+        $('#editTicketLoading').show();
+        $('#editTicketFormContent').hide();
+        
+        // Abrir modal
+        $('#editTicketModal').modal('show');
+        
         $.ajax({
             url: '<?= site_url("tickets/get/") ?>' + ticketId,
             type: 'GET',
@@ -506,86 +575,131 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.status === 200 && response.data) {
                     var ticket = response.data;
+                    
+                    // Definir ID e descrição (campos que não dependem de AJAX)
                     $('#edit_ticket_id').val(ticket.id);
-                    $('#edit_equipamento_id').val(ticket.equipamento_id);
-                    $('#edit_sala_id').val(ticket.sala_id);
-                    $('#edit_tipo_avaria_id').val(ticket.tipo_avaria_id);
-                    $('#edit_atribuido_user_id').val(ticket.atribuido_user_id || '');
+                    $('#edit_descricao').val(ticket.descricao);
                     $('#edit_estado').val(ticket.estado);
                     $('#edit_prioridade').val(ticket.prioridade);
-                    $('#edit_descricao').val(ticket.descricao);
                     
-                    // Carregar opções dos selects
-                    loadSelectOptions();
-                    
-                    $('#editTicketModal').modal('show');
+                    // Carregar opções dos selects e depois definir valores
+                    loadSelectOptions(ticket).done(function() {
+                        // Esconder loading e mostrar form
+                        $('#editTicketLoading').hide();
+                        $('#editTicketFormContent').show();
+                    });
                 } else {
+                    $('#editTicketModal').modal('hide');
                     toastr.error('Erro ao carregar dados do ticket.');
                 }
             },
-            error: function() {
+            error: function(xhr) {
+                $('#editTicketModal').modal('hide');
+                console.error('Erro ao carregar ticket:', xhr);
                 toastr.error('Erro ao carregar dados do ticket.');
             }
         });
     }
 
     function deleteTicket(ticketId) {
+        // Mostrar loading toast
+        toastr.info('A eliminar ticket...', 'Processando', {timeOut: 0, extendedTimeOut: 0, closeButton: false});
+        
         $.ajax({
             url: '<?= site_url("tickets/delete/") ?>' + ticketId,
             type: 'DELETE',
             dataType: 'json',
             success: function(response) {
+                // Limpar toast de loading
+                toastr.clear();
+                
                 if (response.status === 200) {
-                    toastr.success(response.messages.success || 'Ticket apagado com sucesso!');
+                    toastr.success(response.messages.success || 'Ticket eliminado com sucesso!', 'Sucesso');
                     table.ajax.reload();
                     loadBasicStatistics();
                 } else {
-                    toastr.error('Erro ao apagar ticket.');
+                    toastr.error('Erro ao eliminar ticket.', 'Erro');
                 }
             },
             error: function(xhr) {
-                var response = JSON.parse(xhr.responseText);
-                if (response.messages && response.messages.error) {
-                    toastr.error(response.messages.error);
-                } else {
-                    toastr.error('Erro interno do servidor.');
+                // Limpar toast de loading
+                toastr.clear();
+                
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.messages && response.messages.error) {
+                        toastr.error(response.messages.error, 'Erro');
+                    } else {
+                        toastr.error('Erro ao eliminar ticket.', 'Erro');
+                    }
+                } catch(e) {
+                    toastr.error('Erro interno do servidor.', 'Erro');
                 }
             }
         });
     }
 
-    function loadSelectOptions() {
+    function loadSelectOptions(ticket) {
+        var ajaxCalls = [];
+        
         // Carregar equipamentos
-        $.get('<?= site_url("equipamentos/all") ?>', function(data) {
-            $('#edit_equipamento_id').empty().append('<option value="">Selecione um equipamento</option>');
-            $.each(data, function(key, value) {
-                $('#edit_equipamento_id').append('<option value="' + value.id + '">' + value.marca + ' ' + value.modelo + '</option>');
-            });
-        });
+        ajaxCalls.push(
+            $.get('<?= site_url("equipamentos/all") ?>', function(data) {
+                $('#edit_equipamento_id').empty().append('<option value="">Selecione um equipamento</option>');
+                $.each(data, function(key, value) {
+                    $('#edit_equipamento_id').append('<option value="' + value.id + '">' + value.marca + ' ' + value.modelo + '</option>');
+                });
+                if (ticket) $('#edit_equipamento_id').val(ticket.equipamento_id);
+            })
+        );
 
         // Carregar salas
-        $.get('<?= site_url("salas/all") ?>', function(data) {
-            $('#edit_sala_id').empty().append('<option value="">Selecione uma sala</option>');
-            $.each(data, function(key, value) {
-                $('#edit_sala_id').append('<option value="' + value.id + '">' + value.codigo_sala + '</option>');
-            });
-        });
+        ajaxCalls.push(
+            $.get('<?= site_url("salas/all") ?>', function(data) {
+                $('#edit_sala_id').empty().append('<option value="">Selecione uma sala</option>');
+                $.each(data, function(key, value) {
+                    $('#edit_sala_id').append('<option value="' + value.id + '">' + value.codigo_sala + '</option>');
+                });
+                if (ticket) $('#edit_sala_id').val(ticket.sala_id);
+            })
+        );
 
         // Carregar tipos de avaria
-        $.get('<?= site_url("tipos-avaria/all") ?>', function(data) {
-            $('#edit_tipo_avaria_id').empty().append('<option value="">Selecione um tipo de avaria</option>');
-            $.each(data, function(key, value) {
-                $('#edit_tipo_avaria_id').append('<option value="' + value.id + '">' + value.descricao + '</option>');
-            });
-        });
+        ajaxCalls.push(
+            $.get('<?= site_url("tipos-avaria/all") ?>', function(data) {
+                $('#edit_tipo_avaria_id').empty().append('<option value="">Selecione um tipo de avaria</option>');
+                $.each(data, function(key, value) {
+                    $('#edit_tipo_avaria_id').append('<option value="' + value.id + '">' + value.descricao + '</option>');
+                });
+                if (ticket) $('#edit_tipo_avaria_id').val(ticket.tipo_avaria_id);
+            })
+        );
 
         // Carregar utilizadores técnicos
-        $.get('<?= site_url("users/technicians") ?>', function(data) {
-            $('#edit_atribuido_user_id').empty().append('<option value="">Não Atribuído</option>');
-            $.each(data, function(key, value) {
-                $('#edit_atribuido_user_id').append('<option value="' + value.id + '">' + value.name + '</option>');
-            });
-        });
+        ajaxCalls.push(
+            $.ajax({
+                url: '<?= site_url("users/technicians") ?>',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    $('#edit_atribuido_user_id').empty().append('<option value="">Não Atribuído</option>');
+                    if (data && data.length > 0) {
+                        $.each(data, function(key, value) {
+                            $('#edit_atribuido_user_id').append('<option value="' + value.id + '">' + value.name + '</option>');
+                        });
+                    }
+                    if (ticket) $('#edit_atribuido_user_id').val(ticket.atribuido_user_id || '');
+                },
+                error: function(xhr) {
+                    console.error('Erro ao carregar técnicos:', xhr.responseText);
+                    $('#edit_atribuido_user_id').empty().append('<option value="">Erro ao carregar</option>');
+                    if (ticket) $('#edit_atribuido_user_id').val(ticket.atribuido_user_id || '');
+                }
+            })
+        );
+        
+        // Aguardar todos os AJAX completarem
+        return $.when.apply($, ajaxCalls);
     }
 
     function loadAdvancedStatistics() {

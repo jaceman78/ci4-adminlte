@@ -6,8 +6,9 @@ helper('log');
  helper("LogHelper"); // Carrega o helper de logs 
 use App\Models\UserModel;
 use CodeIgniter\HTTP\ResponseInterface;
+use CodeIgniter\RESTful\ResourceController;
 
-class UserController extends BaseController
+class UserController extends ResourceController
 {
     protected $userModel;
     protected $validation;
@@ -709,16 +710,21 @@ class UserController extends BaseController
 
         public function getTechnicians()
     {
-        if (!$this->request->isAJAX()) {
-            // log_permission_denied("users/getTechnicians", "non_ajax_request");
-            return $this->failUnauthorized("Acesso não autorizado");
+        try {
+            if (!$this->request->isAJAX()) {
+                return $this->failUnauthorized("Acesso não autorizado");
+            }
+
+            $technicians = $this->userModel
+                ->where("level >=", 5)
+                ->orderBy('name', 'ASC')
+                ->findAll();
+
+            return $this->respond($technicians);
+        } catch (\Exception $e) {
+            log_message('error', 'Erro getTechnicians: ' . $e->getMessage());
+            return $this->fail('Erro ao carregar técnicos: ' . $e->getMessage(), 500);
         }
-
-        $technicians = $this->userModel->where("level >=", 5)->findAll();
-        
-        // log_user_activity("view_technicians", "Visualizou lista de técnicos", null, null, ["count" => count($technicians)]);
-
-        return $this->respond($technicians);
     }
 
     /**

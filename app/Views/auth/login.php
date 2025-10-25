@@ -36,8 +36,25 @@
 
       <!-- Botão Google -->
       <?= $googleButton ?>
+      
+      <!-- Links de Privacidade e Termos -->
+      <div class="text-center mt-4">
+        <small class="text-muted">
+          Ao fazer login, concorda com a nossa<br>
+          <a href="<?= site_url('privacy') ?>" target="_blank" class="text-primary">Política de Privacidade</a> e 
+          <a href="<?= site_url('privacy/terms') ?>" target="_blank" class="text-primary">Termos de Serviço</a>
+        </small>
+      </div>
+    </div>
+    <!-- /.card-body -->
+    
+    <div class="card-footer text-center">
+      <small class="text-muted">
+        © <?= date('Y') ?> Agrupamento de Escolas João de Barros
+      </small>
     </div>
   </div>
+  <!-- /.card -->
 </div>
 
 <!-- Dependências JS -->

@@ -24,7 +24,7 @@ try {
     $mail->SMTPDebug = 2; // Mostrar debug detalhado
 
     // Remetente
-    $mail->setFrom('escoladigitaljb@aejoaodebarros.pt', 'Escola Digital JB');
+    $mail->setFrom('antonioneto@aejoaodebarros.pt', 'António Neto - Escola Digital JB');
     
     // Destinatários
     $mail->addAddress('escoladigitaljb@aejoaodebarros.pt');

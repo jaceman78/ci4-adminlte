@@ -71,8 +71,8 @@ class Email extends BaseConfig
         parent::__construct();
 
         // Carregar configurações do .env
-        $this->fromEmail      = getenv('email.fromEmail') ?: 'escoladigitaljb@aejoaodebarros.pt';
-        $this->fromName       = getenv('email.fromName') ?: 'Escola Digital JB';
+        $this->fromEmail      = getenv('email.fromEmail') ?: 'antonioneto@aejoaodebarros.pt';
+        $this->fromName       = getenv('email.fromName') ?: 'António Neto - Escola Digital JB';
         $this->protocol       = getenv('email.protocol') ?: 'smtp';
         $this->SMTPHost       = getenv('email.SMTPHost') ?: 'smtp.gmail.com';
         $this->SMTPUser       = getenv('email.SMTPUser') ?: '';
