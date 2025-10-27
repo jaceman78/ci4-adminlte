@@ -380,6 +380,30 @@ function submitGerirSalaForm() {
     }
     
     $.post(url, data, function(response) {
+        // Se houver aviso sobre tickets em reparação
+        if (response.warning) {
+            // Fechar modal de gestão de sala primeiro
+            $('#gerirSalaModal').modal('hide');
+            
+            // Aguardar animação de fechamento antes de abrir a nova modal
+            setTimeout(function() {
+                // Preencher dados na modal
+                $('#tickets_count_text').text(response.tickets_count);
+                $('#sala_atual_text').text(response.sala_atual);
+                $('#sala_nova_text').text(response.sala_nova);
+                
+                // Guardar dados para reenvio
+                $('#confirmMudancaTicketsBtn').data('url', url);
+                $('#confirmMudancaTicketsBtn').data('data', data);
+                
+                // Mostrar modal de confirmação
+                $('#confirmMudancaTicketsModal').modal('show');
+            }, 300);
+            
+            return;
+        }
+        
+        // Sucesso normal
         $('#gerirSalaModal').modal('hide');
         table.ajax.reload();
         showToast('success', response.message);
@@ -387,6 +411,45 @@ function submitGerirSalaForm() {
         handleAjaxError(xhr);
     });
 }
+
+// Handler para confirmar mudança de sala com tickets
+$(document).on('click', '#confirmMudancaTicketsBtn', function() {
+    const btn = $(this);
+    const url = btn.data('url');
+    const data = btn.data('data');
+    
+    // Adicionar flag para forçar mudança
+    data.forcar_mudanca = 'true';
+    
+    // Desabilitar botão
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processando...');
+    
+    $.post(url, data, function(response) {
+        $('#confirmMudancaTicketsModal').modal('hide');
+        table.ajax.reload();
+        showToast('success', response.message);
+        
+        // Resetar botão
+        btn.prop('disabled', false).html('<i class="fas fa-check"></i> Continuar com Mudança');
+    }).fail(function(xhr) {
+        handleAjaxError(xhr);
+        
+        // Resetar botão
+        btn.prop('disabled', false).html('<i class="fas fa-check"></i> Continuar com Mudança');
+    });
+});
+
+// Handler para quando a modal de confirmação de tickets é fechada sem confirmar
+$('#confirmMudancaTicketsModal').on('hidden.bs.modal', function() {
+    // Se o botão ainda não foi usado (não está disabled), significa que foi cancelado
+    const btn = $('#confirmMudancaTicketsBtn');
+    if (!btn.prop('disabled')) {
+        // Reabrir a modal de gestão de sala para o usuário poder fazer outra ação
+        setTimeout(function() {
+            $('#gerirSalaModal').modal('show');
+        }, 200);
+    }
+});
 
 /**
  * Ver histórico de movimentações

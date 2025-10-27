@@ -105,7 +105,7 @@ class UserController extends ResourceController
             if ($user['profile_img'] && str_starts_with($user['profile_img'], 'http' )) {
                 $profileImg = '<img src="' . $user['profile_img'] . '" class="img-circle" width="30" height="30">';
             } else if ($user['profile_img'] && $user['profile_img'] !== 'default.png') {
-                $profileImg = '<img src="' . base_url('uploads/profiles/' . $user['profile_img']) . '" class="img-circle" width="30" height="30">';
+                $profileImg = '<img src="' . base_url('writable/uploads/profiles/' . $user['profile_img']) . '" class="img-circle" width="30" height="30">';
             } else {
                 $profileImg = '<img src="' . base_url('assets/img/default.png') . '" class="img-circle" width="30" height="30">';
             }
@@ -308,7 +308,6 @@ class UserController extends ResourceController
         }
 
         $result = $this->userModel->update($id, $userData);
-        session()->set("user_id", $existingUser["id"]);
        
         if ($result) {
             // Log de atualização bem-sucedida
@@ -507,7 +506,7 @@ class UserController extends ResourceController
     {
         if (!$this->request->isAJAX()) {
             log_activity(
-                session()->get('user_id'), // quem tentou aceder
+                session()->get('user_id'),
                 'users',
                 'upload_failed',
                 'Tentou fazer upload de imagem de perfil sem ser AJAX'
@@ -519,7 +518,7 @@ class UserController extends ResourceController
         
         if (!$file || !$file->isValid()) {
             log_activity(
-                session()->get('user_id'), // quem tentou fazer upload
+                session()->get('user_id'),
                 'users',
                 'upload_failed',
                 'Nenhum ficheiro válido foi enviado para upload de imagem de perfil'
@@ -531,8 +530,35 @@ class UserController extends ResourceController
             ]);
         }
 
-        // Validar tipo de ficheiro
-        if (!$file->hasMoved() && in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/gif'])) {
+        // Validar tipo de ficheiro ANTES de tentar mover
+        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        $fileExtension = $file->getClientExtension();
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        
+        if (!in_array(strtolower($fileExtension), $allowedExtensions)) {
+            log_activity(
+                session()->get('user_id'),
+                'users',
+                'upload_failed',
+                'Tipo de ficheiro inválido: ' . $fileExtension
+            );
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tipo de ficheiro inválido. Apenas JPG, PNG e GIF são permitidos.'
+            ]);
+        }
+
+        // Validar tamanho do ficheiro (máximo 2MB)
+        $maxSize = 2 * 1024 * 1024; // 2MB em bytes
+        if ($file->getSize() > $maxSize) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Ficheiro muito grande. Tamanho máximo: 2MB'
+            ]);
+        }
+
+        if (!$file->hasMoved()) {
             $newName = $file->getRandomName();
             $uploadPath = WRITEPATH . 'uploads/profiles/';
             
@@ -541,44 +567,59 @@ class UserController extends ResourceController
                 mkdir($uploadPath, 0755, true);
             }
             
-            if ($file->move($uploadPath, $newName)) {
-                // Log de upload bem-sucedido
-                $detalhes = [
-                    'original_name' => $file->getClientName(),
-                    'new_name' => $newName,
-                    'file_size' => $file->getSize(),
-                    'mime_type' => $file->getMimeType()
-                ];
-                
+            try {
+                if ($file->move($uploadPath, $newName)) {
+                    // Log de upload bem-sucedido
+                    $detalhes = [
+                        'original_name' => $file->getClientName(),
+                        'new_name' => $newName,
+                        'file_size' => $file->getSize(),
+                        'file_extension' => $fileExtension
+                    ];
+                    
+                    log_activity(
+                        session()->get('user_id'),
+                        'users',
+                        'upload',
+                        'Fez upload de imagem de perfil: ' . $file->getClientName(),
+                        null,
+                        null,
+                        $detalhes
+                    );
+                    
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Imagem enviada com sucesso!',
+                        'filename' => $newName,
+                        'url' => base_url('writable/uploads/profiles/' . $newName)
+                    ]);
+                }
+            } catch (\Exception $e) {
                 log_activity(
-                    session()->get('user_id'), // quem fez o upload
+                    session()->get('user_id'),
                     'users',
-                    'upload',
-                    'Fez upload de imagem de perfil: ' . $file->getClientName(),
-                    null,
-                    null,
-                    $detalhes
+                    'upload_failed',
+                    'Erro ao mover ficheiro: ' . $e->getMessage()
                 );
                 
                 return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Imagem enviada com sucesso!',
-                    'filename' => $newName,
-                    'url' => base_url('uploads/profiles/' . $newName)
+                    'success' => false,
+                    'message' => 'Erro ao fazer upload da imagem: ' . $e->getMessage()
                 ]);
             }
         }
 
         // Log de erro no upload
         log_activity(
-            session()->get('user_id'), // quem tentou fazer upload
+            session()->get('user_id'),
             'users',
             'upload_failed',
-            'Erro ao enviar imagem de perfil. Tipo de ficheiro inválido ou erro no upload.'
+            'Erro ao enviar imagem de perfil. Ficheiro já foi movido ou erro no upload.'
         );
+        
         return $this->response->setJSON([
             'success' => false,
-            'message' => 'Erro ao enviar imagem. Apenas ficheiros JPEG, PNG e GIF são permitidos.'
+            'message' => 'Erro ao enviar imagem. Por favor, tente novamente.'
         ]);
     }
 
@@ -665,7 +706,8 @@ class UserController extends ResourceController
      */
     public function exportCSV()
     {
-        $users = $this->userModel->getAllUsers();
+        // Buscar TODOS os utilizadores (sem limite)
+        $users = $this->userModel->orderBy('name', 'ASC')->findAll();
         
         // Log de exportação
         log_activity(
@@ -680,13 +722,19 @@ class UserController extends ResourceController
         
         $filename = 'utilizadores_' . date('Y-m-d_H-i-s') . '.csv';
         
+        // Definir headers para download com UTF-8 BOM para Excel
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=' . $filename);
+        header('Pragma: no-cache');
+        header('Expires: 0');
         
         $output = fopen('php://output', 'w');
         
+        // Adicionar BOM (Byte Order Mark) para UTF-8 - resolve problema de acentos no Excel
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
         // Cabeçalhos
-        fputcsv($output, ['ID', 'Nome', 'Email', 'NIF', 'Grupo ID', 'Nível', 'Status', 'Data Criação']);
+        fputcsv($output, ['ID', 'Nome', 'Email', 'Telefone', 'NIF', 'Grupo ID', 'Nível', 'Status', 'Data Criação'], ';');
         
         // Dados
         foreach ($users as $user) {
@@ -695,12 +743,13 @@ class UserController extends ResourceController
                 $user['id'],
                 $user['name'],
                 $user['email'],
-                $user['NIF'],
-                $user['grupo_id'],
+                $user['telefone'] ?? '',
+                $user['NIF'] ?? '',
+                $user['grupo_id'] ?? '',
                 $user['level'],
                 $statusText,
-                $user['created_at']
-            ]);
+                date('d/m/Y H:i', strtotime($user['created_at']))
+            ], ';');
         }
         
         fclose($output);

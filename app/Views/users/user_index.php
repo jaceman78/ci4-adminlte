@@ -356,17 +356,60 @@ $(document).ready(function() {
     $('#userForm').on('submit', function(e) {
         e.preventDefault();
         
-        var formData = new FormData(this);
-        var userId = $('#userId').val();
-        var url = userId ? '<?= base_url('users/update') ?>/' + userId : '<?= base_url('users/create') ?>';
-        var method = 'POST';
-
         // Desabilitar botão de submit
         $('#saveUserBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> A guardar...');
+        
+        var userId = $('#userId').val();
+        var url = userId ? '<?= base_url('users/update') ?>/' + userId : '<?= base_url('users/create') ?>';
+        var fileInput = document.getElementById('userProfileImg');
+        
+        // Verificar se há ficheiro para upload
+        if (fileInput.files.length > 0) {
+            // Fazer upload da imagem primeiro
+            var uploadFormData = new FormData();
+            uploadFormData.append('profile_image', fileInput.files[0]);
+            
+            $.ajax({
+                url: '<?= base_url('users/uploadProfileImage') ?>',
+                type: 'POST',
+                data: uploadFormData,
+                processData: false,
+                contentType: false,
+                success: function(uploadResponse) {
+                    if (uploadResponse.success) {
+                        // Upload bem-sucedido, agora submeter o formulário com o nome do ficheiro
+                        submitUserForm(url, uploadResponse.filename);
+                    } else {
+                        showToast('error', uploadResponse.message || 'Erro ao fazer upload da imagem');
+                        $('#saveUserBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Guardar');
+                    }
+                },
+                error: function() {
+                    showToast('error', 'Erro ao fazer upload da imagem');
+                    $('#saveUserBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Guardar');
+                }
+            });
+        } else {
+            // Sem ficheiro, submeter formulário normalmente
+            submitUserForm(url, null);
+        }
+    });
+
+    // Função auxiliar para submeter o formulário
+    function submitUserForm(url, profileImgFilename) {
+        var formData = new FormData(document.getElementById('userForm'));
+        
+        // Se houver imagem, adicionar o nome do ficheiro
+        if (profileImgFilename) {
+            formData.append('profile_img', profileImgFilename);
+        }
+        
+        // Remover o campo file input do FormData (já foi feito upload)
+        formData.delete('profile_image');
 
         $.ajax({
             url: url,
-            type: method,
+            type: 'POST',
             data: formData,
             processData: false,
             contentType: false,
@@ -392,7 +435,7 @@ $(document).ready(function() {
                 $('#saveUserBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Guardar');
             }
         });
-    });
+    }
 
     // Preview de imagem
     $('#userProfileImg').on('change', function() {
@@ -502,7 +545,7 @@ function viewUser(id) {
                 if (user.profile_img && user.profile_img.startsWith("http" )) {
                     imgSrc = user.profile_img;
                 } else if (user.profile_img && user.profile_img !== "default.png") {
-                    imgSrc = '<?= base_url("uploads/profiles/") ?>' + user.profile_img;
+                    imgSrc = '<?= base_url("writable/uploads/profiles/") ?>' + user.profile_img;
                 } else {
                     imgSrc = '<?= base_url("assets/img/default.png") ?>';
                 }

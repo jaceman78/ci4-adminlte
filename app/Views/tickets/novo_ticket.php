@@ -153,12 +153,6 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="data_aquisicao">Data de Aquisição</label>
-                                <input type="date" class="form-control" id="data_aquisicao" name="data_aquisicao">
-                            </div>
-                        </div>
                     </div>
                     <div class="form-group">
                         <label for="observacoes">Observações</label>

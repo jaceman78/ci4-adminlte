@@ -36,8 +36,8 @@
               <p><?= session()->get("LoggedUserData")['name'] ?? ""; ?><br><small><?= get_user_level_name() ?></small></p>
             </li>
             <li><hr class="dropdown-divider"></li>
-            <li><a href="#" class="dropdown-item">Profile</a></li>
-            <li><a href="<?=base_url("logout")?>" class="dropdown-item">Sign out</a></li>
+            <li><a href="#" class="dropdown-item">Perfil</a></li>
+            <li><a href="<?=base_url("logout")?>" class="dropdown-item">Terminar Sessão</a></li>
           </ul>
         </li>
 

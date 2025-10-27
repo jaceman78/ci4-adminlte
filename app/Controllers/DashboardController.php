@@ -317,15 +317,17 @@ class DashboardController extends BaseController
             ->countAllResults();
 
         // Tempo médio de resolução (em horas) - últimos 30 dias
+        // Usar dados reais da tabela registos_reparacao
         $query = $db->query("
-            SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)) as tempo_medio
-            FROM tickets
-            WHERE atribuido_user_id = ?
-            AND estado = 'reparado'
-            AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            SELECT ROUND(AVG(rr.tempo_gasto_min) / 60, 1) as tempo_medio
+            FROM registos_reparacao rr
+            INNER JOIN tickets t ON t.id = rr.ticket_id
+            WHERE t.atribuido_user_id = ?
+            AND t.estado = 'reparado'
+            AND rr.criado_em >= DATE_SUB(NOW(), INTERVAL 30 DAY)
         ", [$userId]);
         $result = $query->getRow();
-        $tempoMedio = $result ? round($result->tempo_medio, 1) : 0;
+        $tempoMedio = $result && $result->tempo_medio ? (float) $result->tempo_medio : 0;
 
         // Taxa de reabertura (% de tickets reabertos)
         $totalResolvidos = $this->ticketsModel
@@ -536,8 +538,14 @@ class DashboardController extends BaseController
         
         $stats = $query->getRowArray();
         
-        $stats['total_tecnicos'] = $this->userModel->where('level >=', 5)->where('level <=', 7)->countAllResults();
-        $stats['total_usuarios'] = $this->userModel->where('level <', 5)->countAllResults();
+        // Contar técnicos ativos (level 5 ou superior)
+        $userModel = new UserModel();
+        $stats['total_tecnicos'] = $userModel->where('level >=', 5)->countAllResults();
+        
+        // Contar usuários básicos
+        $userModel2 = new UserModel();
+        $stats['total_usuarios'] = $userModel2->where('level <', 5)->countAllResults();
+        
         $stats['tempo_medio_resolucao'] = $this->getAverageResolutionTime();
         $stats['taxa_resolucao_hoje'] = $this->getTodayResolutionRate();
         
@@ -616,10 +624,10 @@ class DashboardController extends BaseController
                 COUNT(t.id) as total_atribuidos,
                 SUM(CASE WHEN t.estado = 'reparado' THEN 1 ELSE 0 END) as resolvidos,
                 SUM(CASE WHEN t.estado IN ('novo', 'em_resolucao', 'aguarda_peca') THEN 1 ELSE 0 END) as em_progresso,
-                ROUND(AVG(TIMESTAMPDIFF(HOUR, t.created_at, 
-                    CASE WHEN t.estado = 'reparado' THEN t.updated_at ELSE NOW() END)), 1) as tempo_medio_horas
+                ROUND(COALESCE(AVG(rr.tempo_gasto_min) / 60, 0), 1) as tempo_medio_horas
             FROM user u
             LEFT JOIN tickets t ON u.id = t.atribuido_user_id
+            LEFT JOIN registos_reparacao rr ON t.id = rr.ticket_id AND t.estado = 'reparado'
             WHERE u.level >= 5 AND u.level <= 7
             GROUP BY u.id
             HAVING total_atribuidos > 0
@@ -713,10 +721,10 @@ class DashboardController extends BaseController
             SELECT 
                 ta.descricao as tipo_avaria,
                 COUNT(t.id) as total,
-                ROUND(AVG(TIMESTAMPDIFF(HOUR, t.created_at, 
-                    CASE WHEN t.estado = 'reparado' THEN t.updated_at ELSE NOW() END)), 1) as tempo_medio_horas
+                ROUND(COALESCE(AVG(rr.tempo_gasto_min) / 60, 0), 1) as tempo_medio_horas
             FROM tickets t
             LEFT JOIN tipos_avaria ta ON t.tipo_avaria_id = ta.id
+            LEFT JOIN registos_reparacao rr ON t.id = rr.ticket_id AND t.estado = 'reparado'
             WHERE t.created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
             GROUP BY ta.id
             ORDER BY total DESC
@@ -760,16 +768,24 @@ class DashboardController extends BaseController
     {
         $db = \Config\Database::connect();
 
+        // Buscar tempo médio real dos registos de reparação (em minutos) e converter para horas
         $query = $db->query("
             SELECT 
-                ROUND(AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)), 1) as media
-            FROM tickets
-            WHERE estado = 'reparado'
-            AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ROUND(AVG(rr.tempo_gasto_min) / 60, 1) as media_horas
+            FROM registos_reparacao rr
+            INNER JOIN tickets t ON t.id = rr.ticket_id
+            WHERE t.estado = 'reparado'
+            AND rr.criado_em >= DATE_SUB(NOW(), INTERVAL 30 DAY)
         ");
 
-        $result = $query->getRowArray();
-        return $result['media'] ?? 0;
+        $result = $query->getRow();
+        
+        // Retornar 0 se não houver resultados ou se media for NULL
+        if (!$result || $result->media_horas === null) {
+            return 0;
+        }
+        
+        return (float) $result->media_horas;
     }
 
     /**

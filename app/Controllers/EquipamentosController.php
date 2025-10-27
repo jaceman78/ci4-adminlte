@@ -7,6 +7,7 @@ use App\Models\EquipamentosModel;
 use App\Models\TipoEquipamentosModel;
 use App\Models\SalasModel;
 use App\Models\EquipamentosSalaModel;
+use App\Models\TicketsModel;
 use CodeIgniter\API\ResponseTrait;
 
 class EquipamentosController extends BaseController
@@ -17,6 +18,7 @@ class EquipamentosController extends BaseController
     protected $tipoEquipamentosModel;
     protected $salasModel;
     protected $equipamentosSalaModel;
+    protected $ticketsModel;
 
     public function __construct()
     {
@@ -24,6 +26,7 @@ class EquipamentosController extends BaseController
         $this->tipoEquipamentosModel = new TipoEquipamentosModel();
         $this->salasModel = new SalasModel();
         $this->equipamentosSalaModel = new EquipamentosSalaModel();
+        $this->ticketsModel = new TicketsModel();
     }
 
     public function index()
@@ -75,7 +78,6 @@ class EquipamentosController extends BaseController
                 'marca_modelo' => trim(($eq['marca'] ?? '') . ' ' . ($eq['modelo'] ?? '')),
                 'numero_serie' => $eq['numero_serie'] ?? '',
                 'estado' => $eq['estado'],
-                'data_aquisicao' => $eq['data_aquisicao'],
                 'observacoes' => $eq['observacoes'] ?? '',
                 'tem_sala' => !empty($eq['sala_atual_id'])
             ];
@@ -127,7 +129,6 @@ class EquipamentosController extends BaseController
             'modelo'         => 'permit_empty|max_length[100]',
             'numero_serie'   => 'permit_empty|max_length[255]|is_unique[equipamentos.numero_serie]',
             'estado'         => 'required|in_list[ativo,fora_servico,por_atribuir,abate]',
-            'data_aquisicao' => 'permit_empty|valid_date',
             'observacoes'    => 'permit_empty|max_length[1000]',
             'sala_id'        => 'permit_empty|is_natural_no_zero'
         ];
@@ -144,7 +145,6 @@ class EquipamentosController extends BaseController
             'modelo'         => $this->request->getPost('modelo'),
             'numero_serie'   => $this->request->getPost('numero_serie'),
             'estado'         => $this->request->getPost('estado'),
-            'data_aquisicao' => $this->request->getPost('data_aquisicao'),
             'observacoes'    => $this->request->getPost('observacoes')
         ];
 
@@ -190,7 +190,6 @@ class EquipamentosController extends BaseController
             'modelo'         => 'permit_empty|max_length[100]',
             'numero_serie'   => 'permit_empty|max_length[255]|is_unique[equipamentos.numero_serie,id,' . $id . ']',
             'estado'         => 'required|in_list[ativo,fora_servico,por_atribuir,abate]',
-            'data_aquisicao' => 'permit_empty|valid_date',
             'observacoes'    => 'permit_empty|max_length[1000]'
         ];
 
@@ -205,7 +204,6 @@ class EquipamentosController extends BaseController
             'modelo'         => $this->request->getPost('modelo'),
             'numero_serie'   => $this->request->getPost('numero_serie'),
             'estado'         => $this->request->getPost('estado'),
-            'data_aquisicao' => $this->request->getPost('data_aquisicao'),
             'observacoes'    => $this->request->getPost('observacoes')
         ];
 
@@ -282,7 +280,6 @@ class EquipamentosController extends BaseController
             'modelo'         => 'permit_empty|max_length[100]',
             'numero_serie'   => 'permit_empty|max_length[255]|is_unique[equipamentos.numero_serie]',
             'estado'         => 'required|in_list[ativo,fora_servico,por_atribuir,abate]',
-            'data_aquisicao' => 'permit_empty|valid_date',
             'observacoes'    => 'permit_empty|max_length[1000]',
             'sala_id'        => 'permit_empty|is_natural',
             'motivo_movimentacao' => 'permit_empty|max_length[500]'
@@ -303,7 +300,6 @@ class EquipamentosController extends BaseController
                 'modelo'         => $this->request->getPost('modelo'),
                 'numero_serie'   => $this->request->getPost('numero_serie'),
                 'estado'         => $this->request->getPost('estado'),
-                'data_aquisicao' => $this->request->getPost('data_aquisicao'),
                 'observacoes'    => $this->request->getPost('observacoes')
             ];
 
@@ -398,9 +394,49 @@ class EquipamentosController extends BaseController
         $equipamentoId = $this->request->getPost('equipamento_id');
         $novaSalaId = $this->request->getPost('sala_id');
         $motivo = $this->request->getPost('motivo_movimentacao');
+        $forcarMudanca = $this->request->getPost('forcar_mudanca') === 'true';
 
         if (empty($equipamentoId) || empty($novaSalaId)) {
             return $this->fail('Equipamento e nova sala são obrigatórios');
+        }
+
+        // Verificar se há tickets abertos (não finalizados) para este equipamento
+        $ticketsAbertos = $this->ticketsModel
+            ->where('equipamento_id', $equipamentoId)
+            ->whereNotIn('estado', ['reparado', 'anulado'])
+            ->findAll();
+
+        if (!empty($ticketsAbertos) && !$forcarMudanca) {
+            // Buscar informações da sala atual do ticket
+            $salaAtual = $this->salasModel->find($ticketsAbertos[0]['sala_id']);
+            $novaSala = $this->salasModel->find($novaSalaId);
+            
+            return $this->respond([
+                'warning' => true,
+                'message' => 'Este equipamento tem ' . count($ticketsAbertos) . ' ticket(s) em reparação na sala "' . ($salaAtual['codigo_sala'] ?? 'N/A') . '". Deseja continuar com a mudança para "' . ($novaSala['codigo_sala'] ?? 'N/A') . '"? Os tickets serão atualizados automaticamente.',
+                'tickets_count' => count($ticketsAbertos),
+                'sala_atual' => $salaAtual['codigo_sala'] ?? 'N/A',
+                'sala_nova' => $novaSala['codigo_sala'] ?? 'N/A',
+                'equipamento_id' => $equipamentoId
+            ], 200);
+        }
+
+        // Se forçar mudança, atualizar também os tickets
+        if (!empty($ticketsAbertos) && $forcarMudanca) {
+            foreach ($ticketsAbertos as $ticket) {
+                $this->ticketsModel->update($ticket['id'], ['sala_id' => $novaSalaId]);
+                
+                // Registrar atividade
+                log_activity(
+                    session()->get('user_id'), 
+                    'tickets', 
+                    'atualizar_sala', 
+                    "Sala do ticket #{$ticket['id']} atualizada devido à mudança do equipamento",
+                    $ticket['id'],
+                    ['sala_antiga' => $ticket['sala_id']],
+                    ['sala_nova' => $novaSalaId]
+                );
+            }
         }
 
         $result = $this->equipamentosSalaModel->moverEquipamento(
@@ -421,7 +457,12 @@ class EquipamentosController extends BaseController
                 ['nova_sala_id' => $novaSalaId, 'motivo' => $motivo]
             );
 
-            return $this->respond(['message' => 'Equipamento movido com sucesso!']);
+            $message = 'Equipamento movido com sucesso!';
+            if (!empty($ticketsAbertos) && $forcarMudanca) {
+                $message .= ' ' . count($ticketsAbertos) . ' ticket(s) atualizado(s).';
+            }
+
+            return $this->respond(['message' => $message]);
         }
 
         return $this->failServerError('Erro ao mover equipamento');

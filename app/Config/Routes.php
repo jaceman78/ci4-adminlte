@@ -15,6 +15,21 @@ $routes->get('/', 'LoginController::index');
 $routes->get('privacy', 'PrivacyController::index');
 $routes->get('privacy/terms', 'PrivacyController::terms');
 
+// ---------------------------
+// 📁 Rota para servir ficheiros de upload (writable/uploads)
+// ---------------------------
+$routes->get('writable/uploads/profiles/(:any)', function($filename) {
+    $filepath = WRITEPATH . 'uploads/profiles/' . $filename;
+    if (file_exists($filepath)) {
+        $mime = mime_content_type($filepath);
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . filesize($filepath));
+        readfile($filepath);
+        exit;
+    }
+    throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+});
+
 // Rota para teste de toasts (apenas desenvolvimento)
 $routes->get('teste-toasts', function() {
     return view('teste_toasts');
@@ -274,6 +289,7 @@ $routes->group('permutas', function($routes) {
     // Visualização de horário e permutas
     $routes->get('/', 'PermutasController::index');                          // Meu Horário
     $routes->get('minhas', 'PermutasController::minhasPermutas');             // As Minhas Permutas
+    $routes->get('lista', 'PermutasController::listaPermutas');               // Lista completa (admin - nível 6+)
     $routes->get('aprovar', 'PermutasController::aprovarPermutas');           // Lista para aprovação (admin)
     $routes->get('ver/(:num)', 'PermutasController::verPermuta/$1');         // Ver detalhes de uma permuta
     

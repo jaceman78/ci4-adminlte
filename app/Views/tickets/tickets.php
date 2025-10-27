@@ -803,7 +803,7 @@ $(document).ready(function() {
                     toastr.success(response.message || 'Prioridade atualizada com sucesso.');
                     
                     // Recarregar tabela
-                    table.ajax.reload(null, false);
+                    $('#todosTicketsTable').DataTable().ajax.reload(null, false);
                     
                     currentTicketIdPrioridade = null;
                 } else {

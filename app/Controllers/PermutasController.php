@@ -243,6 +243,68 @@ class PermutasController extends BaseController
     }
 
     /**
+     * Lista completa de permutas (apenas direção/admins - nível 6+)
+     */
+    public function listaPermutas()
+    {
+        $userData = session()->get('LoggedUserData');
+        if (!$userData || $userData['level'] < 6) {
+            return redirect()->to('/dashboard')->with('error', 'Sem permissão para aceder a esta página');
+        }
+
+        // Buscar todas as permutas com informações completas
+        $todasPermutas = $this->permutaModel
+            ->select('permutas.*, 
+                permutas.data_aula_original,
+                ha.dia_semana, ha.hora_inicio, ha.hora_fim, ha.codigo_turma, ha.disciplina_id,
+                d.abreviatura as disciplina_abrev, d.descritivo as disciplina_nome,
+                t.nome as turma_nome, t.ano,
+                s_orig.codigo_sala as sala_original_codigo,
+                s_perm.codigo_sala as sala_permutada_codigo,
+                autor.name as professor_autor_nome, autor.email as professor_autor_email,
+                substituto.name as professor_substituto_nome, substituto.email as professor_substituto_email,
+                aprovador.name as aprovador_nome')
+            ->join('horario_aulas ha', 'ha.id_aula = permutas.aula_original_id', 'left')
+            ->join('disciplina d', 'd.id_disciplina = ha.disciplina_id', 'left')
+            ->join('turma t', 't.codigo = ha.codigo_turma', 'left')
+            ->join('salas s_orig', 's_orig.codigo_sala = ha.sala_id', 'left')
+            ->join('salas s_perm', 's_perm.codigo_sala = permutas.sala_permutada_id', 'left')
+            ->join('user autor', 'autor.NIF = permutas.professor_autor_nif', 'left')
+            ->join('user substituto', 'substituto.NIF = permutas.professor_substituto_nif', 'left')
+            ->join('user aprovador', 'aprovador.id = permutas.aprovada_por_user_id', 'left')
+            ->orderBy('permutas.data_aula_original', 'DESC')
+            ->orderBy('permutas.created_at', 'DESC')
+            ->findAll();
+
+        // Separar permutas por status e data
+        $permutasFuturas = [];
+        $permutasPassadas = [];
+        $dataAtual = date('Y-m-d');
+
+        foreach ($todasPermutas as $permuta) {
+            // Considerar data da aula original para classificar
+            $dataPermuta = $permuta['data_aula_original'] ?? null;
+            
+            if ($dataPermuta && $dataPermuta >= $dataAtual) {
+                $permutasFuturas[] = $permuta;
+            } else {
+                $permutasPassadas[] = $permuta;
+            }
+        }
+
+        $data = [
+            'title' => 'Lista de Permutas',
+            'page_title' => 'Lista Completa de Permutas',
+            'page_subtitle' => 'Gestão e consulta de todas as permutas',
+            'permutasFuturas' => $permutasFuturas,
+            'permutasPassadas' => $permutasPassadas,
+            'isAdmin' => true
+        ];
+
+        return view('permutas/lista_permutas', $data);
+    }
+
+    /**
      * Listar permutas pendentes para aprovação (apenas direção/admins)
      */
     public function aprovarPermutas()

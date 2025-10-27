@@ -242,6 +242,14 @@ class TicketsController extends BaseController
                 return $this->failNotFound('Ticket não encontrado.');
             }
 
+            // Verificar se o ticket está reparado - apenas superadministrador (nível 9) pode editar
+            if ($ticket['estado'] == 'reparado') {
+                $userLevel = (int) session()->get('level') ?? 0;
+                if ($userLevel < 9) {
+                    return $this->failUnauthorized('Tickets reparados só podem ser editados pelo Super Administrador.');
+                }
+            }
+
             // Apenas o criador pode editar se o estado for 'novo', ou admins (nível 8+)
             $userId = session()->get('user_id');
             $userLevel = (int) session()->get('level') ?? 0;
@@ -320,15 +328,23 @@ class TicketsController extends BaseController
             return $this->failNotFound('Ticket não encontrado.');
         }
 
-        // Apenas o criador pode apagar se o estado for 'novo', ou admins (nível 8+)
         $userId = session()->get('user_id');
         $userLevel = session()->get('level') ?? 0;
         
-        $isOwner = $ticket['user_id'] == $userId && $ticket['estado'] == 'novo';
-        $isAdmin = $userLevel >= 8;
-        
-        if (!$isOwner && !$isAdmin) {
-            return $this->failUnauthorized('Não tem permissão para apagar este ticket.');
+        // Verificar se o ticket está reparado
+        if ($ticket['estado'] == 'reparado') {
+            // Tickets reparados só podem ser eliminados pelo Super Administrador (nível 9)
+            if ($userLevel < 9) {
+                return $this->failUnauthorized('Tickets reparados só podem ser eliminados pelo Super Administrador.');
+            }
+        } else {
+            // Para tickets não reparados: apenas o criador pode apagar se o estado for 'novo', ou admins (nível 8+)
+            $isOwner = $ticket['user_id'] == $userId && $ticket['estado'] == 'novo';
+            $isAdmin = $userLevel >= 8;
+            
+            if (!$isOwner && !$isAdmin) {
+                return $this->failUnauthorized('Não tem permissão para apagar este ticket.');
+            }
         }
 
         if ($this->ticketsModel->delete($id)) {
@@ -499,14 +515,27 @@ class TicketsController extends BaseController
             $row[] = $ticket['created_at'];
             $row[] = $ticket['user_nome'];
             $row[] = $ticket['atribuido_user_nome'] ?? 'Não Atribuído';
-            $row[] = $ticket['ticket_aceite'] ? 'Sim' : 'Não';
+            $row[] = $ticket['ticket_aceite'] 
+                ? '<span class="badge bg-success">Sim</span>' 
+                : '<span class="badge bg-secondary">Não</span>';
             
             // Botão para ver detalhes (link direto)
             $options = '<a href="' . base_url('tickets/view/' . $ticket['id']) . '" class="btn btn-sm btn-info" title="Ver Detalhes"><i class="fas fa-eye"></i></a> ';
             
-            if ($userLevel >= 8) { // Admins (8) e Super Admins (9) podem editar e apagar
-                $options .= '<button class="btn btn-sm btn-warning edit-ticket" data-id="' . $ticket['id'] . '" title="Editar"><i class="fas fa-edit"></i></button> ';
-                $options .= '<button class="btn btn-sm btn-danger delete-ticket" data-id="' . $ticket['id'] . '" title="Apagar"><i class="fas fa-trash"></i></button>';
+            if ($userLevel >= 8) { // Admins (8) e Super Admins (9)
+                // Botão de editar - apenas disponível para tickets não reparados OU para superadmin (nível 9)
+                if ($ticket['estado'] != 'reparado' || $userLevel >= 9) {
+                    $options .= '<button class="btn btn-sm btn-warning edit-ticket" data-id="' . $ticket['id'] . '" title="Editar"><i class="fas fa-edit"></i></button> ';
+                } else {
+                    $options .= '<button class="btn btn-sm btn-secondary" disabled title="Apenas Super Administrador pode editar tickets reparados"><i class="fas fa-lock"></i></button> ';
+                }
+                
+                // Botão de eliminar - apenas disponível para tickets não reparados OU para superadmin (nível 9)
+                if ($ticket['estado'] != 'reparado' || $userLevel >= 9) {
+                    $options .= '<button class="btn btn-sm btn-danger delete-ticket" data-id="' . $ticket['id'] . '" title="Apagar"><i class="fas fa-trash"></i></button>';
+                } else {
+                    $options .= '<button class="btn btn-sm btn-secondary" disabled title="Apenas Super Administrador pode eliminar tickets reparados"><i class="fas fa-ban"></i></button>';
+                }
             }
             $row[] = $options;
             $row[] = $ticket['estado']; // Código do estado (coluna oculta)
@@ -747,11 +776,25 @@ class TicketsController extends BaseController
     private function sendTicketAssignmentEmail($ticketDetails)
     {
         $assignedUser = $this->userModel->find($ticketDetails['atribuido_user_id']);
-        if (!$assignedUser) return;
+        $creatorUser = $this->userModel->find($ticketDetails['user_id']);
 
-        $subject = 'Ticket #' . $ticketDetails['id'] . ' Atribuído a Você';
-        $message = view('emails/ticket_assignment', ['ticket' => $ticketDetails, 'assignedUser' => $assignedUser]);
-        $this->sendEmail($assignedUser['email'], $subject, $message);
+        // Enviar email para o técnico atribuído
+        if ($assignedUser) {
+            $subjectAssigned = 'Ticket #' . $ticketDetails['id'] . ' Atribuído a Você';
+            $messageAssigned = view('emails/ticket_assignment', ['ticket' => $ticketDetails, 'assignedUser' => $assignedUser]);
+            $this->sendEmail($assignedUser['email'], $subjectAssigned, $messageAssigned);
+        }
+
+        // Enviar email para o autor do ticket (se diferente do técnico)
+        if ($creatorUser && (!$assignedUser || $creatorUser['id'] != $assignedUser['id'])) {
+            $subjectCreator = 'Ticket #' . $ticketDetails['id'] . ' Foi Atribuído';
+            $messageCreator = view('emails/ticket_assignment_creator', [
+                'ticket' => $ticketDetails, 
+                'creatorUser' => $creatorUser,
+                'assignedUser' => $assignedUser
+            ]);
+            $this->sendEmail($creatorUser['email'], $subjectCreator, $messageCreator);
+        }
     }
 
     private function sendTicketAcceptedEmail($ticketDetails)
@@ -869,6 +912,24 @@ class TicketsController extends BaseController
         $db->transStart();
 
         try {
+            // 0. Se o ticket não tem técnico atribuído, atribuir automaticamente o técnico logado
+            $updateData = ['estado' => 'reparado'];
+            
+            if (empty($ticket['atribuido_user_id'])) {
+                $updateData['atribuido_user_id'] = session()->get('user_id');
+                $updateData['ticket_aceite'] = true;
+                
+                log_activity(
+                    (int) session()->get('user_id'),
+                    'Tickets',
+                    'Atribuição Automática',
+                    'Ticket #' . $ticketId . ' atribuído automaticamente ao resolver',
+                    (int) $ticketId,
+                    ['atribuido_anterior' => null],
+                    ['atribuido_user_id' => session()->get('user_id')]
+                );
+            }
+            
             // 1. Criar registo de reparação
             $registoReparacaoModel = new \App\Models\RegistosReparacaoModel();
             $registoId = $registoReparacaoModel->insert([
@@ -883,8 +944,8 @@ class TicketsController extends BaseController
                 throw new \Exception('Erro ao criar registo de reparação.');
             }
 
-            // 2. Atualizar estado do ticket para "reparado"
-            if (!$this->ticketsModel->update($ticketId, ['estado' => 'reparado'])) {
+            // 2. Atualizar estado do ticket para "reparado" (e técnico se aplicável)
+            if (!$this->ticketsModel->update($ticketId, $updateData)) {
                 throw new \Exception('Erro ao atualizar estado do ticket.');
             }
 
@@ -1236,11 +1297,11 @@ class TicketsController extends BaseController
         try {
             $stats = [
                 'total' => $this->ticketsModel->countAll(),
-                'novo' => $this->ticketsModel->where('estado', 'novo')->countAllResults(false),
-                'em_resolucao' => $this->ticketsModel->where('estado', 'em_resolucao')->countAllResults(false),
-                'aguarda_peca' => $this->ticketsModel->where('estado', 'aguarda_peca')->countAllResults(false),
-                'reparado' => $this->ticketsModel->where('estado', 'reparado')->countAllResults(false),
-                'anulado' => $this->ticketsModel->where('estado', 'anulado')->countAllResults(false),
+                'novo' => $this->ticketsModel->where('estado', 'novo')->countAllResults(),
+                'em_resolucao' => $this->ticketsModel->where('estado', 'em_resolucao')->countAllResults(),
+                'aguarda_peca' => $this->ticketsModel->where('estado', 'aguarda_peca')->countAllResults(),
+                'reparado' => $this->ticketsModel->where('estado', 'reparado')->countAllResults(),
+                'anulado' => $this->ticketsModel->where('estado', 'anulado')->countAllResults(),
             ];
 
             return $this->respond([

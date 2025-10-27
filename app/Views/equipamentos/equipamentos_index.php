@@ -78,14 +78,13 @@
                             <table id="equipamentosTable" class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
+                                        <th>ID</th>
+                                        <th>Escola</th>
                                         <th>Sala</th>
                                         <th>Tipo</th>
-                                        <th>Marca</th>
-                                        <th>Modelo</th>
+                                        <th>Marca/Modelo</th>
                                         <th>Número de Série</th>
                                         <th>Estado</th>
-                                        <th>Data Aquisição</th>
-                                        <th>Observações</th>
                                         <th>Ações</th>
                                     </tr>
                                 </thead>
@@ -203,12 +202,6 @@
                                         <input type="text" class="form-control" id="numero_serie" name="numero_serie">
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="data_aquisicao" class="form-label">Data de Aquisição</label>
-                                        <input type="date" class="form-control" id="data_aquisicao" name="data_aquisicao">
-                                    </div>
-                                </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-12">
@@ -270,11 +263,7 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6">
-                        <strong>Data de Aquisição:</strong>
-                        <p id="view_data_aquisicao"></p>
-                    </div>
-                    <div class="col-md-6">
+                    <div class="col-md-12">
                         <strong>Observações:</strong>
                         <p id="view_observacoes"></p>
                     </div>
@@ -301,6 +290,36 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
         <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmação Mudança com Tickets -->
+<div class="modal fade" id="confirmMudancaTicketsModal" tabindex="-1" aria-labelledby="confirmMudancaTicketsLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="confirmMudancaTicketsLabel">
+            <i class="fas fa-exclamation-triangle"></i> Equipamento com Tickets em Reparação
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Este equipamento tem <strong id="tickets_count_text">0</strong> ticket(s) em reparação.
+        </div>
+        <p><strong>Sala Atual dos Tickets:</strong> <span id="sala_atual_text" class="badge bg-primary"></span></p>
+        <p><strong>Nova Sala:</strong> <span id="sala_nova_text" class="badge bg-success"></span></p>
+        <hr>
+        <p class="mb-0">Ao continuar, todos os tickets em aberto serão automaticamente atualizados para a nova sala.</p>
+        <p class="mt-2 text-muted"><small><i class="fas fa-lightbulb"></i> Esta ação garante que os tickets permanecem sincronizados com a localização do equipamento.</small></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-warning" id="confirmMudancaTicketsBtn">
+            <i class="fas fa-check"></i> Continuar com Mudança
+        </button>
       </div>
     </div>
   </div>
@@ -438,7 +457,6 @@ $(document).ready(function() {
                     return '<span class="badge ' + badgeClass + '">' + text + '</span>';
                 }
             },
-            { "data": "data_aquisicao" },
             { "data": "observacoes" },
             {
                 "data": null,
@@ -564,7 +582,6 @@ function editEquipamento(id) {
             
             console.log('Estado selecionado no select:', $('#estado').val());
             
-            $('#data_aquisicao').val(data.data_aquisicao);
             $('#observacoes').val(data.observacoes);
             $('#saveButton').text('Atualizar');
             $('#equipamentoModal').modal('show');
@@ -584,7 +601,6 @@ function viewEquipamento(id) {
         $('#view_modelo').text(data.modelo ?? '');
         $('#view_numero_serie').text(data.numero_serie ?? '');
         $('#view_estado').text(data.estado ?? '');
-        $('#view_data_aquisicao').text(data.data_aquisicao ?? '');
         $('#view_observacoes').text(data.observacoes ?? '');
         $('#viewEquipamentoModal').modal('show');
     });

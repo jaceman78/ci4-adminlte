@@ -84,6 +84,12 @@ $isPermutas = ($segments[0] ?? '') === 'permutas';
     <?php $userLevel = session()->get('LoggedUserData')['level'] ?? 0; ?>
     <?php if ($userLevel >= 6): ?>
     <li class="nav-item">
+      <a href="<?= base_url('permutas/lista') ?>" class="nav-link <?= $isPermutas && (($segments[1] ?? '') === 'lista') ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-table"></i>
+        <p>Lista de Permutas</p>
+      </a>
+    </li>
+    <li class="nav-item">
       <a href="<?= base_url('permutas/aprovar') ?>" class="nav-link <?= $isPermutas && (($segments[1] ?? '') === 'aprovar') ? 'active' : '' ?>">
         <i class="nav-icon bi bi-check-circle"></i>
         <p>Aprovar Permutas</p>

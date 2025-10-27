@@ -78,7 +78,7 @@
                                             case 'urgente':
                                             case 'critica':
                                                 $prioridadeStyle = 'background-color: #dc3545; color: white;';
-                                                $prioridadeTexto = 'Urgente';
+                                                $prioridadeTexto = 'Crítica';
                                                 break;
                                             default:
                                                 $prioridadeStyle = 'background-color: #6c757d; color: white;';
@@ -190,7 +190,26 @@
                             <h3 class="card-title"><i class="fas fa-cogs"></i> Ações</h3>
                         </div>
                         <div class="card-body">
-                            <?php if ($ticket['estado'] == 'novo' && $ticket['user_id'] == session()->get('user_id')): ?>
+                            <?php 
+                            // Botão de editar disponível para:
+                            // 1. Criador do ticket se estado = 'novo'
+                            // 2. Super Administrador (nível 9) pode editar qualquer ticket, inclusive reparados
+                            // 3. Administrador (nível 8) pode editar tickets não reparados
+                            $podeEditar = false;
+                            $userLevel = session()->get('level') ?? 0;
+                            
+                            if ($ticket['estado'] == 'novo' && $ticket['user_id'] == session()->get('user_id')) {
+                                $podeEditar = true;
+                            } elseif ($userLevel >= 9) {
+                                // Super administrador pode editar qualquer ticket
+                                $podeEditar = true;
+                            } elseif ($userLevel >= 8 && $ticket['estado'] != 'reparado') {
+                                // Administrador pode editar tickets não reparados
+                                $podeEditar = true;
+                            }
+                            
+                            if ($podeEditar): 
+                            ?>
                             <a href="<?= site_url('tickets/meus') ?>" class="btn btn-warning btn-block">
                                 <i class="fas fa-edit"></i> Editar Ticket
                             </a>
@@ -333,6 +352,33 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-warning">
                         <i class="fas fa-redo-alt"></i> Confirmar Reabertura
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Aceitar Ticket -->
+<div class="modal fade" id="modalAceitarTicket" tabindex="-1" aria-labelledby="modalAceitarLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalAceitarLabel"><i class="fas fa-check-circle"></i> Aceitar Ticket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formAceitarTicket">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Ao aceitar este ticket, você confirma que irá trabalhar na resolução desta avaria.
+                    </div>
+                    
+                    <p class="mb-0"><strong>Tem a certeza que quer aceitar este ticket?</strong></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Sim, Aceitar Ticket
                     </button>
                 </div>
             </form>
@@ -562,12 +608,17 @@ $(document).ready(function() {
     
     // Aceitar Ticket
     $('#btnAceitarTicket').on('click', function() {
-        if (!confirm('Tem certeza que deseja aceitar este ticket?')) {
-            return;
-        }
+        const modal = new bootstrap.Modal(document.getElementById('modalAceitarTicket'));
+        modal.show();
+    });
+    
+    // Processar aceitação do ticket
+    $('#formAceitarTicket').on('submit', function(e) {
+        e.preventDefault();
         
-        const btn = $(this);
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Aceitando...');
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalHtml = submitBtn.html();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Aceitando...');
         
         $.ajax({
             url: '<?= site_url("tickets/aceitarTicket") ?>',
@@ -582,7 +633,7 @@ $(document).ready(function() {
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     toastr.error(response.message || 'Erro ao aceitar ticket.');
-                    btn.prop('disabled', false).html('<i class="fas fa-check"></i> Aceitar Ticket');
+                    submitBtn.prop('disabled', false).html(originalHtml);
                 }
             },
             error: function(xhr) {
@@ -598,7 +649,7 @@ $(document).ready(function() {
                 }
                 
                 toastr.error(errorMsg);
-                btn.prop('disabled', false).html('<i class="fas fa-check"></i> Aceitar Ticket');
+                submitBtn.prop('disabled', false).html(originalHtml);
             }
         });
     });
