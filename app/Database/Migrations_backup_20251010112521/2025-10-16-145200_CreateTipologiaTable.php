@@ -32,8 +32,8 @@ class CreateTipologiaTable extends Migration
         $this->forge->addKey('id_tipologia', true);
         $this->forge->createTable('tipologia', true, [
             'ENGINE'         => 'InnoDB',
-            'DEFAULT CHARSET'=> 'latin1',
-            'COLLATE'        => 'latin1_swedish_ci'
+            'DEFAULT CHARSET'=> 'utf8mb4',
+            'COLLATE'        => 'utf8mb4_general_ci'
         ]);
     }
 

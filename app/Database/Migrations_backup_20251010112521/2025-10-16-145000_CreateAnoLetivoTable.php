@@ -32,8 +32,8 @@ class CreateAnoLetivoTable extends Migration
         $this->forge->addKey('id_anoletivo', true);
         $this->forge->createTable('ano_letivo', true, [
             'ENGINE'         => 'InnoDB',
-            'DEFAULT CHARSET'=> 'latin1',
-            'COLLATE'        => 'latin1_swedish_ci'
+            'DEFAULT CHARSET'=> 'utf8mb4',
+            'COLLATE'        => 'utf8mb4_general_ci'
         ]);
     }
 

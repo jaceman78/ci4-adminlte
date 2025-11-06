@@ -8,6 +8,9 @@ use App\Models\UserModel;
 use App\Models\PermutaModel;
 use App\Models\TurmaModel;
 use App\Models\SalasModel;
+use App\Models\AulasCreditoModel;
+use App\Models\AnoLetivoModel;
+use App\Models\LogsModel;
 
 class PermutasController extends BaseController
 {
@@ -16,14 +19,22 @@ class PermutasController extends BaseController
     protected $userModel;
     protected $permutaModel;
     protected $turmaModel;
+    protected $creditoModel;
+    protected $anoLetivoModel;
+    protected $logsModel;
 
     public function __construct()
     {
+        helper('logs'); // Carregar helper de logs
+        
         $this->horarioModel = new HorarioAulasModel();
         $this->blocosModel = new BlocosHorariosModel();
         $this->userModel = new UserModel();
         $this->permutaModel = new PermutaModel();
         $this->turmaModel = new TurmaModel();
+        $this->logsModel = new LogsModel();
+        $this->creditoModel = new AulasCreditoModel();
+        $this->anoLetivoModel = new AnoLetivoModel();
     }
 
     /**
@@ -50,8 +61,10 @@ class PermutasController extends BaseController
             $semNif = true;
         } else {
             // Buscar todos os blocos horários (estrutura base do horário)
+            // Excluir bloco 0 (reservado para visitas de estudo)
             $blocos = $this->blocosModel
                 ->select('id_bloco, hora_inicio, hora_fim, designacao, dia_semana')
+                ->where('id_bloco !=', 0)
                 ->orderBy('dia_semana', 'ASC')
                 ->orderBy('hora_inicio', 'ASC')
                 ->findAll();
@@ -181,7 +194,7 @@ class PermutasController extends BaseController
                      turma.nome as turma_nome, 
                      turma.codigo as turma_codigo,
                      turma.ano')
-            ->join('disciplina', 'disciplina.id_disciplina = horario_aulas.disciplina_id', 'left')
+            ->join('disciplina', 'disciplina.descritivo = horario_aulas.disciplina_id', 'left')
             ->join('turma', 'turma.codigo = horario_aulas.codigo_turma', 'left')
             ->where('horario_aulas.id_aula', $idAula)
             ->where('horario_aulas.user_nif', $userNif)
@@ -218,7 +231,7 @@ class PermutasController extends BaseController
                      disciplina.abreviatura as disciplina_abrev,
                      disciplina.descritivo as disciplina_nome,
                      turma.nome as turma_nome')
-            ->join('disciplina', 'disciplina.id_disciplina = horario_aulas.disciplina_id', 'left')
+            ->join('disciplina', 'disciplina.descritivo = horario_aulas.disciplina_id', 'left')
             ->join('turma', 'turma.codigo = horario_aulas.codigo_turma', 'left')
             ->where('horario_aulas.user_nif', $userNif)
             ->where('horario_aulas.dia_semana', $aula['dia_semana'])
@@ -229,6 +242,29 @@ class PermutasController extends BaseController
 
         // Não carregar salas aqui - serão carregadas via AJAX após selecionar a data de reposição
 
+        // Buscar ano letivo ativo
+        $anoLetivoAtivo = $this->anoLetivoModel->where('status', 1)->first();
+        
+        // Verificar se há créditos disponíveis para esta aula
+        $creditosDisponiveis = [];
+        if ($anoLetivoAtivo) {
+            $creditosDisponiveis = $this->creditoModel
+                ->select('aulas_credito.*, ano_letivo.anoletivo')
+                ->join('ano_letivo', 'ano_letivo.id_anoletivo = aulas_credito.ano_letivo_id', 'left')
+                ->where('aulas_credito.professor_nif', $userNif)
+                ->where('aulas_credito.codigo_turma', $aula['codigo_turma'])
+                ->where('aulas_credito.disciplina_id', $aula['disciplina_id'])
+                ->where('aulas_credito.estado', 'disponivel')
+                ->where('aulas_credito.ano_letivo_id', $anoLetivoAtivo['id_anoletivo'])
+                ->groupStart()
+                    ->where('aulas_credito.turno', $aula['turno'])
+                    ->orWhere('aulas_credito.turno IS NULL')
+                ->groupEnd()
+                ->orderBy('aulas_credito.turno', 'DESC') // Prioriza turnos específicos
+                ->orderBy('aulas_credito.data_visita', 'DESC')
+                ->findAll();
+        }
+
         $data = [
             'title' => 'Pedir Permuta',
             'page_title' => 'Solicitar Permuta',
@@ -236,7 +272,8 @@ class PermutasController extends BaseController
             'aula' => $aula,
             'professores' => $professoresTurma,
             'aulasNoDia' => $aulasNoDia,
-            'userNif' => $userNif
+            'userNif' => $userNif,
+            'creditosDisponiveis' => $creditosDisponiveis
         ];
 
         return view('permutas/form_permuta', $data);
@@ -257,7 +294,7 @@ class PermutasController extends BaseController
             ->select('permutas.*, 
                 permutas.data_aula_original,
                 ha.dia_semana, ha.hora_inicio, ha.hora_fim, ha.codigo_turma, ha.disciplina_id,
-                d.abreviatura as disciplina_abrev, d.descritivo as disciplina_nome,
+                d.id_disciplina, d.abreviatura as disciplina_abrev, d.descritivo as disciplina_nome,
                 t.nome as turma_nome, t.ano,
                 s_orig.codigo_sala as sala_original_codigo,
                 s_perm.codigo_sala as sala_permutada_codigo,
@@ -265,7 +302,7 @@ class PermutasController extends BaseController
                 substituto.name as professor_substituto_nome, substituto.email as professor_substituto_email,
                 aprovador.name as aprovador_nome')
             ->join('horario_aulas ha', 'ha.id_aula = permutas.aula_original_id', 'left')
-            ->join('disciplina d', 'd.id_disciplina = ha.disciplina_id', 'left')
+            ->join('disciplina d', 'd.descritivo = ha.disciplina_id', 'left')
             ->join('turma t', 't.codigo = ha.codigo_turma', 'left')
             ->join('salas s_orig', 's_orig.codigo_sala = ha.sala_id', 'left')
             ->join('salas s_perm', 's_perm.codigo_sala = permutas.sala_permutada_id', 'left')
@@ -324,7 +361,7 @@ class PermutasController extends BaseController
                 autor.name as professor_autor_nome, autor.email as professor_autor_email,
                 substituto.name as professor_substituto_nome, substituto.email as professor_substituto_email')
             ->join('horario_aulas ha', 'ha.id_aula = permutas.aula_original_id', 'left')
-            ->join('disciplina d', 'd.id_disciplina = ha.disciplina_id', 'left')
+            ->join('disciplina d', 'd.descritivo = ha.disciplina_id', 'left')
             ->join('turma t', 't.codigo = ha.codigo_turma', 'left')
             ->join('salas s', 's.codigo_sala = permutas.sala_permutada_id', 'left')
             ->join('user autor', 'autor.NIF = permutas.professor_autor_nif', 'left')
@@ -358,26 +395,118 @@ class PermutasController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'NIF não encontrado']);
         }
 
-        // Validar dados recebidos
+        // Obter dados do POST
+        $post = $this->request->getPost();
+        
+        // DEBUG - Log dos dados recebidos
+        log_message('debug', 'POST recebido: ' . json_encode($post));
+        
+        // Verificar se está usando créditos (pode ser array agora)
+        $usarCreditoIds = $post['usar_credito_id'] ?? null;
+        if ($usarCreditoIds && !is_array($usarCreditoIds)) {
+            $usarCreditoIds = [$usarCreditoIds]; // Converter single para array
+        }
+        
+        // DEBUG - Log da verificação de créditos
+        log_message('debug', 'Usando créditos: ' . ($usarCreditoIds ? 'SIM' : 'NÃO') . ' | IDs: ' . json_encode($usarCreditoIds));
+        
+        // Se for crédito, validar e forçar valores ANTES da validação de regras
+        if ($usarCreditoIds && !empty($usarCreditoIds)) {
+            $creditosValidos = [];
+            
+            // Calcular quantas aulas serão permutadas
+            $totalAulas = 1; // Aula principal
+            if (!empty($post['aulas_adicionais']) && is_array($post['aulas_adicionais'])) {
+                $totalAulas += count($post['aulas_adicionais']);
+            }
+            
+            // Verificar se há créditos suficientes
+            if (count($usarCreditoIds) < $totalAulas) {
+                return $this->response->setJSON([
+                    'success' => false, 
+                    'message' => "Precisa selecionar {$totalAulas} crédito(s) para cobrir todas as aulas (1 principal + " . ($totalAulas-1) . " adicional(is))"
+                ]);
+            }
+            
+            foreach ($usarCreditoIds as $creditoId) {
+                // Validar que o crédito pertence ao professor e está disponível
+                $credito = $this->creditoModel->find($creditoId);
+                if (!$credito) {
+                    return $this->response->setJSON(['success' => false, 'message' => "Crédito {$creditoId} não encontrado"]);
+                }
+                if ($credito['professor_nif'] != $userNif) {
+                    return $this->response->setJSON(['success' => false, 'message' => "Crédito {$creditoId} não pertence a você"]);
+                }
+                if ($credito['estado'] != 'disponivel') {
+                    return $this->response->setJSON(['success' => false, 'message' => "Crédito {$creditoId} já foi usado"]);
+                }
+                
+                $creditosValidos[] = $credito;
+            }
+            
+            // Validar correspondência de turnos entre créditos e aulas
+            $aulaOriginal = $this->horarioModel->find($post['aula_original_id']);
+            if (!$aulaOriginal) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Aula original não encontrada']);
+            }
+            
+            $aulasParaValidar = [$aulaOriginal];
+            if (!empty($post['aulas_adicionais']) && is_array($post['aulas_adicionais'])) {
+                foreach ($post['aulas_adicionais'] as $aulaId) {
+                    $aulaExtra = $this->horarioModel->find($aulaId);
+                    if ($aulaExtra) {
+                        $aulasParaValidar[] = $aulaExtra;
+                    }
+                }
+            }
+            
+            // Verificar se os turnos dos créditos correspondem aos turnos das aulas
+            $turnosCreditos = array_column($creditosValidos, 'turno');
+            $turnosAulas = array_column($aulasParaValidar, 'turno');
+            
+            foreach ($turnosAulas as $turnoAula) {
+                if (!in_array($turnoAula, $turnosCreditos)) {
+                    return $this->response->setJSON([
+                        'success' => false, 
+                        'message' => "Não há crédito disponível para o turno {$turnoAula}. Verifique a correspondência entre turnos dos créditos e das aulas."
+                    ]);
+                }
+            }
+            
+            // Para créditos, forçar valores específicos ANTES da validação
+            $post['sala_permutada_id'] = 'VE';
+            $post['bloco_reposicao'] = '0';
+            $post['professor_substituto_nif'] = $userNif;
+        }
+        
+        // Validar dados recebidos - ajustar regras se usar créditos
         $rules = [
             'aula_original_id'           => 'required|integer',
             'data_aula_original'         => 'required|valid_date',
             'data_aula_permutada'        => 'required|valid_date',
             'professor_substituto_nif'   => 'required',
-            'sala_permutada_id'          => 'permit_empty',
             'observacoes'                => 'permit_empty',
-            'aulas_adicionais'           => 'permit_empty'
+            'aulas_adicionais'           => 'permit_empty',
+            'usar_credito_id'            => 'permit_empty' // Pode ser array agora
         ];
+        
+        // Adicionar validação de sala e bloco apenas se NÃO estiver usando créditos
+        if (!$usarCreditoIds || empty($usarCreditoIds)) {
+            $rules['sala_permutada_id'] = 'required';
+            $rules['bloco_reposicao'] = 'required';
+        } else {
+            $rules['sala_permutada_id'] = 'permit_empty';
+            $rules['bloco_reposicao'] = 'permit_empty';
+        }
 
-        if (!$this->validate($rules)) {
+        // Usar dados modificados do $post para validação
+        if (!$this->validateData($post, $rules)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Dados inválidos',
                 'errors' => $this->validator->getErrors()
             ]);
         }
-
-        $post = $this->request->getPost();
 
         // Verificar se a aula pertence ao professor
         $aula = $this->horarioModel->find($post['aula_original_id']);
@@ -408,16 +537,78 @@ class PermutasController extends BaseController
                     'professor_autor_nif'       => $userNif,
                     'professor_substituto_nif'  => $post['professor_substituto_nif'],
                     'sala_permutada_id'         => $post['sala_permutada_id'] ?? null,
+                    'bloco_reposicao_id'        => $post['bloco_reposicao'] ?? null,
                     'grupo_permuta'             => $grupoPermuta,
                     'estado'                    => 'pendente',
                     'observacoes'               => $post['observacoes'] ?? null
                 ];
 
-                $this->permutaModel->insert($permutaData);
+                $permutaId = $this->permutaModel->insert($permutaData);
+                
+                // Log da criação da permuta
+                log_permuta(
+                    'create',
+                    $permutaId,
+                    "Permuta criada - Aula ID: {$aulaId}, Data original: {$post['data_aula_original']}, Data reposição: {$post['data_aula_permutada']}",
+                    null,
+                    $permutaData
+                );
                 
                 // Guardar o ID da primeira permuta para enviar emails
                 if ($primeiraPermutaId === null) {
-                    $primeiraPermutaId = $this->permutaModel->getInsertID();
+                    $primeiraPermutaId = $permutaId;
+                }
+            }
+
+            // Se está usando créditos, marcar apenas os necessários como usados (um por aula)
+            if ($usarCreditoIds && !empty($usarCreditoIds) && $primeiraPermutaId) {
+                // Calcular quantas aulas foram permutadas
+                $totalAulas = count($aulasParaPermutar);
+                
+                // Obter turnos das aulas permutadas para fazer correspondência correta
+                $aulasComTurnos = [];
+                foreach ($aulasParaPermutar as $aulaId) {
+                    $aula = $this->horarioModel->find($aulaId);
+                    if ($aula) {
+                        $aulasComTurnos[] = $aula['turno'];
+                    }
+                }
+                
+                // Usar apenas os créditos necessários, fazendo correspondência por turno
+                $creditosUsados = 0;
+                foreach ($aulasComTurnos as $turnoAula) {
+                    foreach ($usarCreditoIds as $creditoId) {
+                        if ($creditosUsados >= $totalAulas) break 2; // Sair dos dois loops
+                        
+                        $credito = $this->creditoModel->find($creditoId);
+                        if ($credito && $credito['turno'] == $turnoAula && $credito['estado'] == 'disponivel') {
+                            $oldCreditoValues = $credito;
+                            $newCreditoValues = [
+                                'estado' => 'usado',
+                                'usado_em_permuta_id' => $primeiraPermutaId,
+                                'data_uso' => date('Y-m-d H:i:s')
+                            ];
+                            
+                            $this->creditoModel->update($creditoId, $newCreditoValues);
+                            
+                            // Log do uso do crédito
+                            log_credito(
+                                'use',
+                                $creditoId,
+                                "Crédito usado na permuta #{$primeiraPermutaId} - Turno: {$turnoAula}",
+                                ['estado' => $oldCreditoValues['estado']],
+                                $newCreditoValues
+                            );
+                            
+                            $creditosUsados++;
+                            break; // Usar apenas um crédito por turno/aula
+                        }
+                    }
+                }
+                
+                // Verificar se conseguimos usar créditos para todas as aulas
+                if ($creditosUsados < $totalAulas) {
+                    throw new \Exception("Não foi possível usar créditos para todas as aulas. Verifique a correspondência de turnos.");
                 }
             }
 
@@ -435,9 +626,15 @@ class PermutasController extends BaseController
                 // Continuar mesmo se emails falharem
             }
 
+            // Calcular mensagem baseada nos créditos realmente usados
+            $totalAulasPermutadas = count($aulasParaPermutar);
+            $mensagem = ($usarCreditoIds && !empty($usarCreditoIds)) ? 
+                "Permuta criada com sucesso! Usados {$creditosUsados} crédito(s) para {$totalAulasPermutadas} aula(s) de visita de estudo." : 
+                'Permuta solicitada com sucesso! Aguarde aprovação.';
+
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Permuta solicitada com sucesso! Aguarde aprovação.',
+                'message' => $mensagem,
                 'redirect' => base_url('permutas/minhas')
             ]);
 
@@ -465,6 +662,15 @@ class PermutasController extends BaseController
         $success = $this->permutaModel->aprovarPermuta($permutaId, $userData['id']);
 
         if ($success) {
+            // Log da aprovação
+            log_permuta(
+                'approve',
+                $permutaId,
+                "Permuta aprovada por {$userData['Nome']} (ID: {$userData['id']})",
+                ['estado' => $permuta['estado']],
+                ['estado' => 'aprovada', 'aprovado_por' => $userData['id']]
+            );
+            
             // Enviar emails de confirmação (não bloquear se falhar)
             try {
                 $this->enviarEmailsAprovacao($permutaId);
@@ -499,6 +705,15 @@ class PermutasController extends BaseController
         $success = $this->permutaModel->rejeitarPermuta($permutaId, $userData['id'], $motivo);
 
         if ($success) {
+            // Log da rejeição
+            log_permuta(
+                'reject',
+                $permutaId,
+                "Permuta rejeitada por {$userData['Nome']} - Motivo: {$motivo}",
+                ['estado' => $permuta['estado']],
+                ['estado' => 'rejeitada', 'rejeitado_por' => $userData['id'], 'motivo_rejeicao' => $motivo]
+            );
+            
             // Enviar emails de rejeição (não bloquear se falhar)
             try {
                 $this->enviarEmailsRejeicao($permutaId, $motivo);
@@ -685,11 +900,18 @@ class PermutasController extends BaseController
             return redirect()->to('/permutas/minhas')->with('error', 'Sem permissão');
         }
 
+        // Buscar outras permutas do mesmo grupo (se existir)
+        $permutasGrupo = [];
+        if (!empty($permuta['grupo_permuta'])) {
+            $permutasGrupo = $this->permutaModel->getPermutasDoGrupo($permuta['grupo_permuta']);
+        }
+
         $data = [
             'title' => 'Detalhes da Permuta',
             'page_title' => 'Detalhes da Permuta #' . $permutaId,
             'page_subtitle' => 'Informações completas',
             'permuta' => $permuta,
+            'permutasGrupo' => $permutasGrupo,
             'isAdmin' => $isAdmin,
             'userNif' => $userNif
         ];
@@ -1097,6 +1319,30 @@ class PermutasController extends BaseController
     }
 
     /**
+     * Buscar blocos horários disponíveis
+     * AJAX endpoint
+     * Nota: Retorna todos os blocos pois são iguais para todos os dias
+     */
+    public function getBlocosHorarios()
+    {
+        $userData = session()->get('LoggedUserData');
+        if (!$userData) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sessão expirada']);
+        }
+
+        // Buscar todos os blocos horários ordenados por hora de início
+        $blocos = $this->blocosModel
+            ->orderBy('hora_inicio', 'ASC')
+            ->findAll();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'blocos' => $blocos,
+            'total_blocos' => count($blocos)
+        ]);
+    }
+
+    /**
      * Buscar salas livres para uma data específica
      * AJAX endpoint
      */
@@ -1107,12 +1353,28 @@ class PermutasController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Sessão expirada']);
         }
 
+        $userNif = $userData['NIF'] ?? null;
         $dataReposicao = $this->request->getPost('data_reposicao');
+        $blocoReposicao = $this->request->getPost('bloco_reposicao');
         $aulaOriginalId = $this->request->getPost('aula_original_id');
         $aulasAdicionais = $this->request->getPost('aulas_adicionais') ?? [];
+        $professorSubstitutoNif = $this->request->getPost('professor_substituto_nif');
         
-        if (!$dataReposicao || !$aulaOriginalId) {
+        if (!$dataReposicao || !$aulaOriginalId || !$blocoReposicao) {
             return $this->response->setJSON(['success' => false, 'message' => 'Dados incompletos']);
+        }
+
+        // Verificar se é permuta com "Eu próprio"
+        $isProprio = ($professorSubstitutoNif && $professorSubstitutoNif == $userNif);
+        
+        // DEBUG: Log para verificar
+        log_message('info', "getSalasLivres - isProprio: " . ($isProprio ? 'SIM' : 'NAO') . 
+                           ", userNif: {$userNif}, professorSubstitutoNif: {$professorSubstitutoNif}");
+
+        // Buscar informações do bloco horário selecionado
+        $blocoInfo = $this->blocosModel->find($blocoReposicao);
+        if (!$blocoInfo) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Bloco horário não encontrado']);
         }
 
         // Converter data para dia da semana (2=Segunda, 3=Terça, etc)
@@ -1125,22 +1387,23 @@ class PermutasController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Aula não encontrada']);
         }
 
-        // Array para armazenar todos os horários a verificar
+        // Usar o horário do bloco selecionado
         $horariosParaVerificar = [
             [
-                'hora_inicio' => $aulaOriginal['hora_inicio'],
-                'hora_fim' => $aulaOriginal['hora_fim']
+                'hora_inicio' => $blocoInfo['hora_inicio'],
+                'hora_fim' => $blocoInfo['hora_fim']
             ]
         ];
 
-        // Adicionar horários das aulas adicionais
+        // Adicionar horários das aulas adicionais (também usando o mesmo bloco)
         if (!empty($aulasAdicionais)) {
             foreach ($aulasAdicionais as $aulaId) {
                 $aula = $this->horarioModel->find($aulaId);
                 if ($aula) {
+                    // Para aulas adicionais, também usar o bloco selecionado
                     $horariosParaVerificar[] = [
-                        'hora_inicio' => $aula['hora_inicio'],
-                        'hora_fim' => $aula['hora_fim']
+                        'hora_inicio' => $blocoInfo['hora_inicio'],
+                        'hora_fim' => $blocoInfo['hora_fim']
                     ];
                 }
             }
@@ -1173,26 +1436,38 @@ class PermutasController extends BaseController
             $salaLivreEmTodosHorarios = true;
             
             foreach ($horariosParaVerificar as $horario) {
-                // Verificar se a sala está ocupada nesse horário e dia da semana
-                $ocupada = $this->horarioModel
+                // Construir query para verificar se a sala está ocupada
+                $query = $this->horarioModel
                     ->where('sala_id', $sala['codigo_sala'])
                     ->where('dia_semana', $diaSemana)
                     ->groupStart()
                         ->where('hora_inicio <', $horario['hora_fim'])
                         ->where('hora_fim >', $horario['hora_inicio'])
-                    ->groupEnd()
-                    ->countAllResults();
+                    ->groupEnd();
+                
+                // Se é "Eu próprio", excluir a aula original da verificação
+                // pois essa aula não vai acontecer (está a ser permutada)
+                if ($isProprio) {
+                    $query->where('id_aula !=', $aulaOriginalId);
+                    
+                    // Excluir também aulas adicionais se existirem
+                    if (!empty($aulasAdicionais)) {
+                        $query->whereNotIn('id_aula', $aulasAdicionais);
+                    }
+                }
+                
+                $ocupada = $query->countAllResults();
+                
+                // DEBUG: Log detalhado
+                if ($sala['codigo_sala'] == $salaOriginalCodigo) {
+                    log_message('info', "Verificando sala original {$salaOriginalCodigo} - " .
+                               "isProprio: " . ($isProprio ? 'SIM' : 'NAO') . 
+                               ", ocupada: {$ocupada}, aulaOriginalId: {$aulaOriginalId}");
+                }
 
                 if ($ocupada > 0) {
-                    // Verificar se é a sala original e se a permuta é no mesmo dia
-                    // Neste caso, a sala fica livre porque o professor não vai dar a aula
-                    if ($sala['codigo_sala'] == $salaOriginalCodigo && $diaSemana == $aulaOriginal['dia_semana']) {
-                        // Sala original fica livre no mesmo dia da semana
-                        continue;
-                    } else {
-                        $salaLivreEmTodosHorarios = false;
-                        break;
-                    }
+                    $salaLivreEmTodosHorarios = false;
+                    break;
                 }
             }
             
@@ -1213,6 +1488,314 @@ class PermutasController extends BaseController
             'escola_id' => $escolaId,
             'total_horarios' => count($horariosParaVerificar)
         ]);
+    }
+
+    // ========================================
+    // GESTÃO DE CRÉDITOS DE AULAS
+    // ========================================
+
+    /**
+     * Página de gestão de créditos
+     */
+    public function creditos()
+    {
+        $userData = session()->get('LoggedUserData');
+        if (!$userData) {
+            return redirect()->to('/login')->with('error', 'É necessário fazer login');
+        }
+
+        $userNif = $userData['NIF'] ?? null;
+        $userLevel = $userData['level'] ?? 0;
+
+        // Buscar ano letivo ativo
+        $anoLetivoAtivo = $this->anoLetivoModel->where('status', 1)->first();
+
+        // Buscar créditos do professor (ou todos se for admin)
+        if ($userLevel >= 6) {
+            // Admin vê todos os créditos
+            $creditosDisponiveis = $this->creditoModel
+                ->select('aulas_credito.*, 
+                         user.name as professor_nome,
+                         disciplina.descritivo as disciplina_nome,
+                         disciplina.abreviatura as disciplina_abrev,
+                         turma.nome as turma_nome')
+                ->join('user', 'user.NIF = aulas_credito.professor_nif', 'left')
+                ->join('disciplina', 'disciplina.descritivo = aulas_credito.disciplina_id', 'left')
+                ->join('turma', 'turma.codigo = aulas_credito.codigo_turma', 'left')
+                ->where('aulas_credito.estado', 'disponivel')
+                ->where('aulas_credito.ano_letivo_id', $anoLetivoAtivo['id_anoletivo'] ?? 0)
+                ->orderBy('aulas_credito.professor_nif, aulas_credito.data_visita', 'DESC')
+                ->findAll();
+
+            $creditosUsados = $this->creditoModel
+                ->select('aulas_credito.*, 
+                         user.name as professor_nome,
+                         disciplina.descritivo as disciplina_nome,
+                         turma.nome as turma_nome,
+                         permutas.data_aula_original')
+                ->join('user', 'user.NIF = aulas_credito.professor_nif', 'left')
+                ->join('disciplina', 'disciplina.descritivo = aulas_credito.disciplina_id', 'left')
+                ->join('turma', 'turma.codigo = aulas_credito.codigo_turma', 'left')
+                ->join('permutas', 'permutas.id = aulas_credito.usado_em_permuta_id', 'left')
+                ->where('aulas_credito.estado', 'usado')
+                ->where('aulas_credito.ano_letivo_id', $anoLetivoAtivo['id_anoletivo'] ?? 0)
+                ->orderBy('aulas_credito.data_uso', 'DESC')
+                ->findAll();
+        } else {
+            // Professor vê apenas os seus créditos
+            $creditosDisponiveis = $this->creditoModel->getCreditosDisponiveis($userNif, $anoLetivoAtivo['id_anoletivo'] ?? null);
+            $creditosUsados = $this->creditoModel->getCreditosUsados($userNif, $anoLetivoAtivo['id_anoletivo'] ?? null);
+        }
+
+        // Buscar todos os professores para o formulário (se for admin)
+        $professores = [];
+        if ($userLevel >= 6) {
+            $professores = $this->userModel
+                ->select('NIF, name, email')
+                ->where('NIF IS NOT NULL')
+                ->where('NIF !=', '')
+                ->orderBy('name', 'ASC')
+                ->findAll();
+        }
+
+        $data = [
+            'title' => 'Créditos de Aulas',
+            'page_title' => 'Gestão de Créditos de Aulas',
+            'page_subtitle' => 'Créditos de visitas de estudo',
+            'creditosDisponiveis' => $creditosDisponiveis,
+            'creditosUsados' => $creditosUsados,
+            'totalDisponiveis' => count($creditosDisponiveis),
+            'totalUsados' => count($creditosUsados),
+            'professores' => $professores,
+            'anoLetivoAtivo' => $anoLetivoAtivo,
+            'userLevel' => $userLevel,
+            'userNif' => $userNif,
+        ];
+
+        return view('permutas/creditos', $data);
+    }
+
+    /**
+     * AJAX: Buscar turmas que o professor leciona
+     */
+    public function getTurmasProfessor()
+    {
+        $professorNif = $this->request->getPost('professor_nif');
+
+        if (!$professorNif) {
+            return $this->response->setJSON(['success' => false, 'message' => 'NIF do professor não fornecido']);
+        }
+
+        // Buscar turmas DISTINTAS que o professor leciona
+        $turmas = $this->horarioModel
+            ->distinct()
+            ->select('turma.codigo, turma.nome, turma.ano')
+            ->join('turma', 'turma.codigo = horario_aulas.codigo_turma', 'inner')
+            ->where('horario_aulas.user_nif', $professorNif)
+            ->orderBy('turma.ano, turma.nome', 'ASC')
+            ->findAll();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'turmas' => $turmas
+        ]);
+    }
+
+    /**
+     * AJAX: Buscar disciplinas que o professor leciona numa turma
+     */
+    public function getDisciplinasProfessorTurma()
+    {
+        $professorNif = $this->request->getPost('professor_nif');
+        $codigoTurma = $this->request->getPost('codigo_turma');
+
+        if (!$professorNif || !$codigoTurma) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Dados incompletos']);
+        }
+
+        // Buscar disciplinas DISTINTAS que o professor leciona nessa turma
+        $disciplinas = $this->horarioModel
+            ->distinct()
+            ->select('disciplina.descritivo, disciplina.abreviatura')
+            ->join('disciplina', 'disciplina.descritivo = horario_aulas.disciplina_id', 'inner')
+            ->where('horario_aulas.user_nif', $professorNif)
+            ->where('horario_aulas.codigo_turma', $codigoTurma)
+            ->orderBy('disciplina.abreviatura', 'ASC')
+            ->findAll();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'disciplinas' => $disciplinas
+        ]);
+    }
+
+    /**
+     * AJAX: Verificar se a disciplina tem turnos
+     */
+    public function verificarTurnosDisciplina()
+    {
+        $professorNif = $this->request->getPost('professor_nif');
+        $codigoTurma = $this->request->getPost('codigo_turma');
+        $disciplinaId = $this->request->getPost('disciplina_id');
+
+        if (!$professorNif || !$codigoTurma || !$disciplinaId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Dados incompletos']);
+        }
+
+        // Buscar turnos DISTINTOS (pode retornar NULL se não tiver turnos)
+        $turnos = $this->horarioModel
+            ->distinct()
+            ->select('turno')
+            ->where('user_nif', $professorNif)
+            ->where('codigo_turma', $codigoTurma)
+            ->where('disciplina_id', $disciplinaId)
+            ->where('turno IS NOT NULL')
+            ->where('turno !=', '')
+            ->findAll();
+
+        $temTurnos = count($turnos) > 0;
+
+        return $this->response->setJSON([
+            'success' => true,
+            'tem_turnos' => $temTurnos,
+            'turnos' => $turnos
+        ]);
+    }
+
+    /**
+     * Salvar crédito(s) de aula
+     */
+    public function salvarCredito()
+    {
+        $userData = session()->get('LoggedUserData');
+        if (!$userData) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sessão expirada']);
+        }
+
+        $userLevel = $userData['level'] ?? 0;
+        if ($userLevel < 6) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sem permissões']);
+        }
+
+        $post = $this->request->getPost();
+
+        // Validação
+        $validationRules = [
+            'professor_nif'  => 'required',
+            'codigo_turma'   => 'required',
+            'disciplina_id'  => 'required',
+            'data_visita'    => 'required|valid_date',
+            'origem'         => 'required',
+            'num_aulas'      => 'required|integer|greater_than[0]|less_than[21]',
+        ];
+
+        if (!$this->validate($validationRules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Dados inválidos',
+                'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        // Buscar ano letivo ativo
+        $anoLetivoAtivo = $this->anoLetivoModel->where('status', 1)->first();
+        if (!$anoLetivoAtivo) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Nenhum ano letivo ativo']);
+        }
+
+        // Validar que o professor leciona a turma/disciplina
+        $validacao = $this->creditoModel->validarProfessorLecionaTurmaDisciplina(
+            $post['professor_nif'],
+            $post['codigo_turma'],
+            $post['disciplina_id'],
+            $post['turno'] ?? null
+        );
+
+        if (!$validacao) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'O professor não leciona esta disciplina nesta turma' . 
+                           ($post['turno'] ? ' neste turno' : '')
+            ]);
+        }
+
+        // Preparar dados do crédito
+        $turno = $post['turno'] ?? null;
+        if ($turno === '' || $turno === 'null') {
+            $turno = null;
+        }
+
+        $dadosCredito = [
+            'professor_nif'      => $post['professor_nif'],
+            'codigo_turma'       => $post['codigo_turma'],
+            'disciplina_id'      => $post['disciplina_id'],
+            'turno'              => $turno,
+            'data_visita'        => $post['data_visita'],
+            'origem'             => $post['origem'],
+            'ano_letivo_id'      => $anoLetivoAtivo['id_anoletivo'],
+            'estado'             => 'disponivel',
+            'observacoes'        => $post['observacoes'] ?? null,
+            'criado_por_user_id' => $userData['id'],
+        ];
+
+        // Criar múltiplos créditos
+        $numAulas = (int) $post['num_aulas'];
+        $resultado = $this->creditoModel->criarMultiplosCreditos($dadosCredito, $numAulas);
+
+        if ($resultado) {
+            // Log
+            log_message('info', "Créditos criados: {$numAulas} aulas para professor {$post['professor_nif']} por user {$userData['id']}");
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => "{$numAulas} crédito(s) de aula criado(s) com sucesso!"
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Erro ao criar créditos',
+                'errors' => $this->creditoModel->errors()
+            ]);
+        }
+    }
+
+    /**
+     * Cancelar crédito
+     */
+    public function cancelarCredito()
+    {
+        $userData = session()->get('LoggedUserData');
+        if (!$userData) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sessão expirada']);
+        }
+
+        $userLevel = $userData['level'] ?? 0;
+        if ($userLevel < 6) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sem permissões']);
+        }
+
+        $creditoId = $this->request->getPost('credito_id');
+        $motivo = $this->request->getPost('motivo');
+
+        if (!$creditoId || !$motivo) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Dados incompletos']);
+        }
+
+        $resultado = $this->creditoModel->cancelarCredito($creditoId, $userData['id'], $motivo);
+
+        if ($resultado) {
+            log_message('info', "Crédito {$creditoId} cancelado por user {$userData['id']}");
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Crédito cancelado com sucesso'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Erro ao cancelar crédito'
+            ]);
+        }
     }
 }
 

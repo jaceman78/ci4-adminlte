@@ -81,6 +81,12 @@ $isPermutas = ($segments[0] ?? '') === 'permutas';
         <p>As Minhas Permutas</p>
       </a>
     </li>
+    <li class="nav-item">
+      <a href="<?= base_url('permutas/creditos') ?>" class="nav-link <?= $isPermutas && (($segments[1] ?? '') === 'creditos') ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-clock-history"></i>
+        <p>Créditos de Aulas</p>
+      </a>
+    </li>
     <?php $userLevel = session()->get('LoggedUserData')['level'] ?? 0; ?>
     <?php if ($userLevel >= 6): ?>
     <li class="nav-item">
@@ -180,6 +186,7 @@ $isDashboardActive = in_array($segments[0] ?? '', $dashboardPages);
       </a>
     </li>
     <?php endif; ?>
+    <?php if ($userLevel >= 6): ?>
     <li class="nav-item">
       <a href="<?= base_url('users') ?>" class="nav-link <?= ($segments[0] ?? '') == 'users' ? 'active' : '' ?>">
         <i class="nav-icon bi bi-circle"></i>
@@ -192,6 +199,7 @@ $isDashboardActive = in_array($segments[0] ?? '', $dashboardPages);
         <p>Escolas</p>
       </a>
     </li>
+    <?php endif; ?>
     <li class="nav-item">
       <a href="<?= base_url('salas') ?>" class="nav-link <?= ($segments[0] ?? '') == 'salas' ? 'active' : '' ?>">
         <i class="nav-icon bi bi-circle"></i>

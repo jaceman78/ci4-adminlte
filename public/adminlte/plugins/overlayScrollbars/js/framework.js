@@ -259,15 +259,14 @@ $(document).ready(function () {
           .attr(_dataAttrNavigation);
         if (navigationValue) {
           var newHashArray = generateHashArray(navigationValue);
-          var newHashArrayParamString = "";
-          for (var i = 0; i < newHashArray.length; i++)
-            newHashArrayParamString += '"' + newHashArray[i] + '", ';
-          newHashArrayParamString = newHashArrayParamString.substring(
-            0,
-            newHashArrayParamString.length - 2
-          );
+          var newHashArrayParamString = newHashArray.join(', ');
 
-          window.eval("hasher.setHash(" + newHashArrayParamString + ");");
+          // Replace eval with direct function call
+          if (typeof hasher.setHash === 'function') {
+            hasher.setHash(newHashArray);
+          } else {
+            console.error('hasher.setHash is not a function');
+          }
         }
       }
     };

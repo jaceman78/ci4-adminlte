@@ -84,7 +84,6 @@
                     <table id="tabelaPermutasFuturas" class="table table-bordered table-striped table-hover">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Data Aula</th>
                                 <th>Disciplina</th>
                                 <th>Turma</th>
@@ -98,7 +97,6 @@
                         <tbody>
                             <?php foreach ($permutasFuturas as $permuta): ?>
                                 <tr>
-                                    <td><?= $permuta['id'] ?></td>
                                     <td>
                                         <?php if (!empty($permuta['data_aula_original'])): ?>
                                             <span class="badge badge-info" style="color: #000; font-size: 0.9rem;">
@@ -163,7 +161,6 @@
                     <table id="tabelaPermutasPassadas" class="table table-bordered table-striped table-hover">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Data Aula</th>
                                 <th>Disciplina</th>
                                 <th>Turma</th>
@@ -177,7 +174,6 @@
                         <tbody>
                             <?php foreach ($permutasPassadas as $permuta): ?>
                                 <tr>
-                                    <td><?= $permuta['id'] ?></td>
                                     <td>
                                         <?php if (!empty($permuta['data_aula_original'])): ?>
                                             <span class="badge badge-secondary" style="color: #000; font-size: 0.9rem;">
@@ -250,11 +246,11 @@ $(document).ready(function() {
         "language": {
             "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json"
         },
-        "order": [[1, "asc"]], // Ordenar por data da aula
+        "order": [[0, "asc"]], // Ordenar por data da aula
         "pageLength": 25,
         "responsive": true,
         "columnDefs": [
-            { "orderable": false, "targets": [8] } // Coluna Ações não ordenável
+            { "orderable": false, "targets": [7] } // Coluna Ações não ordenável
         ]
     });
 
@@ -263,11 +259,11 @@ $(document).ready(function() {
         "language": {
             "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json"
         },
-        "order": [[1, "desc"]], // Ordenar por data da aula (mais recente primeiro)
+        "order": [[0, "desc"]], // Ordenar por data da aula (mais recente primeiro)
         "pageLength": 25,
         "responsive": true,
         "columnDefs": [
-            { "orderable": false, "targets": [8] } // Coluna Ações não ordenável
+            { "orderable": false, "targets": [7] } // Coluna Ações não ordenável
         ]
     });
 });

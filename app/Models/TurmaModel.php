@@ -102,8 +102,8 @@ class TurmaModel extends Model
                         ->join('ano_letivo', 'ano_letivo.id_anoletivo = turma.anoletivo_id', 'left')
                         ->join('tipologia', 'tipologia.id_tipologia = turma.tipologia_id', 'left')
                         ->join('escolas', 'escolas.id = turma.escola_id', 'left')
-                        ->join('user as dt', 'dt.NIF = turma.dir_turma_nif', 'left')
-                        ->join('user as sec', 'sec.NIF = turma.secretario_nif', 'left');
+                        ->join('user as dt', 'dt.NIF = turma.dir_turma_nif AND turma.dir_turma_nif IS NOT NULL AND turma.dir_turma_nif != "" AND turma.dir_turma_nif != "0"', 'left')
+                        ->join('user as sec', 'sec.NIF = turma.secretario_nif AND turma.secretario_nif IS NOT NULL AND turma.secretario_nif != "" AND turma.secretario_nif != "0"', 'left');
         
         if ($anoLetivoId) {
             $builder->where('turma.anoletivo_id', $anoLetivoId);

@@ -83,7 +83,7 @@ class PermutasModel extends Model
                          u_subst.name as professor_substituto_nome, u_subst.email as professor_substituto_email,
                          s.codigo_sala, s.descricao as sala_descricao');
         $builder->join('horario_aulas ha', 'ha.id_aula = p.aula_original_id', 'left');
-        $builder->join('disciplina d', 'd.id_disciplina = ha.disciplina_id', 'left');
+        $builder->join('disciplina d', 'd.descritivo = ha.disciplina_id', 'left');
         $builder->join('turma t', 't.codigo = ha.codigo_turma', 'left');
         $builder->join('user u_autor', 'u_autor.NIF = p.professor_autor_nif', 'left');
         $builder->join('user u_subst', 'u_subst.NIF = p.professor_substituto_nif', 'left');
@@ -196,7 +196,7 @@ class PermutasModel extends Model
                          s_perm.codigo_sala as sala_permutada_codigo, s_perm.descricao as sala_permutada_descricao,
                          u_aprov.name as aprovador_nome');
         $builder->join('horario_aulas ha', 'ha.id_aula = p.aula_original_id', 'left');
-        $builder->join('disciplina d', 'd.id_disciplina = ha.disciplina_id', 'left');
+        $builder->join('disciplina d', 'd.descritivo = ha.disciplina_id', 'left');
         $builder->join('turma t', 't.codigo = ha.codigo_turma', 'left');
         $builder->join('user u_autor', 'u_autor.NIF = p.professor_autor_nif', 'left');
         $builder->join('user u_subst', 'u_subst.NIF = p.professor_substituto_nif', 'left');

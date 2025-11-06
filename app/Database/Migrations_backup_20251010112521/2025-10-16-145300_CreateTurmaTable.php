@@ -53,8 +53,8 @@ class CreateTurmaTable extends Migration
         
         $this->forge->createTable('turma', true, [
             'ENGINE'         => 'InnoDB',
-            'DEFAULT CHARSET'=> 'latin1',
-            'COLLATE'        => 'latin1_swedish_ci'
+            'DEFAULT CHARSET'=> 'utf8mb4',
+            'COLLATE'        => 'utf8mb4_general_ci'
         ]);
     }
 

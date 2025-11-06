@@ -79,6 +79,14 @@ class TurmasController extends BaseController
             $data['tipologia_id'] = 1;
         }
         
+        // Limpar campos de NIF vazios ou "0" para NULL
+        if (empty($data['dir_turma_nif']) || $data['dir_turma_nif'] === '0' || $data['dir_turma_nif'] === 0) {
+            $data['dir_turma_nif'] = null;
+        }
+        if (empty($data['secretario_nif']) || $data['secretario_nif'] === '0' || $data['secretario_nif'] === 0) {
+            $data['secretario_nif'] = null;
+        }
+        
         $turmaId = $this->turmaModel->insert($data);
         
         if ($turmaId) {
@@ -122,6 +130,14 @@ class TurmasController extends BaseController
         
         $data = $this->request->getPost();
         // Em atualizações, não forçar defaults se o utilizador não mudou; manter valores enviados
+        
+        // Limpar campos de NIF vazios ou "0" para NULL
+        if (empty($data['dir_turma_nif']) || $data['dir_turma_nif'] === '0' || $data['dir_turma_nif'] === 0) {
+            $data['dir_turma_nif'] = null;
+        }
+        if (empty($data['secretario_nif']) || $data['secretario_nif'] === '0' || $data['secretario_nif'] === 0) {
+            $data['secretario_nif'] = null;
+        }
         
         if ($this->turmaModel->update($id, $data)) {
             // LOG: Registar atualização

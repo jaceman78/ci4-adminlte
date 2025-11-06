@@ -38,12 +38,12 @@ if (!function_exists('get_user_level_name')) {
             9 => 'Super Administrador',
             8 => 'Administrador',
             7 => 'Técnico Sénior',
-            6 => 'Técnico',
-            5 => 'Técnico Júnior',
+            6 => 'Direção',
+            5 => 'Técnico',
             4 => 'Utilizador Avançado',
             3 => 'Utilizador',
             2 => 'Utilizador',
-            1 => 'Utilizador',
+            1 => 'Professor',
             0 => 'Convidado',
         ];
 

@@ -468,6 +468,7 @@ function viewSala(id) {
 // Função para editar sala a partir do modal de visualização
 function editSalaFromView() {
     var salaId = $('#viewSalaModal').data('sala-id');
+    
     $('#viewSalaModal').modal('hide');
     
     // Pequeno delay para evitar conflito entre modais

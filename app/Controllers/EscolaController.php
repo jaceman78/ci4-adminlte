@@ -29,10 +29,10 @@ class EscolaController extends BaseController
      */
     public function index()
     {
-        // Verificar nível de acesso
+        // Verificar nível de acesso (apenas Admin e superiores - level >= 6)
         $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
-        if ($userLevel < 5) {
-            return redirect()->to('/tickets/novo')->with('error', 'Acesso negado. Nível de permissão insuficiente.');
+        if ($userLevel < 6) {
+            return redirect()->to('/')->with('error', 'Acesso negado. Apenas administradores podem aceder a esta página.');
         }
         
         // Log de acesso à página de escolas
@@ -149,6 +149,12 @@ class EscolaController extends BaseController
      */
     public function create()
     {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 6) {
+            return $this->respond(['success' => false, 'message' => 'Acesso negado. Apenas administradores podem criar escolas.'], 403);
+        }
+        
         if (!$this->request->isAJAX()) {
            
             return $this->failUnauthorized('Acesso não autorizado');
@@ -198,6 +204,12 @@ class EscolaController extends BaseController
      */
     public function update($id = null)
     {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 6) {
+            return $this->respond(['success' => false, 'message' => 'Acesso negado. Apenas administradores podem atualizar escolas.'], 403);
+        }
+        
         if (!$this->request->isAJAX()) {
            
             return $this->failUnauthorized('Acesso não autorizado');
@@ -251,6 +263,12 @@ class EscolaController extends BaseController
      */
     public function delete($id = null)
     {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 6) {
+            return $this->respond(['success' => false, 'message' => 'Acesso negado. Apenas administradores podem eliminar escolas.'], 403);
+        }
+        
         if (!$this->request->isAJAX()) {
            
             return $this->failUnauthorized('Acesso não autorizado');
