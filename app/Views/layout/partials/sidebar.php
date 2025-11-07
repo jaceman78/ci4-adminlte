@@ -81,6 +81,12 @@ $isPermutas = ($segments[0] ?? '') === 'permutas';
         <p>As Minhas Permutas</p>
       </a>
     </li>
+    <li class="nav-item">
+      <a href="<?= base_url('permutas/creditos') ?>" class="nav-link <?= $isPermutas && (($segments[1] ?? '') === 'creditos') ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-clock-history"></i>
+        <p>Créditos de Aulas</p>
+      </a>
+    </li>
     <?php $userLevel = session()->get('LoggedUserData')['level'] ?? 0; ?>
     <?php if ($userLevel >= 6): ?>
     <li class="nav-item">

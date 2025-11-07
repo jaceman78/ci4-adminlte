@@ -115,6 +115,20 @@
                                 </p>
                             </div>
                             <div class="col-md-6">
+                                <p><strong>Horário de Reposição:</strong><br>
+                                    <?php if (!empty($permuta['bloco_designacao'])): ?>
+                                        <span class="badge badge-primary" style="font-size: 0.95rem; color: #fff; background-color: #007bff;">
+                                            <i class="far fa-clock mr-1"></i>
+                                            <?= esc($permuta['bloco_designacao']) ?>: 
+                                            <?= substr($permuta['bloco_hora_inicio'], 0, 5) ?> - <?= substr($permuta['bloco_hora_fim'], 0, 5) ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge badge-secondary" style="font-size: 0.95rem; color: #fff;">
+                                            <i class="far fa-clock mr-1"></i>
+                                            Mesmo horário: <?= substr($permuta['hora_inicio'], 0, 5) ?> - <?= substr($permuta['hora_fim'], 0, 5) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </p>
                                 <p><strong>Sala para Reposição:</strong><br>
                                     <?php if (!empty($permuta['sala_permutada_codigo'])): ?>
                                         <span class="badge badge-info" style="font-size: 0.95rem; color: #000;">
@@ -130,15 +144,58 @@
                                         <span class="text-muted">Não definida</span>
                                     <?php endif; ?>
                                 </p>
-                                <?php if (!empty($permuta['grupo_permuta'])): ?>
-                                    <p><strong>Grupo de Permutas:</strong><br>
-                                        <span class="badge badge-info" style="color: #000;">
-                                            <i class="fas fa-layer-group"></i> <?= esc($permuta['grupo_permuta']) ?>
-                                        </span>
-                                    </p>
-                                <?php endif; ?>
                             </div>
                         </div>
+
+                        <?php if (!empty($permutasGrupo) && count($permutasGrupo) > 1): ?>
+                            <hr>
+                            <div class="alert alert-info">
+                                <h5><i class="fas fa-layer-group"></i> Grupo de Permutas: <?= esc($permuta['grupo_permuta']) ?></h5>
+                                <p class="mb-2">Esta permuta faz parte de um grupo com <strong><?= count($permutasGrupo) ?> aulas</strong>:</p>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered bg-white">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Disciplina</th>
+                                                <th>Horário Original</th>
+                                                <th>Horário Reposição</th>
+                                                <th>Sala Reposição</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($permutasGrupo as $pGrupo): ?>
+                                                <tr <?= $pGrupo['id'] == $permuta['id'] ? 'class="table-primary"' : '' ?>>
+                                                    <td>
+                                                        <strong><?= esc($pGrupo['disciplina_abrev'] ?? $pGrupo['disciplina_id']) ?></strong>
+                                                        <?= $pGrupo['id'] == $permuta['id'] ? '<span class="badge badge-primary badge-sm ml-1">Esta</span>' : '' ?>
+                                                    </td>
+                                                    <td>
+                                                        <i class="far fa-clock"></i> 
+                                                        <?= substr($pGrupo['hora_inicio'], 0, 5) ?> - <?= substr($pGrupo['hora_fim'], 0, 5) ?>
+                                                    </td>
+                                                    <td>
+                                                        <?php if (!empty($pGrupo['bloco_designacao'])): ?>
+                                                            <i class="far fa-clock"></i> 
+                                                            <?= esc($pGrupo['bloco_designacao']) ?>: 
+                                                            <?= substr($pGrupo['bloco_hora_inicio'], 0, 5) ?> - <?= substr($pGrupo['bloco_hora_fim'], 0, 5) ?>
+                                                        <?php else: ?>
+                                                            <span class="text-muted">Mesmo horário</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td>
+                                                        <?php if (!empty($pGrupo['sala_permutada_codigo'])): ?>
+                                                            <i class="fas fa-door-open"></i> <?= esc($pGrupo['sala_permutada_codigo']) ?>
+                                                        <?php else: ?>
+                                                            <span class="text-muted">Mesma sala</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        <?php endif; ?>
 
                         <hr>
 
@@ -183,27 +240,27 @@
                         <?php endif; ?>
                     </div>
 
-                    <div class="card-footer">
+                    <div class="card-footer d-flex justify-content-between align-items-center">
                         <a href="<?= base_url('/permutas/minhas') ?>" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Voltar
                         </a>
                         
-                        <?php if ($permuta['estado'] == 'pendente' && $permuta['professor_autor_nif'] == $userNif): ?>
-                            <button type="button" class="btn btn-danger float-right" id="btnCancelar">
-                                <i class="fas fa-ban"></i> Cancelar Permuta
-                            </button>
-                        <?php endif; ?>
-
-                        <?php if ($isAdmin && $permuta['estado'] == 'pendente'): ?>
-                            <div class="float-right mr-2">
-                                <button type="button" class="btn btn-success" id="btnAprovar">
+                        <div>
+                            <?php if ($isAdmin && $permuta['estado'] == 'pendente'): ?>
+                                <button type="button" class="btn btn-success mr-2" id="btnAprovar">
                                     <i class="fas fa-check"></i> Aprovar
                                 </button>
                                 <button type="button" class="btn btn-danger" id="btnRejeitar">
                                     <i class="fas fa-times"></i> Rejeitar
                                 </button>
-                            </div>
-                        <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <?php if ($permuta['estado'] == 'pendente' && $permuta['professor_autor_nif'] == $userNif): ?>
+                                <button type="button" class="btn btn-danger" id="btnCancelar">
+                                    <i class="fas fa-ban"></i> Cancelar Permuta
+                                </button>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
 

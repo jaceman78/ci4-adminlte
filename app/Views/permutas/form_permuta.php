@@ -62,6 +62,51 @@
                     </div>
                 </div>
 
+                <!-- Créditos Disponíveis -->
+                <?php if (!empty($creditosDisponiveis)): ?>
+                <div class="alert alert-success alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                    <h5><i class="icon fas fa-check"></i> Você tem <?= count($creditosDisponiveis) ?> crédito(s) disponível(is)!</h5>
+                    <p>Pode usar um crédito de visita de estudo para repor esta aula. Selecione abaixo:</p>
+                    <div class="list-group">
+                        <?php foreach ($creditosDisponiveis as $credito): ?>
+                        <div class="list-group-item">
+                            <div class="custom-control custom-radio">
+                                <input type="radio" 
+                                       id="credito_<?= $credito['id'] ?>" 
+                                       name="usar_credito_id" 
+                                       class="custom-control-input usar-credito" 
+                                       value="<?= $credito['id'] ?>"
+                                       data-data-visita="<?= $credito['data_visita'] ?>"
+                                       data-origem="<?= esc($credito['origem']) ?>">
+                                <label class="custom-control-label" for="credito_<?= $credito['id'] ?>">
+                                    <strong>Visita: <?= esc($credito['origem']) ?></strong><br>
+                                    <small>Data da visita: <?= date('d/m/Y', strtotime($credito['data_visita'])) ?>
+                                    <?php if ($credito['turno']): ?>
+                                        | Turno: <span class="badge bg-primary"><?= esc($credito['turno']) ?></span>
+                                    <?php endif; ?>
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <div class="list-group-item">
+                            <div class="custom-control custom-radio">
+                                <input type="radio" 
+                                       id="sem_credito" 
+                                       name="usar_credito_id" 
+                                       class="custom-control-input usar-credito" 
+                                       value="" 
+                                       checked>
+                                <label class="custom-control-label" for="sem_credito">
+                                    <strong>Não usar crédito</strong> (permuta normal)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Formulário de Permuta -->
                 <div class="card card-success">
                     <div class="card-header">
@@ -71,6 +116,7 @@
                         <div class="card-body">
                             <input type="hidden" name="aula_original_id" value="<?= esc($aula['id_aula']) ?>">
                             <input type="hidden" id="dia_semana_aula" value="<?= esc($aula['dia_semana']) ?>">
+                            <input type="hidden" id="usar_credito_id" name="usar_credito_id" value="">
                             
                             <!-- Data da Aula Original -->
                             <div class="form-group">
@@ -107,14 +153,28 @@
                                 <small class="form-text text-muted">Data em que a aula será reposta</small>
                             </div>
 
-                            <!-- Sala -->
-                            <div class="form-group">
-                                <label for="sala_permutada_id">Sala para Reposição</label>
-                                <select class="form-control select2" id="sala_permutada_id" name="sala_permutada_id" disabled>
-                                    <option value="">Selecione primeiro a data de reposição...</option>
+            <!-- Bloco Horário para Reposição -->
+            <div class="form-group" id="bloco-reposicao-container" style="display: block !important;">
+                <label for="bloco_reposicao">Bloco Horário de Reposição <span class="text-danger">*</span></label>
+                <select class="form-control select2" id="bloco_reposicao" name="bloco_reposicao" required disabled>
+                    <option value="">Selecione primeiro a data de reposição...</option>
+                </select>
+                <small class="form-text text-muted">
+                    <?php if (!empty($aula['hora_inicio']) && !empty($aula['hora_fim'])): ?>
+                        <strong>Bloco original:</strong> <?= substr($aula['hora_inicio'], 0, 5) ?> - <?= substr($aula['hora_fim'], 0, 5) ?>
+                        <br>
+                    <?php endif; ?>
+                    <span id="bloco_info" class="text-info"></span>
+                </small>
+            </div>                            <!-- Sala -->
+                            <div class="form-group" id="sala-reposicao-container" style="display: block !important;">
+                                <label for="sala_permutada_id">Sala para Reposição <span class="text-danger">*</span></label>
+                                <select class="form-control select2" id="sala_permutada_id" name="sala_permutada_id" required disabled>
+                                    <option value="">Selecione primeiro o bloco horário...</option>
                                 </select>
                                 <small class="form-text text-muted">
-                                    <span id="sala_info" class="text-info"></span>
+                                    Apenas salas disponíveis no horário selecionado serão mostradas.
+                                    <br><span id="sala_info" class="text-info"></span>
                                 </small>
                             </div>
 
@@ -194,6 +254,54 @@ $(document).ready(function() {
         width: '100%'
     });
 
+    // Manipular seleção de créditos
+    $('.usar-credito').on('change', function() {
+        var creditoId = $(this).val();
+        $('#usar_credito_id').val(creditoId);
+        
+        if (creditoId) {
+            // Se selecionou um crédito, preencher automaticamente
+            var dataVisita = $(this).data('data-visita');
+            var origem = $(this).data('origem');
+            
+            // Preencher data de reposição com data da visita
+            $('#data_aula_permutada').val(dataVisita);
+            
+            // Preencher observações
+            $('#observacoes').val('Aula reposta na visita de estudo: ' + origem);
+            
+            // Selecionar "Eu próprio" como professor substituto
+            var userNif = '<?= $userNif ?>';
+            $('#professor_substituto_nif').val(userNif).trigger('change');
+            
+            // OCULTAR campos de bloco e sala (não são necessários para créditos)
+            $('#bloco-reposicao-container').hide();
+            $('#sala-reposicao-container').hide();
+            $('#bloco_reposicao').prop('required', false).val('');
+            $('#sala_permutada_id').prop('required', false).val('');
+            
+            // Mostrar mensagem de sucesso
+            Swal.fire({
+                icon: 'success',
+                title: 'Crédito Selecionado!',
+                html: 'A aula foi reposta na visita de estudo.<br>' +
+                      'Não é necessário selecionar bloco horário ou sala.',
+                timer: 3000,
+                showConfirmButton: false
+            });
+        } else {
+            // MOSTRAR campos de bloco e sala novamente (permuta normal)
+            $('#bloco-reposicao-container').show();
+            $('#sala-reposicao-container').show();
+            $('#bloco_reposicao').prop('required', true);
+            $('#sala_permutada_id').prop('required', true);
+            
+            // Limpar campos se desmarcar
+            $('#observacoes').val('');
+            $('#data_aula_permutada').val('');
+        }
+    });
+
     // Definir data mínima como hoje
     var today = new Date().toISOString().split('T')[0];
     $('#data_aula_original').attr('min', today);
@@ -248,14 +356,75 @@ $(document).ready(function() {
         }
     });
 
+    // Função para carregar blocos horários disponíveis
+    function carregarBlocosHorarios() {
+        var dataReposicao = $('#data_aula_permutada').val();
+        
+        if (!dataReposicao) {
+            $('#bloco_reposicao').prop('disabled', true)
+                .html('<option value="">Selecione primeiro a data de reposição...</option>');
+            $('#bloco_info').text('');
+            return;
+        }
+
+        $('#bloco_info').html('<i class="fas fa-spinner fa-spin"></i> A carregar blocos...');
+        
+        $.ajax({
+            url: '<?= base_url('permutas/getBlocosHorarios') ?>',
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success && response.blocos) {
+                    var options = '<option value="">Selecione o bloco horário...</option>';
+                    
+                    if (response.blocos.length > 0) {
+                        $.each(response.blocos, function(index, bloco) {
+                            var label = bloco.designacao || 
+                                       (bloco.hora_inicio.substring(0,5) + ' - ' + bloco.hora_fim.substring(0,5));
+                            options += '<option value="' + bloco.id_bloco + '">' + 
+                                      label + 
+                                      '</option>';
+                        });
+                        $('#bloco_info').html('<i class="fas fa-check-circle text-success"></i> ' + 
+                            response.blocos.length + ' bloco(s) disponível(is)');
+                    } else {
+                        options = '<option value="">Nenhum bloco disponível</option>';
+                        $('#bloco_info').html('<i class="fas fa-exclamation-triangle text-warning"></i> ' +
+                            'Nenhum bloco horário encontrado para este dia');
+                    }
+                    
+                    $('#bloco_reposicao').html(options).prop('disabled', false);
+                    $('#bloco_info').html('<i class="fas fa-check-circle text-success"></i> ' + 
+                        response.blocos.length + ' blocos horários disponíveis');
+                } else {
+                    $('#bloco_reposicao').html('<option value="">Nenhum bloco disponível</option>');
+                    $('#bloco_info').html('<i class="fas fa-times-circle text-danger"></i> ' + 
+                        (response.message || 'Nenhum bloco horário encontrado'));
+                }
+            },
+            error: function(xhr) {
+                $('#bloco_reposicao').html('<option value="">Erro ao carregar blocos</option>');
+                $('#bloco_info').html('<i class="fas fa-times-circle text-danger"></i> Erro na comunicação');
+            }
+        });
+    }
+
     // Função para carregar salas livres
     function carregarSalasLivres() {
         var dataReposicao = $('#data_aula_permutada').val();
+        var blocoReposicao = $('#bloco_reposicao').val();
         var aulaOriginalId = $('input[name="aula_original_id"]').val();
         
         if (!dataReposicao) {
             $('#sala_permutada_id').prop('disabled', true)
                 .html('<option value="">Selecione primeiro a data de reposição...</option>');
+            $('#sala_info').text('');
+            return;
+        }
+
+        if (!blocoReposicao) {
+            $('#sala_permutada_id').prop('disabled', true)
+                .html('<option value="">Selecione primeiro o bloco horário...</option>');
             $('#sala_info').text('');
             return;
         }
@@ -276,13 +445,15 @@ $(document).ready(function() {
             type: 'POST',
             data: {
                 data_reposicao: dataReposicao,
+                bloco_reposicao: blocoReposicao,
                 aula_original_id: aulaOriginalId,
-                aulas_adicionais: aulasAdicionais
+                aulas_adicionais: aulasAdicionais,
+                professor_substituto_nif: $('#professor_substituto_nif').val()
             },
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    var options = '<option value="">Mesma sala original</option>';
+                    var options = '<option value="">Selecione uma sala disponível...</option>';
                     
                     if (response.salas && response.salas.length > 0) {
                         $.each(response.salas, function(index, sala) {
@@ -295,13 +466,13 @@ $(document).ready(function() {
                         var horariosText = response.total_horarios > 1 ? 
                             response.total_horarios + ' horários' : '1 horário';
                         $('#sala_info').html('<i class="fas fa-check-circle text-success"></i> ' + 
-                            response.salas.length + ' sala(s) livre(s) encontrada(s) para ' + horariosText);
+                            response.salas.length + ' sala(s) disponível(is) para ' + horariosText);
+                        $('#sala_permutada_id').html(options).prop('disabled', false);
                     } else {
-                        $('#sala_info').html('<i class="fas fa-exclamation-triangle text-warning"></i> ' +
-                            'Nenhuma sala livre encontrada. Use a sala original.');
+                        $('#sala_info').html('<i class="fas fa-times-circle text-danger"></i> ' +
+                            'Nenhuma sala disponível neste horário. Escolha outra data ou bloco.');
+                        $('#sala_permutada_id').html('<option value="">Sem salas disponíveis</option>').prop('disabled', true);
                     }
-                    
-                    $('#sala_permutada_id').html(options).prop('disabled', false);
                 } else {
                     $('#sala_permutada_id').html('<option value="">Erro ao carregar salas</option>');
                     $('#sala_info').html('<i class="fas fa-times-circle text-danger"></i> ' + 
@@ -315,12 +486,51 @@ $(document).ready(function() {
         });
     }
 
-    // Carregar salas quando a data de reposição mudar
-    $('#data_aula_permutada').on('change', carregarSalasLivres);
+    // Event Listeners
+    // Carregar blocos quando a data de reposição mudar
+    $('#data_aula_permutada').on('change', function() {
+        var dataSelecionada = $(this).val();
+        if (!dataSelecionada) return;
+        
+        // Validar se não é domingo (0) nem sábado (6)
+        var date = new Date(dataSelecionada + 'T00:00:00');
+        var diaSemanaJS = date.getDay();
+        
+        if (diaSemanaJS === 0 || diaSemanaJS === 6) {
+            var diaNome = diaSemanaJS === 0 ? 'Domingo' : 'Sábado';
+            Swal.fire({
+                icon: 'error',
+                title: 'Data Inválida',
+                html: 'Não é possível marcar reposições aos <strong>' + diaNome + 's</strong>.<br>' +
+                      'Por favor, selecione uma data entre Segunda e Sexta-feira.',
+                confirmButtonText: 'OK'
+            });
+            $(this).val('');
+            $('#bloco_reposicao').html('<option value="">Selecione primeiro a data de reposição...</option>').prop('disabled', true);
+            $('#sala_permutada_id').html('<option value="">Selecione primeiro o bloco horário...</option>').prop('disabled', true);
+            return;
+        }
+        
+        carregarBlocosHorarios();
+        // Limpar sala e bloco selecionados
+        $('#bloco_reposicao').html('<option value="">Carregando...</option>').prop('disabled', true);
+        $('#sala_permutada_id').html('<option value="">Selecione primeiro o bloco horário...</option>').prop('disabled', true);
+    });
+
+    // Carregar salas quando o bloco horário mudar
+    $('#bloco_reposicao').on('change', carregarSalasLivres);
+
+    // Recarregar salas quando o professor substituto mudar
+    // (importante para quando escolhe "Eu próprio" - sala original fica disponível)
+    $('#professor_substituto_nif').on('change', function() {
+        if ($('#data_aula_permutada').val() && $('#bloco_reposicao').val()) {
+            carregarSalasLivres();
+        }
+    });
 
     // Recarregar salas quando aulas adicionais forem marcadas/desmarcadas
     $('input[name="aulas_adicionais[]"]').on('change', function() {
-        if ($('#data_aula_permutada').val()) {
+        if ($('#data_aula_permutada').val() && $('#bloco_reposicao').val()) {
             carregarSalasLivres();
         }
     });
@@ -328,6 +538,10 @@ $(document).ready(function() {
     // Submit do formulário (continuação da validação anterior)
     $('#formPermuta').on('submit', function(e) {
         e.preventDefault();
+        
+        // Habilitar campos disabled temporariamente para enviar os valores
+        $('#bloco_reposicao').prop('disabled', false);
+        $('#sala_permutada_id').prop('disabled', false);
         
         var formData = $(this).serialize();
         

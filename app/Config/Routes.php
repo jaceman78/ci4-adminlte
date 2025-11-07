@@ -297,7 +297,16 @@ $routes->group('permutas', function($routes) {
     $routes->get('pedir/(:num)', 'PermutasController::pedirPermuta/$1');     // Formulário pedir permuta
     $routes->post('salvar', 'PermutasController::salvarPermuta');            // Salvar permuta
     $routes->post('cancelar/(:num)', 'PermutasController::cancelarPermuta/$1'); // Cancelar permuta (autor)
+    $routes->get('getBlocosHorarios', 'PermutasController::getBlocosHorarios'); // AJAX: Buscar blocos horários
     $routes->post('getSalasLivres', 'PermutasController::getSalasLivres');   // AJAX: Buscar salas livres
+    
+    // Gestão de Créditos de Aulas (visitas de estudo)
+    $routes->get('creditos', 'PermutasController::creditos');                 // Página de créditos
+    $routes->post('salvarCredito', 'PermutasController::salvarCredito');     // Criar créditos (admin)
+    $routes->post('cancelarCredito', 'PermutasController::cancelarCredito'); // Cancelar crédito (admin)
+    $routes->post('getTurmasProfessor', 'PermutasController::getTurmasProfessor'); // AJAX: Turmas do professor
+    $routes->post('getDisciplinasProfessorTurma', 'PermutasController::getDisciplinasProfessorTurma'); // AJAX: Disciplinas
+    $routes->post('verificarTurnosDisciplina', 'PermutasController::verificarTurnosDisciplina'); // AJAX: Verificar turnos
     
     // Gestão administrativa (aprovação/rejeição)
     $routes->post('aprovar/(:num)', 'PermutasController::aprovarPermuta/$1');   // Aprovar permuta individual (admin)

@@ -186,9 +186,7 @@
         <div class="modal-content">
             <div class="modal-header bg-danger">
                 <h5 class="modal-title">Rejeitar Permuta</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="permutaIdRejeitar">
@@ -199,7 +197,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="btnConfirmarRejeicao">
                     <i class="fas fa-times"></i> Rejeitar Permuta
                 </button>
@@ -214,9 +212,7 @@
         <div class="modal-content">
             <div class="modal-header bg-danger">
                 <h5 class="modal-title">Rejeitar Grupo de Permutas</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="grupoRejeitar">
@@ -231,7 +227,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="btnConfirmarRejeicaoGrupo">
                     <i class="fas fa-times-circle"></i> Rejeitar Todas
                 </button>
@@ -317,7 +313,11 @@ $(document).ready(function() {
         var permutaId = $(this).data('id');
         $('#permutaIdRejeitar').val(permutaId);
         $('#motivoRejeicao').val('');
-        $('#modalRejeitar').modal('show');
+        
+        // Bootstrap 5 - usar API nativa
+        var modalEl = document.getElementById('modalRejeitar');
+        var modal = new bootstrap.Modal(modalEl);
+        modal.show();
     });
 
     // Confirmar rejeição individual
@@ -330,6 +330,13 @@ $(document).ready(function() {
             return;
         }
 
+        // Fechar modal usando Bootstrap 5
+        var modalEl = document.getElementById('modalRejeitar');
+        var modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+            modal.hide();
+        }
+
         $.ajax({
             url: '<?= base_url('permutas/rejeitar') ?>',
             type: 'POST',
@@ -339,8 +346,6 @@ $(document).ready(function() {
             },
             dataType: 'json',
             success: function(response) {
-                $('#modalRejeitar').modal('hide');
-                
                 if (response.success) {
                     Swal.fire({
                         icon: 'success',
@@ -356,7 +361,6 @@ $(document).ready(function() {
                 }
             },
             error: function() {
-                $('#modalRejeitar').modal('hide');
                 Swal.fire('Erro!', 'Erro ao processar pedido', 'error');
             }
         });
@@ -414,7 +418,11 @@ $(document).ready(function() {
         var grupoId = $(this).data('grupo');
         $('#grupoRejeitar').val(grupoId);
         $('#motivoRejeicaoGrupo').val('');
-        $('#modalRejeitarGrupo').modal('show');
+        
+        // Bootstrap 5 - usar API nativa
+        var modalEl = document.getElementById('modalRejeitarGrupo');
+        var modal = new bootstrap.Modal(modalEl);
+        modal.show();
     });
 
     // Confirmar rejeição de grupo
@@ -427,6 +435,13 @@ $(document).ready(function() {
             return;
         }
 
+        // Fechar modal usando Bootstrap 5
+        var modalEl = document.getElementById('modalRejeitarGrupo');
+        var modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+            modal.hide();
+        }
+
         $.ajax({
             url: '<?= base_url('permutas/rejeitarGrupo') ?>',
             type: 'POST',
@@ -436,8 +451,6 @@ $(document).ready(function() {
             },
             dataType: 'json',
             success: function(response) {
-                $('#modalRejeitarGrupo').modal('hide');
-                
                 if (response.success) {
                     Swal.fire({
                         icon: 'success',
@@ -453,7 +466,6 @@ $(document).ready(function() {
                 }
             },
             error: function() {
-                $('#modalRejeitarGrupo').modal('hide');
                 Swal.fire('Erro!', 'Erro ao processar pedido', 'error');
             }
         });

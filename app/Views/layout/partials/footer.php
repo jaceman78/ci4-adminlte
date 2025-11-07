@@ -14,7 +14,7 @@
           Copyright &copy; 2025-2025++&nbsp;
           <a href="#" id="teamPhotoLink" class="text-decoration-none">HardWork550</a>.
         </strong>
-        Todos os direitos reservados.
+        Todos os direitos reservados.  Versão 0.0.3
         <!--end::Copyright-->
       </footer>
       <!--end::Footer-->
@@ -25,7 +25,7 @@
           <div class="modal-content bg-transparent border-0">
             <div class="modal-body p-0 position-relative">
               <button type="button" class="btn-close position-absolute top-0 end-0 m-2 bg-white" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1050;"></button>
-              <img src="<?= base_url('adminlte/img/team_2025.jpg') ?>" class="img-fluid w-100 rounded" alt="Team 2025">
+              <img src="<?= base_url('adminlte/img/team_2024.jpg') ?>" class="img-fluid w-100 rounded" alt="Team 2025">
             </div>
           </div>
         </div>

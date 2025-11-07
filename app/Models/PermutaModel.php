@@ -19,6 +19,7 @@ class PermutaModel extends Model
         'professor_autor_nif',
         'professor_substituto_nif',
         'sala_permutada_id',
+        'bloco_reposicao_id',
         'grupo_permuta',
         'estado',
         'observacoes',
@@ -84,7 +85,7 @@ class PermutaModel extends Model
                          u_subst.name as professor_substituto_nome, u_subst.email as professor_substituto_email,
                          s.codigo_sala, s.descricao as sala_descricao');
         $builder->join('horario_aulas ha', 'ha.id_aula = p.aula_original_id', 'left');
-        $builder->join('disciplina d', 'd.id_disciplina = ha.disciplina_id', 'left');
+        $builder->join('disciplina d', 'd.descritivo = ha.disciplina_id', 'left');
         $builder->join('turma t', 't.codigo = ha.codigo_turma', 'left');
         $builder->join('user u_autor', 'u_autor.NIF = p.professor_autor_nif', 'left');
         $builder->join('user u_subst', 'u_subst.NIF = p.professor_substituto_nif', 'left');
@@ -209,17 +210,44 @@ class PermutaModel extends Model
                          u_subst.name as professor_substituto_nome, u_subst.email as professor_substituto_email, u_subst.NIF as professor_substituto_nif,
                          s_orig.codigo_sala as sala_original_codigo, s_orig.descricao as sala_original_descricao,
                          s_perm.codigo_sala as sala_permutada_codigo, s_perm.descricao as sala_permutada_descricao,
+                         bh.designacao as bloco_designacao, bh.hora_inicio as bloco_hora_inicio, bh.hora_fim as bloco_hora_fim,
                          u_aprov.name as aprovador_nome');
         $builder->join('horario_aulas ha', 'ha.id_aula = p.aula_original_id', 'left');
-        $builder->join('disciplina d', 'd.id_disciplina = ha.disciplina_id', 'left');
+        $builder->join('disciplina d', 'd.descritivo = ha.disciplina_id', 'left');
         $builder->join('turma t', 't.codigo = ha.codigo_turma', 'left');
         $builder->join('user u_autor', 'u_autor.NIF = p.professor_autor_nif', 'left');
         $builder->join('user u_subst', 'u_subst.NIF = p.professor_substituto_nif', 'left');
         $builder->join('salas s_orig', 's_orig.codigo_sala = ha.sala_id', 'left');
         $builder->join('salas s_perm', 's_perm.codigo_sala = p.sala_permutada_id', 'left');
+        $builder->join('blocos_horarios bh', 'bh.id_bloco = p.bloco_reposicao_id', 'left');
         $builder->join('user u_aprov', 'u_aprov.id = p.aprovada_por_user_id', 'left');
         $builder->where('p.id', $permutaId);
         
         return $builder->get()->getRowArray();
+    }
+    
+    /**
+     * Buscar todas as permutas do mesmo grupo
+     */
+    public function getPermutasDoGrupo($grupoPermuta)
+    {
+        if (empty($grupoPermuta)) {
+            return [];
+        }
+        
+        $builder = $this->db->table($this->table . ' p');
+        $builder->select('p.*, 
+                         ha.codigo_turma, ha.disciplina_id, ha.hora_inicio, ha.hora_fim,
+                         d.abreviatura as disciplina_abrev, d.descritivo as disciplina_nome,
+                         bh.designacao as bloco_designacao, bh.hora_inicio as bloco_hora_inicio, bh.hora_fim as bloco_hora_fim,
+                         s_perm.codigo_sala as sala_permutada_codigo');
+        $builder->join('horario_aulas ha', 'ha.id_aula = p.aula_original_id', 'left');
+        $builder->join('disciplina d', 'd.descritivo = ha.disciplina_id', 'left');
+        $builder->join('blocos_horarios bh', 'bh.id_bloco = p.bloco_reposicao_id', 'left');
+        $builder->join('salas s_perm', 's_perm.codigo_sala = p.sala_permutada_id', 'left');
+        $builder->where('p.grupo_permuta', $grupoPermuta);
+        $builder->orderBy('ha.hora_inicio', 'ASC');
+        
+        return $builder->get()->getResultArray();
     }
 }
