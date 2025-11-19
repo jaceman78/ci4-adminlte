@@ -32,6 +32,21 @@ if (!function_exists('log_activity')) {
             // Extrair user_id (pode estar como 'ID' ou 'id')
             $userId = $userData['ID'] ?? $userData['id'] ?? null;
             
+            // Se não houver user_id, não registrar o log (evita erros de FK)
+            if (!$userId) {
+                log_message('warning', "Tentativa de log sem user_id: {$module}/{$action}");
+                return false;
+            }
+            
+            // Verificar se o utilizador existe antes de inserir
+            $userModel = new \App\Models\UserModel();
+            $userExists = $userModel->find($userId);
+            
+            if (!$userExists) {
+                log_message('warning', "Tentativa de log com user_id inexistente: {$userId}");
+                return false;
+            }
+            
             $logData = [
                 'user_id' => $userId,
                 'module' => $module,
