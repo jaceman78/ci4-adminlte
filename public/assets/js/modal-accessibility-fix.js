@@ -197,5 +197,3 @@ function createAccessibleModal(options) {
     // Retornar instância do Bootstrap Modal
     return new bootstrap.Modal(modal);
 }
-
-console.log('✓ Modal Accessibility Fixes loaded');

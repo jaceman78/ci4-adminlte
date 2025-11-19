@@ -6,8 +6,46 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
-// Rota inicial -> redireciona para login
+// ---------------------------
+// 🌐 Páginas Públicas (Subdomínio)
+// ---------------------------
+// Verificar se estamos no subdomínio público ANTES de qualquer outra rota
+$publicHost = getenv('PUBLIC_HOST') ?: env('PUBLIC_HOST');
+$currentHost = $_SERVER['HTTP_HOST'] ?? '';
+
+if (!empty($publicHost) && strcasecmp($currentHost, $publicHost) === 0) {
+    // Estamos no subdomínio público - servir páginas públicas na raiz
+    $routes->get('/', 'PublicController::home');
+    $routes->get('sobre', 'PublicController::about');
+    $routes->get('about', 'PublicController::about');
+    // Kit Digital
+    $routes->get('kit-digital', 'KitDigitalController::form');
+    $routes->post('kit-digital/requerer', 'KitDigitalController::submit');
+    
+    // Não processar mais rotas se estamos no subdomínio público
+    return;
+}
+
+// ---------------------------
+// 🔐 Backend (Domínio Principal)
+// ---------------------------
+// Rota inicial -> redireciona para login (backend)
 $routes->get('/', 'LoginController::index');
+
+// Grupo /public para desenvolvimento local
+$routes->group('public', function($routes) {
+    $routes->get('/', 'PublicController::home');
+    $routes->get('about', 'PublicController::about');
+    $routes->get('kit-digital', 'KitDigitalController::form');
+    $routes->post('kit-digital/requerer', 'KitDigitalController::submit');
+});
+
+// Conveniência local: permitir /about e /sobre na raiz (localhost)
+$routes->get('about', 'PublicController::about');
+$routes->get('sobre', 'PublicController::about');
+// Conveniência: rota pública direta para kit-digital em localhost
+$routes->get('kit-digital', 'KitDigitalController::form');
+$routes->post('kit-digital/requerer', 'KitDigitalController::submit');
 
 // ---------------------------
 // 🔒 Política de Privacidade e Termos (Público - para Google OAuth)
@@ -93,6 +131,23 @@ $routes->group('users', function($routes) {
     $routes->get('search', 'UserController::search');
     $routes->get('exportCSV', 'UserController::exportCSV');
     $routes->post('importar', 'UserController::importar');
+});
+
+// ---------------------------
+// 💻 Gestão de Kit Digital (Admin)
+// ---------------------------
+$routes->group('kit-digital-admin', function($routes) {
+    $routes->get('/', 'KitDigitalAdminController::index');
+    $routes->post('get-data', 'KitDigitalAdminController::getData');
+    $routes->get('get-data', 'KitDigitalAdminController::getData');
+    $routes->get('view/(:num)', 'KitDigitalAdminController::view/$1');
+    $routes->get('approve/(:num)', 'KitDigitalAdminController::approve/$1');
+    $routes->post('reject/(:num)', 'KitDigitalAdminController::reject/$1');
+    $routes->get('cancel/(:num)', 'KitDigitalAdminController::cancel/$1');
+    $routes->get('finish/(:num)', 'KitDigitalAdminController::finish/$1');
+    $routes->get('estatisticas', 'KitDigitalAdminController::estatisticas');
+    $routes->get('export', 'KitDigitalAdminController::export');
+    $routes->get('get-stats', 'KitDigitalAdminController::getStats');
 });
 
 // Rotas para gestão de escolas

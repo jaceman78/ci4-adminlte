@@ -14,7 +14,7 @@
           Copyright &copy; 2025-2025++&nbsp;
           <a href="#" id="teamPhotoLink" class="text-decoration-none">HardWork550</a>.
         </strong>
-        Todos os direitos reservados.  Versão 0.0.3
+        Todos os direitos reservados.  Versão 0.1.5
         <!--end::Copyright-->
       </footer>
       <!--end::Footer-->

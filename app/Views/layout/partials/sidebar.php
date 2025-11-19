@@ -106,6 +106,36 @@ $isPermutas = ($segments[0] ?? '') === 'permutas';
 </li>
 
 <?php 
+// Verificar se está em alguma página de Kit Digital Admin
+$isKitDigital = ($segments[0] ?? '') === 'kit-digital-admin';
+?>
+<?php if ($userLevel >= 5): ?>
+<li class="nav-item <?= $isKitDigital ? 'menu-open' : '' ?>">
+  <a href="#" class="nav-link <?= $isKitDigital ? 'active' : '' ?>">
+    <i class="nav-icon bi bi-laptop"></i>
+    <p>
+      Kit Digital
+      <i class="nav-arrow bi bi-chevron-right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    <li class="nav-item">
+      <a href="<?= base_url('kit-digital-admin') ?>" class="nav-link <?= $isKitDigital && (($segments[1] ?? '') === '' || !isset($segments[1])) ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-list-ul"></i>
+        <p>Listagem de Pedidos</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('kit-digital-admin/estatisticas') ?>" class="nav-link <?= $isKitDigital && (($segments[1] ?? '') === 'estatisticas') ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-bar-chart"></i>
+        <p>Estatísticas</p>
+      </a>
+    </li>
+  </ul>
+</li>
+<?php endif; ?>
+
+<?php 
 // Verificar se está em alguma página de Gestão Letiva
 $gestaoLetivaPages = ['turmas', 'disciplinas', 'horarios', 'blocos', 'tipologias', 'anos-letivos'];
 $isGestaoLetivaActive = in_array($segments[0] ?? '', $gestaoLetivaPages);

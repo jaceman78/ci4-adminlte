@@ -780,10 +780,32 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 Swal.close();
+                console.log('Erro AJAX:', xhr);
+                console.log('Status:', xhr.status);
+                console.log('Response:', xhr.responseText);
+                
+                var errorMsg = 'Erro ao processar pedido';
+                
+                // Tentar extrair mensagem de erro da resposta
+                try {
+                    var jsonResponse = JSON.parse(xhr.responseText);
+                    if (jsonResponse.message) {
+                        errorMsg = jsonResponse.message;
+                    }
+                } catch(e) {
+                    // Se não for JSON, usar responseText direto (mas limitado)
+                    if (xhr.responseText && xhr.responseText.length < 200) {
+                        errorMsg = xhr.responseText;
+                    } else {
+                        errorMsg = 'Erro ' + xhr.status + ': ' + xhr.statusText;
+                    }
+                }
+                
                 Swal.fire({
                     icon: 'error',
                     title: 'Erro!',
-                    text: 'Erro ao processar pedido: ' + xhr.statusText
+                    text: errorMsg,
+                    footer: 'Verifique a consola do navegador para mais detalhes'
                 });
             }
         });

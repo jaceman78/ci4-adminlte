@@ -24,27 +24,18 @@
 
                     <h2 class="h4 mt-4 mb-3">2. Descrição do Serviço</h2>
                     <p>
-                        O Sistema é uma plataforma interna de gestão escolar que permite:
+                        O Sistema é uma plataforma digital de gestão escolar que inclui:
                     </p>
                     <ul>
-                        <li>Gestão de tickets de suporte técnico</li>
-                        <li>Registo e acompanhamento de avarias de equipamentos</li>
-                        <li>Gestão de salas, equipamentos e utilizadores</li>
-                        <li>Notificações por email sobre estado de tickets</li>
+                        <li><strong>Área Pública:</strong> Serviço de requisição de Kit Digital (formulário online para alunos e encarregados de educação, sem necessidade de login)</li>
+                        <li><strong>Área Restrita:</strong> Gestão de tickets de suporte técnico, registo e acompanhamento de avarias de equipamentos, gestão de salas, equipamentos e utilizadores (acesso mediante autenticação Google)</li>
+                        <li>Notificações por email sobre estado de tickets e requisições</li>
                         <li>Relatórios e estatísticas de gestão</li>
                     </ul>
 
                     <h2 class="h4 mt-4 mb-3">3. Elegibilidade</h2>
                     <p>
-                        Este Sistema destina-se exclusivamente a:
-                    </p>
-                    <ul>
-                        <li>Funcionários do Agrupamento de Escolas João de Barros</li>
-                        <li>Pessoal docente e não docente autorizado</li>
-                        <li>Administradores do sistema designados</li>
-                    </ul>
-                    <p>
-                        O acesso é concedido mediante aprovação da administração escolar.
+                        O acesso à área pública (formulário Kit Digital) está disponível a todos os alunos e encarregados de educação do Agrupamento de Escolas João de Barros. O acesso à área restrita é exclusivo para funcionários, pessoal docente/não docente autorizado e administradores do sistema, mediante aprovação da administração escolar.
                     </p>
 
                     <h2 class="h4 mt-4 mb-3">4. Conta de Utilizador e Autenticação</h2>
@@ -56,7 +47,15 @@
                         <li>A administração reserva-se o direito de suspender ou encerrar contas</li>
                     </ul>
 
-                    <h2 class="h4 mt-4 mb-3">5. Uso Aceitável</h2>
+                    <h2 class="h4 mt-4 mb-3">5. Uso do Formulário Público de Kit Digital</h2>
+                    <ul>
+                        <li>O formulário destina-se apenas a alunos do agrupamento e respetivos encarregados de educação.</li>
+                        <li>É proibido submeter pedidos falsos, duplicados (por NIF) ou utilizar dados de terceiros sem autorização.</li>
+                        <li>O sistema utiliza mecanismos anti-bot (honeypot e captcha matemático) para proteção.</li>
+                        <li>Pedidos fraudulentos podem ser removidos e reportados às autoridades competentes.</li>
+                    </ul>
+
+                    <h2 class="h4 mt-4 mb-3">6. Uso Aceitável</h2>
                     <p>Ao utilizar o Sistema, concorda em:</p>
                     <ul>
                         <li>Utilizar o Sistema apenas para fins profissionais legítimos</li>
