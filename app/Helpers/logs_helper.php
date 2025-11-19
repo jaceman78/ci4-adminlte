@@ -29,17 +29,20 @@ if (!function_exists('log_activity')) {
             // Obter dados do usuário da sessão
             $userData = $session->get('LoggedUserData');
             
+            // Extrair user_id (pode estar como 'ID' ou 'id')
+            $userId = $userData['ID'] ?? $userData['id'] ?? null;
+            
             $logData = [
-                'user_id' => $userData['ID'] ?? null,
-                'user_nif' => $userData['NIF'] ?? null,
-                'user_name' => $userData['Nome'] ?? 'Sistema',
+                'user_id' => $userId,
                 'module' => $module,
                 'action' => $action,
                 'record_id' => $recordId,
                 'description' => $description,
                 'old_values' => $oldValues,
                 'new_values' => $newValues,
-                'severity' => $severity
+                'severity' => $severity,
+                'user_nif' => $userData['NIF'] ?? null,
+                'user_name' => $userData['Nome'] ?? $userData['name'] ?? 'Sistema',
             ];
             
             return $logsModel->logActivity($logData);

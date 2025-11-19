@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class LogsModel extends Model
 {
-    protected $table            = 'system_logs';
+    protected $table            = 'logs_atividade';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
@@ -14,24 +14,22 @@ class LogsModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'user_id',
-        'user_nif',
-        'user_name',
-        'module',
-        'action',
-        'record_id',
-        'description',
-        'old_values',
-        'new_values',
+        'modulo',
+        'acao',
+        'registro_id',
+        'descricao',
+        'dados_anteriores',
+        'dados_novos',
         'ip_address',
         'user_agent',
-        'severity',
-        'created_at'
+        'detalhes',
+        'criado_em'
     ];
 
     // Dates
-    protected $useTimestamps = true;
+    protected $useTimestamps = false; // Using criado_em instead
     protected $dateFormat    = 'datetime';
-    protected $createdField  = 'created_at';
+    protected $createdField  = 'criado_em';
     protected $updatedField  = '';
     protected $deletedField  = '';
 
@@ -54,27 +52,59 @@ class LogsModel extends Model
 
     /**
      * Registrar uma atividade no sistema
+     * Adapta campos do novo formato para o esquema existente logs_atividade
      */
     public function logActivity(array $data)
     {
         $request = service('request');
         
-        // Dados padrão do log
+        // Mapear campos do novo formato para o esquema logs_atividade
         $logData = [
-            'ip_address' => $request->getIPAddress(),
-            'user_agent' => $request->getUserAgent()->getAgentString(),
-            'created_at' => date('Y-m-d H:i:s'),
+            'user_id'         => $data['user_id'] ?? null,
+            'modulo'          => $data['module'] ?? ($data['modulo'] ?? null),
+            'acao'            => $data['action'] ?? ($data['acao'] ?? null),
+            'registro_id'     => $data['record_id'] ?? ($data['registro_id'] ?? null),
+            'descricao'       => $data['description'] ?? ($data['descricao'] ?? ''),
+            'ip_address'      => $request->getIPAddress(),
+            'user_agent'      => $request->getUserAgent()->getAgentString(),
+            'criado_em'       => date('Y-m-d H:i:s'),
         ];
         
-        // Mesclar com dados fornecidos
-        $logData = array_merge($logData, $data);
-        
-        // Converter arrays para JSON
-        if (isset($logData['old_values']) && is_array($logData['old_values'])) {
-            $logData['old_values'] = json_encode($logData['old_values']);
+        // Mapear old_values para dados_anteriores
+        if (isset($data['old_values'])) {
+            $logData['dados_anteriores'] = is_array($data['old_values']) 
+                ? json_encode($data['old_values'], JSON_UNESCAPED_UNICODE) 
+                : $data['old_values'];
+        } elseif (isset($data['dados_anteriores'])) {
+            $logData['dados_anteriores'] = is_array($data['dados_anteriores']) 
+                ? json_encode($data['dados_anteriores'], JSON_UNESCAPED_UNICODE) 
+                : $data['dados_anteriores'];
         }
-        if (isset($logData['new_values']) && is_array($logData['new_values'])) {
-            $logData['new_values'] = json_encode($logData['new_values']);
+        
+        // Mapear new_values para dados_novos
+        if (isset($data['new_values'])) {
+            $logData['dados_novos'] = is_array($data['new_values']) 
+                ? json_encode($data['new_values'], JSON_UNESCAPED_UNICODE) 
+                : $data['new_values'];
+        } elseif (isset($data['dados_novos'])) {
+            $logData['dados_novos'] = is_array($data['dados_novos']) 
+                ? json_encode($data['dados_novos'], JSON_UNESCAPED_UNICODE) 
+                : $data['dados_novos'];
+        }
+        
+        // Armazenar severity e outros campos extras em detalhes
+        $detalhes = [];
+        if (isset($data['severity'])) {
+            $detalhes['severity'] = $data['severity'];
+        }
+        if (isset($data['user_nif'])) {
+            $detalhes['user_nif'] = $data['user_nif'];
+        }
+        if (isset($data['user_name'])) {
+            $detalhes['user_name'] = $data['user_name'];
+        }
+        if (!empty($detalhes)) {
+            $logData['detalhes'] = json_encode($detalhes, JSON_UNESCAPED_UNICODE);
         }
         
         return $this->insert($logData);
@@ -85,8 +115,8 @@ class LogsModel extends Model
      */
     public function getLogsByModule(string $module, int $limit = 100)
     {
-        return $this->where('module', $module)
-                    ->orderBy('created_at', 'DESC')
+        return $this->where('modulo', $module)
+                    ->orderBy('criado_em', 'DESC')
                     ->limit($limit)
                     ->findAll();
     }
@@ -96,11 +126,8 @@ class LogsModel extends Model
      */
     public function getLogsByUser($userIdentifier, int $limit = 100)
     {
-        return $this->groupStart()
-                    ->where('user_id', $userIdentifier)
-                    ->orWhere('user_nif', $userIdentifier)
-                    ->groupEnd()
-                    ->orderBy('created_at', 'DESC')
+        return $this->where('user_id', $userIdentifier)
+                    ->orderBy('criado_em', 'DESC')
                     ->limit($limit)
                     ->findAll();
     }
@@ -110,8 +137,8 @@ class LogsModel extends Model
      */
     public function getLogsByAction(string $action, int $limit = 100)
     {
-        return $this->where('action', $action)
-                    ->orderBy('created_at', 'DESC')
+        return $this->where('acao', $action)
+                    ->orderBy('criado_em', 'DESC')
                     ->limit($limit)
                     ->findAll();
     }
@@ -121,20 +148,20 @@ class LogsModel extends Model
      */
     public function getLogsByRecord(string $module, $recordId, int $limit = 100)
     {
-        return $this->where('module', $module)
-                    ->where('record_id', $recordId)
-                    ->orderBy('created_at', 'DESC')
+        return $this->where('modulo', $module)
+                    ->where('registro_id', $recordId)
+                    ->orderBy('criado_em', 'DESC')
                     ->limit($limit)
                     ->findAll();
     }
 
     /**
-     * Buscar logs por severidade
+     * Buscar logs por severidade (armazenada em detalhes)
      */
     public function getLogsBySeverity(string $severity, int $limit = 100)
     {
-        return $this->where('severity', $severity)
-                    ->orderBy('created_at', 'DESC')
+        return $this->like('detalhes', '"severity":"' . $severity . '"')
+                    ->orderBy('criado_em', 'DESC')
                     ->limit($limit)
                     ->findAll();
     }
@@ -144,9 +171,9 @@ class LogsModel extends Model
      */
     public function getLogsByDateRange(string $startDate, string $endDate, int $limit = 1000)
     {
-        return $this->where('created_at >=', $startDate)
-                    ->where('created_at <=', $endDate)
-                    ->orderBy('created_at', 'DESC')
+        return $this->where('criado_em >=', $startDate)
+                    ->where('criado_em <=', $endDate)
+                    ->orderBy('criado_em', 'DESC')
                     ->limit($limit)
                     ->findAll();
     }
@@ -157,7 +184,7 @@ class LogsModel extends Model
     public function cleanOldLogs(int $daysToKeep = 90)
     {
         $cutoffDate = date('Y-m-d H:i:s', strtotime("-{$daysToKeep} days"));
-        return $this->where('created_at <', $cutoffDate)->delete();
+        return $this->where('criado_em <', $cutoffDate)->delete();
     }
 
     /**
@@ -171,19 +198,14 @@ class LogsModel extends Model
         $stats['total'] = $this->countAllResults(false);
         
         // Logs por módulo
-        $stats['by_module'] = $this->select('module, COUNT(*) as total')
-                                   ->groupBy('module')
+        $stats['by_module'] = $this->select('modulo as module, COUNT(*) as total')
+                                   ->groupBy('modulo')
                                    ->findAll();
         
         // Logs por ação
-        $stats['by_action'] = $this->select('action, COUNT(*) as total')
-                                   ->groupBy('action')
+        $stats['by_action'] = $this->select('acao as action, COUNT(*) as total')
+                                   ->groupBy('acao')
                                    ->findAll();
-        
-        // Logs por severidade
-        $stats['by_severity'] = $this->select('severity, COUNT(*) as total')
-                                     ->groupBy('severity')
-                                     ->findAll();
         
         return $stats;
     }
