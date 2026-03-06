@@ -1,4 +1,4 @@
-# Sistema de Gestão de Salas - CodeIgniter 4
+# Sistema de Gestão de Salas - CodeIgniter 4!
 
 ## Ficheiros Criados
 
