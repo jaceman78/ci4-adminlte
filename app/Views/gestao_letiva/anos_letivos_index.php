@@ -92,7 +92,7 @@
                 <h5 class="modal-title" id="confirmAtivarModalLabel">
                     <i class="bi bi-exclamation-triangle"></i> Confirmar Ativação
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(0);"></button>
             </div>
             <div class="modal-body">
                 <p><strong>Tem a certeza que deseja ativar este ano letivo?</strong></p>

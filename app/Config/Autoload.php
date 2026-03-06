@@ -88,6 +88,6 @@ class Autoload extends AutoloadConfig
      *
      * @var list<string>
      */
-    public $helpers = ['array','log_helper','log', 'session', 'session_helper', 'url', 'form', 'text', 'date', 'filesystem', 'cookie', 'array', 'inflector', 'number', 'security', 'typography', 'xml', 'file' ,'jwt_helper' , 'captcha_helper' , 'menu_helper' , 'permission_helper', 'session_helper', 'estados_ticket_helper'
+    public $helpers = ['array','logs_helper','log', 'session', 'session_helper', 'url', 'form', 'text', 'date', 'filesystem', 'cookie', 'array', 'inflector', 'number', 'security', 'typography', 'xml', 'file' ,'jwt_helper' , 'captcha_helper' , 'menu_helper' , 'permission_helper', 'session_helper', 'estados_ticket_helper'
     ];
 }

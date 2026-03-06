@@ -19,7 +19,7 @@
                             <div class="mb-3">
                                 <label for="to_email" class="form-label">Email de Destino:</label>
                                 <input type="email" class="form-control" id="to_email" name="to_email" 
-                                       value="antonioneto@aejoaodebarros.pt" required>
+                                       value="escoladigitaljb@aejoaodebarros.pt" required>
                                 <small class="form-text text-muted">Email para onde será enviado o teste</small>
                             </div>
                             

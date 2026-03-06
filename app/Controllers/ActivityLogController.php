@@ -17,7 +17,7 @@ class ActivityLogController extends BaseController
         $this->activityLogModel = new ActivityLogModel();
         $this->userModel = new UserModel();
         $this->validation = \Config\Services::validation();
-        helper("LogHelper"); // Carrega o helper de logs
+        helper('logs'); // Carrega o helper de logs
     }
 
     /**
@@ -102,14 +102,10 @@ class ActivityLogController extends BaseController
             'records_found' => $result['recordsFiltered']
         ];
         log_activity(
-            get_current_user_id(),
             'logs',
             'datatable_query',
-            'Consultou logs de atividade via DataTable',
             null,
-            null,
-            null,
-            $detalhes
+            'Consultou logs de atividade via DataTable'
         );
 
         // Formatar dados para DataTable
@@ -209,9 +205,9 @@ class ActivityLogController extends BaseController
     {
         if (!$this->request->isAJAX()) {
            log_activity(
-                get_current_user_id(),
                 'logs',
                 'view_log_failed',
+                null,
                 'Tentou aceder a detalhes de log sem ser AJAX'
             );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
@@ -228,22 +224,20 @@ class ActivityLogController extends BaseController
         
         if (!$log) {
             log_activity(
-                get_current_user_id(),
                 'logs',
                 'view_failed',
-                "Tentou visualizar log inexistente (ID: {$id})",
-                $id
+                $id,
+                "Tentou visualizar log inexistente (ID: {$id})"
             );
             return $this->response->setStatusCode(404)->setJSON(['error' => 'Log não encontrado']);
         }
 
         // Log de visualização de log específico
         log_activity(
-            get_current_user_id(),
             'logs',
             'view',
-            "Visualizou detalhes do log ID: {$id}",
-            $id
+            $id,
+            "Visualizou detalhes do log ID: {$id}"
         );
 
         // Decodificar dados JSON se existirem
@@ -285,11 +279,10 @@ class ActivityLogController extends BaseController
         $log = $this->activityLogModel->find($id);
         if (!$log) {
             log_activity(
-                get_current_user_id(),
                 'logs',
                 'delete_failed',
-                "Tentou eliminar log inexistente (ID: {$id})",
-                $id
+                $id,
+                "Tentou eliminar log inexistente (ID: {$id})"
             );
             return $this->response->setStatusCode(404)->setJSON(['error' => 'Log não encontrado']);
         }
@@ -299,12 +292,12 @@ class ActivityLogController extends BaseController
         if ($result) {
             // Log de eliminação bem-sucedida
             log_activity(
-                get_current_user_id(),
                 'logs',
                 'delete',
-                "Eliminou log de atividade (ID: {$id})",
                 $id,
-                $log
+                "Eliminou log de atividade (ID: {$id})",
+                $log,
+                null
             );
             
             return $this->response->setJSON([
@@ -314,11 +307,10 @@ class ActivityLogController extends BaseController
         } else {
             // Log de erro na eliminação
             log_activity(
-                get_current_user_id(),
                 'logs',
                 'delete_failed',
-                "Erro ao eliminar log de atividade (ID: {$id})",
-                $id
+                $id,
+                "Erro ao eliminar log de atividade (ID: {$id})"
             );
             
             return $this->response->setJSON([
@@ -342,9 +334,9 @@ class ActivityLogController extends BaseController
         
         // Log de consulta de estatísticas
         log_activity(
-            get_current_user_id(),
             'logs',
             'view_stats',
+            null,
             'Consultou estatísticas de logs de atividade'
         );
         
@@ -399,14 +391,10 @@ class ActivityLogController extends BaseController
         
         // Log de exportação
         log_activity(
-            get_current_user_id(),
             'logs',
             'export_csv',
-            'Exportou logs de atividade para CSV',
             null,
-            null,
-            null,
-            ['filters' => $filters, 'exported_count' => count($logs)]
+            'Exportou logs de atividade para CSV'
         );
         
         $filename = 'logs_atividade_' . date('Y-m-d_H-i-s') . '.csv';
@@ -460,9 +448,9 @@ class ActivityLogController extends BaseController
     {
         if (!$this->request->isAJAX()) {
             log_activity(
-                get_current_user_id(),
                 'logs',
                 'clean_old_logs_failed',
+                null,
                 'Tentou limpar logs antigos sem ser AJAX'
             );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
@@ -472,9 +460,9 @@ class ActivityLogController extends BaseController
         $currentUserLevel = session()->get('level') ?? 0;
         if ($currentUserLevel < 9) {
             log_activity(
-                get_current_user_id(),
                 'logs',
                 'clean_old_logs_failed',
+                null,
                 'Tentou limpar logs antigos sem permissões suficientes'
             );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Permissões insuficientes']);
@@ -501,14 +489,10 @@ class ActivityLogController extends BaseController
             
             // Log da limpeza (será o primeiro após limpar tudo)
             log_activity(
-                get_current_user_id(),
                 'logs',
                 'clean_all',
-                "Eliminou TODOS os logs - {$logsToDelete} registos eliminados",
                 null,
-                null,
-                null,
-                ['deleted_count' => $logsToDelete]
+                "Eliminou TODOS os logs - {$logsToDelete} registos eliminados"
             );
             
             return $this->response->setJSON([
@@ -542,14 +526,10 @@ class ActivityLogController extends BaseController
         if ($result) {
             // Log da limpeza
             log_activity(
-                get_current_user_id(),
                 'logs',
                 'clean_old',
-                "Limpou logs antigos (>{$days} dias) - {$logsToDelete} registos eliminados",
                 null,
-                null,
-                null,
-                ['days' => $days, 'deleted_count' => $logsToDelete]
+                "Limpou logs antigos (>{$days} dias) - {$logsToDelete} registos eliminados"
             );
             
             return $this->response->setJSON([
@@ -560,14 +540,10 @@ class ActivityLogController extends BaseController
         } else {
             // Log de erro na limpeza
             log_activity(
-                get_current_user_id(),
                 'logs',
                 'clean_old_failed',
-                "Erro ao limpar logs antigos (>{$days} dias)",
                 null,
-                null,
-                null,
-                ['days' => $days]
+                "Erro ao limpar logs antigos (>{$days} dias)"
             );
             
             return $this->response->setJSON([
@@ -584,9 +560,9 @@ class ActivityLogController extends BaseController
     {
         if (!$this->request->isAJAX()) {
             log_activity(
-                get_current_user_id(),
                 'logs',
                 'get_recent_logs_failed',
+                null,
                 'Tentou aceder a logs recentes sem ser AJAX'
             );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
@@ -624,14 +600,10 @@ class ActivityLogController extends BaseController
         
         // Log de pesquisa
         log_activity(
-            get_current_user_id(),
             'logs',
             'search',
-            "Pesquisou logs com termo: {$search}",
             null,
-            null,
-            null,
-            ['search_term' => $search, 'results_count' => count($logs)]
+            "Pesquisou logs com termo: {$search}"
         );
         
         return $this->response->setJSON([
@@ -675,9 +647,9 @@ class ActivityLogController extends BaseController
     {
         // Log de acesso ao dashboard
         log_activity(
-            get_current_user_id(),
             'logs',
             'view_dashboard',
+            null,
             'Acedeu ao dashboard de logs de atividade'
         );
 

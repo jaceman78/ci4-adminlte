@@ -52,6 +52,18 @@
                                     </select>
                                     <small class="form-text text-muted">Selecione a sala para carregar os equipamentos.</small>
                                 </div>
+
+                                <?php 
+                                $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+                                if ($userLevel >= 8): 
+                                ?>
+                                <div class="form-group">
+                                    <button type="button" class="btn btn-info btn-sm" id="btnGerarQRCode" disabled>
+                                        <i class="fas fa-qrcode"></i> Gerar QR Code para esta Localização
+                                    </button>
+                                    <small class="form-text text-muted">Selecione escola e sala para gerar o QR code.</small>
+                                </div>
+                                <?php endif; ?>
                                 
                                 <div class="form-group">
                                     <label for="equipamento_id">Equipamento <span class="text-danger">*</span></label>
@@ -98,6 +110,35 @@
     </section>
 </div>
 
+<!-- Modal QR Code -->
+<div class="modal fade" id="qrcodeModal" tabindex="-1" role="dialog" aria-labelledby="qrcodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="qrcodeModalLabel"><i class="fas fa-qrcode"></i> QR Code - Novo Ticket</h5>
+                <button type="button" class="close text-white ml-auto" data-dismiss="modal" aria-label="Fechar" style="opacity: 1; margin: 0;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <h5 class="text-primary mb-3">Para reportar anomalias/avarias use este QRcode</h5>
+                <p class="mb-3"><strong id="qrcodeLocation"></strong></p>
+                <div id="qrcodeContainer" class="mb-3"></div>
+                <p class="text-muted small">Escaneie este código para abrir o formulário com a escola e sala pré-selecionadas.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" id="btnImprimirQRCode">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+                <button type="button" class="btn btn-info" id="btnDownloadQRCode">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal para adicionar novo equipamento -->
 <div class="modal fade" id="equipamentoModal" tabindex="-1" aria-labelledby="equipamentoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -123,8 +164,8 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="marca">Marca</label>
-                                <input type="text" class="form-control" id="marca" name="marca">
+                                <label for="marca">Marca <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="marca" name="marca" required>
                             </div>
                         </div>
                     </div>
@@ -145,18 +186,12 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="estado">Estado <span class="text-danger">*</span></label>
-                                <select class="form-control" id="estado" name="estado" required>
+                                <label for="estado">Estado</label>
+                                <select class="form-control" id="estado" name="estado">
                                     <option value="ativo">Ativo</option>
                                     <option value="inativo">Inativo</option>
                                     <option value="pendente">Pendente</option>
                                 </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="data_aquisicao">Data de Aquisição</label>
-                                <input type="date" class="form-control" id="data_aquisicao" name="data_aquisicao">
                             </div>
                         </div>
                     </div>
@@ -177,8 +212,267 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+<!-- Biblioteca QRCode.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 $(document).ready(function() {
+    // Variáveis globais para QR Code
+    let qrcodeInstance = null;
+    let currentQRUrl = '';
+    let pendingSalaId = null; // Para preencher após carregar salas
+    
+    // Verificar se há parâmetros na URL para preencher escola e sala
+    const urlParams = new URLSearchParams(window.location.search);
+    const escolaIdParam = urlParams.get('escola');
+    const salaIdParam = urlParams.get('sala');
+    
+    if (escolaIdParam && salaIdParam) {
+        // Guardar sala para preencher depois
+        pendingSalaId = salaIdParam;
+        
+        // Preencher escola (isso vai disparar o carregamento das salas)
+        $('#escola_id').val(escolaIdParam);
+        
+        // Disparar change manualmente
+        setTimeout(function() {
+            $('#escola_id').trigger('change');
+        }, 100);
+    }
+    
+    // Habilitar/desabilitar botão de gerar QR code
+    function checkQRCodeButton() {
+        const escolaId = $('#escola_id').val();
+        const salaId = $('#sala_id').val();
+        
+        if (escolaId && salaId) {
+            $('#btnGerarQRCode').prop('disabled', false);
+        } else {
+            $('#btnGerarQRCode').prop('disabled', true);
+        }
+    }
+    
+    // Gerar QR Code
+    $('#btnGerarQRCode').on('click', function() {
+        const escolaId = $('#escola_id').val();
+        const salaId = $('#sala_id').val();
+        const escolaNome = $('#escola_id option:selected').text();
+        const salaNome = $('#sala_id option:selected').text();
+        
+        if (!escolaId || !salaId) {
+            toastr.warning('Selecione escola e sala primeiro!');
+            return;
+        }
+        
+        // Criar URL com parâmetros
+        currentQRUrl = '<?= site_url("tickets/novo") ?>?escola=' + escolaId + '&sala=' + salaId;
+        
+        // Limpar container anterior
+        $('#qrcodeContainer').empty();
+        
+        // Gerar novo QR Code maior para impressão (400x400)
+        qrcodeInstance = new QRCode(document.getElementById('qrcodeContainer'), {
+            text: currentQRUrl,
+            width: 400,
+            height: 400,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        
+        // Atualizar texto da localização
+        $('#qrcodeLocation').text(escolaNome + ' - ' + salaNome);
+        
+        // Guardar informações para impressão
+        window.qrcodePrintData = {
+            escola: escolaNome,
+            sala: salaNome,
+            url: currentQRUrl
+        };
+        
+        // Abrir modal (Bootstrap 4 / AdminLTE)
+        $('#qrcodeModal').modal('show');
+    });
+    
+    // Download QR Code
+    $('#btnDownloadQRCode').on('click', function() {
+        const canvas = $('#qrcodeContainer canvas')[0];
+        if (canvas) {
+            const url = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'qrcode-ticket-' + Date.now() + '.png';
+            link.href = url;
+            link.click();
+            toastr.success('QR Code baixado com sucesso!');
+        }
+    });
+    
+    // Imprimir QR Code em formato A4
+    $('#btnImprimirQRCode').on('click', function() {
+        const canvas = $('#qrcodeContainer canvas')[0];
+        if (!canvas || !window.qrcodePrintData) {
+            toastr.error('Erro ao preparar impressão!');
+            return;
+        }
+        
+        const qrDataUrl = canvas.toDataURL('image/png');
+        const printData = window.qrcodePrintData;
+        
+        // Criar janela de impressão com layout A4
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>QR Code - Reportar Avarias</title>
+                <style>
+                    @page {
+                        size: A4 portrait;
+                        margin: 0;
+                    }
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    html, body {
+                        width: 100%;
+                        height: 100%;
+                        margin: 0;
+                        padding: 0;
+                    }
+                    body {
+                        font-family: Arial, sans-serif;
+                        text-align: center;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        padding: 2cm;
+                    }
+                    .container {
+                        max-width: 17cm;
+                        margin: 0 auto;
+                    }
+                    h1 {
+                        color: #17a2b8;
+                        font-size: 26pt;
+                        margin-bottom: 12px;
+                        font-weight: bold;
+                    }
+                    h2 {
+                        color: #333;
+                        font-size: 18pt;
+                        margin: 8px 0;
+                    }
+                    .qrcode {
+                        margin: 15px auto;
+                        display: block;
+                        width: 380px;
+                        height: 380px;
+                    }
+                    .instructions {
+                        font-size: 12pt;
+                        color: #555;
+                        margin-top: 25px;
+                        text-align: left;
+                        line-height: 1.6;
+                    }
+                    .instructions p {
+                        margin: 4px 0;
+                    }
+                    .instructions strong {
+                        display: block;
+                        text-align: center;
+                        margin-bottom: 8px;
+                        font-size: 13pt;
+                    }
+                    @media print {
+                        html, body {
+                            width: 210mm;
+                            height: 297mm;
+                        }
+                        body {
+                            print-color-adjust: exact;
+                            -webkit-print-color-adjust: exact;
+                        }
+                        @page {
+                            margin: 0;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Para reportar anomalias/avarias use este QRcode</h1>
+                    <h2>${printData.escola}</h2>
+                    <h2>${printData.sala}</h2>
+                    <img src="${qrDataUrl}" alt="QR Code" class="qrcode">
+                    <div class="instructions">
+                        <p><strong>Como usar:</strong></p>
+                        <p>1. Abra a câmera do seu telemóvel e aponte para o QR Code</p>
+                        <p>2. Clique na notificação que aparecer para abrir o link</p>
+                        <p>3. No formulário, selecione o equipamento com avaria</p>
+                        <p>4. Escolha o tipo de avaria e descreva o problema</p>
+                        <p>5. Submeta o ticket para ser processado pela equipa técnica</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        
+        // Aguardar carregamento da imagem e depois imprimir
+        setTimeout(function() {
+            printWindow.focus();
+            printWindow.print();
+        }, 500);
+    });
+    
+    // Limpar QR Code ao fechar modal
+    $('#qrcodeModal').on('hidden.bs.modal', function() {
+        $('#qrcodeContainer').empty();
+        qrcodeInstance = null;
+    });
+    
+    // Remover foco ANTES do modal começar a fechar para evitar erro aria-hidden
+    $('#qrcodeModal').on('hide.bs.modal', function() {
+        // Remover foco do elemento ativo primeiro
+        if (document.activeElement && document.activeElement !== document.body) {
+            document.activeElement.blur();
+        }
+        
+        // Remover tabindex temporariamente para prevenir foco
+        $(this).attr('tabindex', '-1');
+        
+        // Garantir que nenhum elemento dentro do modal tenha foco
+        $(this).find('*').each(function() {
+            if (this === document.activeElement) {
+                this.blur();
+            }
+        });
+    });
+    
+    // Garantir que os botões de fechar funcionem
+    $('#qrcodeModal .close, #qrcodeModal [data-dismiss="modal"]').off('click').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $('#qrcodeModal').modal('hide');
+    });
+    
+    // Remover foco de equipamentos
+    $('#equipamentoModal').on('hide.bs.modal', function() {
+        if (document.activeElement && document.activeElement !== document.body) {
+            document.activeElement.blur();
+        }
+        $(this).attr('tabindex', '-1');
+        $(this).find('*').each(function() {
+            if (this === document.activeElement) {
+                this.blur();
+            }
+        });
+    });
+    
     // Contador de caracteres para a descrição
     $('#descricao').on('input', function() {
         var length = $(this).val().length;
@@ -234,11 +528,18 @@ $(document).ready(function() {
                                 })
                             );
                         });
+                        
+                        // Se existe uma sala pendente para preencher (via QR code)
+                        if (pendingSalaId) {
+                            $salaSelect.val(pendingSalaId).trigger('change');
+                            toastr.info('Escola e sala pré-selecionadas pelo QR Code!');
+                            pendingSalaId = null; // Limpar após usar
+                        }
                     } else {
                         $salaSelect.append('<option value="">Nenhuma sala disponível</option>');
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
                     toastr.error('Erro ao carregar salas.');
                     $salaSelect.html('<option value="">Erro ao carregar</option>');
                 }
@@ -247,6 +548,9 @@ $(document).ready(function() {
             // Desabilitar select de salas
             $salaSelect.prop('disabled', true).html('<option value="">Selecione primeiro uma escola</option>');
         }
+        
+        // Verificar botão QR Code
+        checkQRCodeButton();
     });
 
     // Quando a sala é selecionada, carregar os equipamentos dessa sala
@@ -299,6 +603,9 @@ $(document).ready(function() {
             $equipamentoSelect.prop('disabled', true).html('<option value="">Selecione primeiro uma sala</option>');
             $btnNovoEquipamento.prop('disabled', true);
         }
+        
+        // Verificar botão QR Code
+        checkQRCodeButton();
     });
     
     // Abrir modal para adicionar novo equipamento
@@ -307,9 +614,8 @@ $(document).ready(function() {
         if (salaId) {
             $('#modal_sala_id').val(salaId);
             $('#equipamentoForm')[0].reset();
-            // Bootstrap 5 modal API
-            var equipamentoModal = new bootstrap.Modal(document.getElementById('equipamentoModal'));
-            equipamentoModal.show();
+            // Bootstrap 4 / AdminLTE modal
+            $('#equipamentoModal').modal('show');
         }
     });
     
@@ -330,9 +636,8 @@ $(document).ready(function() {
             success: function(response) {
                 toastr.success('Equipamento criado com sucesso!');
                 
-                // Bootstrap 5 modal API
-                var equipamentoModal = bootstrap.Modal.getInstance(document.getElementById('equipamentoModal'));
-                equipamentoModal.hide();
+                // Bootstrap 4 / AdminLTE modal - fechar
+                $('#equipamentoModal').modal('hide');
                 
                 // Guardar o ID do novo equipamento para seleção automática
                 var newEquipamentoId = response.id || response.data?.id;

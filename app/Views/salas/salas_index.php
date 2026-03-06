@@ -64,7 +64,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <table id="salasTable" class="table table-bordered table-striped table-hover">
+                <table id="salasTable" class="table table-bordered table-striped table-hover nowrap" style="width:100%">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -468,6 +468,7 @@ function viewSala(id) {
 // Função para editar sala a partir do modal de visualização
 function editSalaFromView() {
     var salaId = $('#viewSalaModal').data('sala-id');
+    
     $('#viewSalaModal').modal('hide');
     
     // Pequeno delay para evitar conflito entre modais

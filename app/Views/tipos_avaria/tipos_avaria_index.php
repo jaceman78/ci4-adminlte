@@ -36,7 +36,7 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <table id="tiposAvariaTable" class="table table-bordered table-striped">
+                            <table id="tiposAvariaTable" class="table table-bordered table-striped nowrap" style="width:100%">
                                 <thead>
                                     <tr>
                                         <th>Descrição</th>
@@ -283,12 +283,37 @@ function loadStatistics() {
 }
 
 function showToast(type, message) {
-    // Implementar sistema de toast notifications
-    // Pode usar Toastr.js ou similar
-    if (type === "success" || type === "info") {
-        alert("Sucesso: " + message);
-    } else {
-        alert("Erro: " + message);
+    // Configurações do Toastr
+    toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    };
+    
+    // Exibir toast baseado no tipo
+    switch(type) {
+        case "success":
+            toastr.success(message);
+            break;
+        case "error":
+            toastr.error(message);
+            break;
+        case "info":
+            toastr.info(message);
+            break;
+        case "warning":
+            toastr.warning(message);
+            break;
+        default:
+            toastr.info(message);
     }
 }
 </script>

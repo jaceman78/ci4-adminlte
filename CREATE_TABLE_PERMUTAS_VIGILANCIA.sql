@@ -1,0 +1,26 @@
+-- Tabela para sistema de permutas de vigilâncias em exames
+CREATE TABLE IF NOT EXISTS permutas_vigilancia (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  convocatoria_id INT UNSIGNED NOT NULL,
+  user_original_id INT UNSIGNED NOT NULL,
+  user_substituto_id INT UNSIGNED NOT NULL,
+  estado ENUM('PENDENTE','ACEITE_SUBSTITUTO','RECUSADO_SUBSTITUTO','VALIDADO_SECRETARIADO','REJEITADO_SECRETARIADO','CANCELADO') NOT NULL DEFAULT 'PENDENTE',
+  substituto_aceitou TINYINT(1) DEFAULT NULL,
+  data_resposta_substituto DATETIME DEFAULT NULL,
+  validado_secretariado TINYINT(1) DEFAULT NULL,
+  data_validacao_secretariado DATETIME DEFAULT NULL,
+  validado_por INT UNSIGNED DEFAULT NULL,
+  observacoes_validacao TEXT DEFAULT NULL,
+  motivo TEXT DEFAULT NULL,
+  observacoes TEXT DEFAULT NULL,
+  criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_permuta_convocatoria FOREIGN KEY (convocatoria_id) REFERENCES convocatoria(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_permuta_user_original FOREIGN KEY (user_original_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_permuta_user_substituto FOREIGN KEY (user_substituto_id) REFERENCES user(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_permuta_validado_por FOREIGN KEY (validado_por) REFERENCES user(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX idx_estado (estado),
+  INDEX idx_user_original (user_original_id),
+  INDEX idx_user_substituto (user_substituto_id),
+  INDEX idx_convocatoria (convocatoria_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

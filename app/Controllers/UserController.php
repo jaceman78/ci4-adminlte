@@ -25,19 +25,19 @@ class UserController extends ResourceController
      */
     public function index()
     {
-        // Verificar nível de acesso
+        // Verificar nível de acesso (apenas Admin e superiores - level >= 6)
         $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
-        if ($userLevel < 5) {
-            return redirect()->to('/tickets/novo')->with('error', 'Acesso negado. Nível de permissão insuficiente.');
+        if ($userLevel < 6) {
+            return redirect()->to('/')->with('error', 'Acesso negado. Apenas administradores podem aceder a esta página.');
         }
         
         // Log de acesso à página
         $userId = session()->get('user_id');
         if ($userId && $this->userModel->find($userId)) {
         log_activity(
-            (int)$userId , // quem acedeu
             'users',
             'view',
+            null,
             'Acedeu à página de gestão de utilizadores'
         );
     }          // DEBUG: Mostra dados diretamente para confirmar se estão na sessão
@@ -58,9 +58,9 @@ class UserController extends ResourceController
         if (!$this->request->isAJAX()) {
             // Log de tentativa de acesso não autorizado
             log_activity(
-                session()->get('user_id'), // quem tentou aceder
                 'users',
                 'view_failed',
+                null,
                 'Tentou aceder à lista de utilizadores via DataTable sem ser AJAX'
             );
         }
@@ -105,7 +105,7 @@ class UserController extends ResourceController
             if ($user['profile_img'] && str_starts_with($user['profile_img'], 'http' )) {
                 $profileImg = '<img src="' . $user['profile_img'] . '" class="img-circle" width="30" height="30">';
             } else if ($user['profile_img'] && $user['profile_img'] !== 'default.png') {
-                $profileImg = '<img src="' . base_url('uploads/profiles/' . $user['profile_img']) . '" class="img-circle" width="30" height="30">';
+                $profileImg = '<img src="' . base_url('writable/uploads/profiles/' . $user['profile_img']) . '" class="img-circle" width="30" height="30">';
             } else {
                 $profileImg = '<img src="' . base_url('assets/img/default.png') . '" class="img-circle" width="30" height="30">';
             }
@@ -179,6 +179,12 @@ class UserController extends ResourceController
      */
     public function create()
     {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 6) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado. Apenas administradores podem criar utilizadores.']);
+        }
+        
         if (!$this->request->isAJAX()) {
             
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
@@ -220,13 +226,10 @@ class UserController extends ResourceController
         if ($userId) {
             // Log de criação bem-sucedida
             log_activity(
-                session()->get('user_id'), // quem criou
                 'users',
                 'create',
-                'Criou novo utilizador: ' . $userData['name'] . ' (' . $userData['email'] . ')',
                 $userId,
-                null,
-                
+                'Criou novo utilizador: ' . $userData['name'] . ' (' . $userData['email'] . ')'
             );
        
             return $this->response->setJSON([
@@ -237,11 +240,10 @@ class UserController extends ResourceController
         } else {
             // Log de erro na criação
             log_activity(
-                session()->get('user_id'), // quem tentou criar
                 'users',
                 'create_failed',
-                'Erro ao criar utilizador na base de dados',
                 null,
+                'Erro ao criar utilizador na base de dados',
                 null,
                 $userData
             );
@@ -258,6 +260,12 @@ class UserController extends ResourceController
      */
     public function update($id = null)
     {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 6) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado. Apenas administradores podem atualizar utilizadores.']);
+        }
+        
         if (!$this->request->isAJAX()) {
          
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
@@ -308,18 +316,15 @@ class UserController extends ResourceController
         }
 
         $result = $this->userModel->update($id, $userData);
-        session()->set("user_id", $existingUser["id"]);
        
         if ($result) {
             // Log de atualização bem-sucedida
           
           log_activity(
-                session()->get('user_id'), // quem fez a alteração
                 'users',
                 'update',
-                'Atualizou utilizador: ' . $existingUser['name'] . ' (' . $existingUser['email'] . ')',
                 $id,
-           
+                'Atualizou utilizador: ' . $existingUser['name'] . ' (' . $existingUser['email'] . ')'
             );
          
             
@@ -343,6 +348,12 @@ class UserController extends ResourceController
      */
     public function delete($id = null)
     {
+        // Verificar nível de acesso
+        $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+        if ($userLevel < 6) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado. Apenas administradores podem eliminar utilizadores.']);
+        }
+        
         if (!$this->request->isAJAX()) {
             
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
@@ -365,13 +376,10 @@ class UserController extends ResourceController
         if ($result) {
             // Log de eliminação bem-sucedida
           log_activity(
-                session()->get('user_id'), // quem eliminou
                 'users',
                 'delete',
-                'Eliminou utilizador: ' . $user['name'] . ' (' . $user['email'] . ')',
                 $id,
-                null,
-                null
+                'Eliminou utilizador: ' . $user['name'] . ' (' . $user['email'] . ')'
             );
             return $this->response->setJSON([
                 'success' => true,
@@ -434,10 +442,10 @@ class UserController extends ResourceController
     {
         if (!$this->request->isAJAX()) {
             log_activity(
-                session()->get('user_id'), // quem tentou aceder
                 'users',
-                'update_status',
-                'Tentou alterar status de utilizador via AJAX sem ser AJAX'
+                'update_status_failed',
+                null,
+                'Tentou alterar status de utilizador sem ser AJAX'
             );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
         }
@@ -478,11 +486,10 @@ class UserController extends ResourceController
             $dadosAnteriores = ['status' => $user['status']];
             $dadosNovos = ['status' => $status];
            log_activity(
-                session()->get('user_id'), // quem fez a alteração
                 'users',
                 'update_status',
-                "Alterou status do utilizador {$user['name']} ({$user['email']}) para {$statusText}",
                 $id,
+                "Alterou status do utilizador {$user['name']} ({$user['email']}) para {$statusText}",
                 $dadosAnteriores,
                 $dadosNovos
             );
@@ -507,9 +514,9 @@ class UserController extends ResourceController
     {
         if (!$this->request->isAJAX()) {
             log_activity(
-                session()->get('user_id'), // quem tentou aceder
                 'users',
                 'upload_failed',
+                null,
                 'Tentou fazer upload de imagem de perfil sem ser AJAX'
             );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
@@ -519,9 +526,9 @@ class UserController extends ResourceController
         
         if (!$file || !$file->isValid()) {
             log_activity(
-                session()->get('user_id'), // quem tentou fazer upload
                 'users',
                 'upload_failed',
+                null,
                 'Nenhum ficheiro válido foi enviado para upload de imagem de perfil'
             );
             
@@ -531,8 +538,35 @@ class UserController extends ResourceController
             ]);
         }
 
-        // Validar tipo de ficheiro
-        if (!$file->hasMoved() && in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/gif'])) {
+        // Validar tipo de ficheiro ANTES de tentar mover
+        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        $fileExtension = $file->getClientExtension();
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        
+        if (!in_array(strtolower($fileExtension), $allowedExtensions)) {
+            log_activity(
+                'users',
+                'upload_failed',
+                null,
+                'Tipo de ficheiro inválido: ' . $fileExtension
+            );
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tipo de ficheiro inválido. Apenas JPG, PNG e GIF são permitidos.'
+            ]);
+        }
+
+        // Validar tamanho do ficheiro (máximo 2MB)
+        $maxSize = 2 * 1024 * 1024; // 2MB em bytes
+        if ($file->getSize() > $maxSize) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Ficheiro muito grande. Tamanho máximo: 2MB'
+            ]);
+        }
+
+        if (!$file->hasMoved()) {
             $newName = $file->getRandomName();
             $uploadPath = WRITEPATH . 'uploads/profiles/';
             
@@ -541,44 +575,58 @@ class UserController extends ResourceController
                 mkdir($uploadPath, 0755, true);
             }
             
-            if ($file->move($uploadPath, $newName)) {
-                // Log de upload bem-sucedido
-                $detalhes = [
-                    'original_name' => $file->getClientName(),
-                    'new_name' => $newName,
-                    'file_size' => $file->getSize(),
-                    'mime_type' => $file->getMimeType()
-                ];
-                
+            try {
+                if ($file->move($uploadPath, $newName)) {
+                    // Log de upload bem-sucedido
+                    $detalhes = [
+                        'original_name' => $file->getClientName(),
+                        'new_name' => $newName,
+                        'file_size' => $file->getSize(),
+                        'file_extension' => $fileExtension
+                    ];
+                    
+                    log_activity(
+                        'users',
+                        'upload',
+                        null,
+                        'Fez upload de imagem de perfil: ' . $file->getClientName(),
+                        null,
+                        $detalhes
+                    );
+                    
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Imagem enviada com sucesso!',
+                        'filename' => $newName,
+                        'url' => base_url('writable/uploads/profiles/' . $newName)
+                    ]);
+                }
+            } catch (\Exception $e) {
                 log_activity(
-                    session()->get('user_id'), // quem fez o upload
                     'users',
-                    'upload',
-                    'Fez upload de imagem de perfil: ' . $file->getClientName(),
+                    'upload_failed',
                     null,
-                    null,
-                    $detalhes
+                    'Erro ao mover ficheiro: ' . $e->getMessage()
                 );
                 
                 return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Imagem enviada com sucesso!',
-                    'filename' => $newName,
-                    'url' => base_url('uploads/profiles/' . $newName)
+                    'success' => false,
+                    'message' => 'Erro ao fazer upload da imagem: ' . $e->getMessage()
                 ]);
             }
         }
 
         // Log de erro no upload
         log_activity(
-            session()->get('user_id'), // quem tentou fazer upload
             'users',
             'upload_failed',
-            'Erro ao enviar imagem de perfil. Tipo de ficheiro inválido ou erro no upload.'
+            null,
+            'Erro ao enviar imagem de perfil. Ficheiro já foi movido ou erro no upload.'
         );
+        
         return $this->response->setJSON([
             'success' => false,
-            'message' => 'Erro ao enviar imagem. Apenas ficheiros JPEG, PNG e GIF são permitidos.'
+            'message' => 'Erro ao enviar imagem. Por favor, tente novamente.'
         ]);
     }
 
@@ -589,9 +637,9 @@ class UserController extends ResourceController
     {
         if (!$this->request->isAJAX()) {
             log_activity(
-                session()->get('user_id'), // quem tentou aceder
                 'users',
                 'view_stats_failed',
+                null,
                 'Tentou consultar estatísticas de utilizadores sem ser AJAX'
             );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
@@ -601,9 +649,9 @@ class UserController extends ResourceController
         
         // Log de consulta de estatísticas
         log_activity(
-            session()->get('user_id'), // quem consultou
             'users',
             'view_stats',
+            null,
             'Consultou estatísticas de utilizadores'
         );
         
@@ -620,9 +668,9 @@ class UserController extends ResourceController
     {
         if (!$this->request->isAJAX()) {
             log_activity(
-                session()->get('user_id'), // quem tentou aceder
                 'users',
                 'search_failed',
+                null,
                 'Tentou pesquisar utilizadores sem ser AJAX'
             );
             return $this->response->setStatusCode(403)->setJSON(['error' => 'Acesso negado']);
@@ -645,11 +693,10 @@ class UserController extends ResourceController
             'results_count' => count($users)
         ];
         log_activity(
-            session()->get('user_id'), // quem pesquisou
             'users',
             'search',
-            'Pesquisou utilizadores com o termo: ' . $search,
             null,
+            'Pesquisou utilizadores com o termo: ' . $search,
             null,
             $detalhes
         );
@@ -665,28 +712,34 @@ class UserController extends ResourceController
      */
     public function exportCSV()
     {
-        $users = $this->userModel->getAllUsers();
+        // Buscar TODOS os utilizadores (sem limite)
+        $users = $this->userModel->orderBy('name', 'ASC')->findAll();
         
         // Log de exportação
         log_activity(
-            session()->get('user_id'), // quem exportou
             'users',
             'export',
-            'Exportou lista de utilizadores para CSV',
             null,
+            'Exportou lista de utilizadores para CSV',
             null,
             ['exported_count' => count($users)]
         );
         
         $filename = 'utilizadores_' . date('Y-m-d_H-i-s') . '.csv';
         
+        // Definir headers para download com UTF-8 BOM para Excel
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=' . $filename);
+        header('Pragma: no-cache');
+        header('Expires: 0');
         
         $output = fopen('php://output', 'w');
         
+        // Adicionar BOM (Byte Order Mark) para UTF-8 - resolve problema de acentos no Excel
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
         // Cabeçalhos
-        fputcsv($output, ['ID', 'Nome', 'Email', 'NIF', 'Grupo ID', 'Nível', 'Status', 'Data Criação']);
+        fputcsv($output, ['ID', 'Nome', 'Email', 'Telefone', 'NIF', 'Grupo ID', 'Nível', 'Status', 'Data Criação'], ';');
         
         // Dados
         foreach ($users as $user) {
@@ -695,12 +748,13 @@ class UserController extends ResourceController
                 $user['id'],
                 $user['name'],
                 $user['email'],
-                $user['NIF'],
-                $user['grupo_id'],
+                $user['telefone'] ?? '',
+                $user['NIF'] ?? '',
+                $user['grupo_id'] ?? '',
                 $user['level'],
                 $statusText,
-                $user['created_at']
-            ]);
+                date('d/m/Y H:i', strtotime($user['created_at']))
+            ], ';');
         }
         
         fclose($output);
@@ -864,11 +918,10 @@ class UserController extends ResourceController
                     
                     // Log de importação
                     log_activity(
-                        session()->get('user_id'),
                         'users',
                         'import',
-                        'Importou utilizador via CSV: ' . $email,
-                        $this->userModel->getInsertID()
+                        $this->userModel->getInsertID(),
+                        'Importou utilizador via CSV: ' . $email
                     );
                 } else {
                     $errors++;
@@ -910,9 +963,9 @@ class UserController extends ResourceController
 
         } catch (\Exception $e) {
             log_activity(
-                session()->get('user_id'),
                 'users',
                 'import_failed',
+                null,
                 'Erro ao importar CSV: ' . $e->getMessage()
             );
             

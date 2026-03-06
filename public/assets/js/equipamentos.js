@@ -10,19 +10,109 @@ $(document).ready(function() {
     initializeDataTable();
     initializeFormHandlers();
     initializeCascadingDropdowns();
+    initializeFilters();
     loadStatistics();
 });
+
+/**
+ * Inicializar filtros
+ */
+function initializeFilters() {
+    // Filtro por escola - carrega salas quando selecionada
+    $('#filtro_escola').change(function() {
+        const escolaId = $(this).val();
+        const salaSelect = $('#filtro_sala');
+        
+        if (escolaId) {
+            salaSelect.html('<option value="">Carregando...</option>').prop('disabled', true);
+            
+            $.get(baseUrl + 'salas/getByEscola/' + escolaId, function(data) {
+                salaSelect.html('<option value="">Todas as Salas desta Escola</option>');
+                data.forEach(function(sala) {
+                    salaSelect.append(`<option value="${sala.id}">${sala.codigo_sala}</option>`);
+                });
+                salaSelect.prop('disabled', false);
+                
+                // Aplicar filtro
+                table.draw();
+            }).fail(function() {
+                salaSelect.html('<option value="">Erro ao carregar salas</option>');
+                showToast('error', 'Erro ao carregar salas');
+            });
+        } else {
+            salaSelect.html('<option value="">Selecione primeiro uma escola</option>').prop('disabled', true);
+            // Aplicar filtro
+            table.draw();
+        }
+    });
+    
+    // Filtro por sala
+    $('#filtro_sala').change(function() {
+        table.draw();
+    });
+    
+    // Botão limpar filtros
+    $('#btnLimparFiltros').click(function() {
+        $('#filtro_escola').val('');
+        $('#filtro_sala').html('<option value="">Selecione primeiro uma escola</option>').prop('disabled', true);
+        table.draw();
+    });
+}
 
 /**
  * Inicializar DataTable
  */
 function initializeDataTable() {
+    // Adicionar filtro customizado
+    $.fn.dataTable.ext.search.push(
+        function(settings, data, dataIndex) {
+            const escolaFiltro = $('#filtro_escola').val();
+            const salaFiltro = $('#filtro_sala').val();
+            
+            // Se não há filtros, mostrar tudo
+            if (!escolaFiltro && !salaFiltro) {
+                return true;
+            }
+            
+            // Obter dados completos da linha
+            const rowData = table.row(dataIndex).data();
+            
+            // Se não há dados da linha, não filtrar
+            if (!rowData) {
+                return true;
+            }
+            
+            // Filtro por escola
+            if (escolaFiltro) {
+                // Verificar se o equipamento pertence à escola selecionada
+                if (rowData.escola_id != escolaFiltro) {
+                    return false;
+                }
+                
+                // Se também há filtro de sala
+                if (salaFiltro) {
+                    return rowData.sala_id == salaFiltro;
+                }
+                
+                // Se só filtro de escola, mostrar todos da escola
+                return true;
+            }
+            
+            return true;
+        }
+    );
+    
     table = $('#equipamentosTable').DataTable({
         "processing": true,
         "serverSide": false,
         "ajax": {
             "url": baseUrl + "equipamentos/getDataTable",
-            "type": "POST"
+            "type": "POST",
+            "dataSrc": function(json) {
+                // Armazenar dados completos para filtros
+                window.equipamentosData = json.data;
+                return json.data;
+            }
         },
         "columns": [
             { "data": "id", "width": "50px" },

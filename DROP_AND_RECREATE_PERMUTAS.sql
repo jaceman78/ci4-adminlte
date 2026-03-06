@@ -15,6 +15,7 @@ DROP TABLE IF EXISTS permutas;
 CREATE TABLE `permutas` (
     `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
     `aula_original_id` INT(11) NOT NULL COMMENT 'FK para horario_aulas',
+    `ano_letivo_id` INT(11) UNSIGNED NULL DEFAULT NULL COMMENT 'FK para ano_letivo - ano letivo em que a permuta foi criada',
     `data_aula_original` DATE NOT NULL COMMENT 'Data da aula a permutar',
     `data_aula_permutada` DATE NOT NULL COMMENT 'Data da reposição',
     `professor_autor_nif` INT(11) NULL DEFAULT NULL COMMENT 'NIF do professor que pediu a permuta',
@@ -30,6 +31,7 @@ CREATE TABLE `permutas` (
     `updated_at` DATETIME NULL DEFAULT NULL,
     PRIMARY KEY (`id`),
     INDEX `permutas_aula_original_idx` (`aula_original_id`),
+    INDEX `permutas_ano_letivo_idx` (`ano_letivo_id`),
     INDEX `permutas_professor_autor_idx` (`professor_autor_nif`),
     INDEX `permutas_professor_substituto_idx` (`professor_substituto_nif`),
     INDEX `permutas_estado_idx` (`estado`),
@@ -45,6 +47,13 @@ ALTER TABLE `permutas`
         FOREIGN KEY (`aula_original_id`) 
         REFERENCES `horario_aulas`(`id_aula`)
         ON DELETE CASCADE 
+        ON UPDATE CASCADE;
+
+ALTER TABLE `permutas`
+    ADD CONSTRAINT `permutas_ano_letivo_fk`
+        FOREIGN KEY (`ano_letivo_id`) 
+        REFERENCES `ano_letivo`(`id_anoletivo`)
+        ON DELETE SET NULL 
         ON UPDATE CASCADE;
 
 ALTER TABLE `permutas`

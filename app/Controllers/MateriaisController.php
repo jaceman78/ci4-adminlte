@@ -32,9 +32,9 @@ class MateriaisController extends BaseController
         
         // Log de acesso à página de materiais
         log_activity(
-            get_current_user_id(),
             'materiais',
             'view_page',
+            null,
             'Acedeu à página de gestão de materiais'
         );
 
@@ -85,14 +85,10 @@ class MateriaisController extends BaseController
             'records_found' => $result['recordsFiltered']
         ];
         log_activity(
-            get_current_user_id(),
             'materiais',
             'datatable_query',
-            'Consultou materiais via DataTable',
             null,
-            null,
-            null,
-            $detalhes
+            'Consultou materiais via DataTable'
         );
 
         $data = [];
@@ -142,11 +138,10 @@ class MateriaisController extends BaseController
 
         if (!$material) {
             log_activity(
-                get_current_user_id(),
                 'materiais',
                 'view_failed',
-                "Tentou visualizar material inexistente (ID: {$id})",
-                $id
+                $id,
+                "Tentou visualizar material inexistente (ID: {$id})"
             );
             return $this->response->setStatusCode(404)->setJSON(['error' => 'Material não encontrado']);
         }
@@ -217,11 +212,10 @@ class MateriaisController extends BaseController
         $material = $this->materiaisModel->find($id);
         if (!$material) {
             log_activity(
-                get_current_user_id(),
                 'materiais',
                 'delete_failed',
-                "Tentou eliminar material inexistente (ID: {$id})",
-                $id
+                $id,
+                "Tentou eliminar material inexistente (ID: {$id})"
             );
             return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Material não encontrado.']);
         }
@@ -230,21 +224,19 @@ class MateriaisController extends BaseController
 
         if ($result) {
            log_activity(
-                get_current_user_id(),
                 'materiais',
                 'delete',
-                "Eliminou material (ID: {$id})",
                 $id,
+                "Eliminou material (ID: {$id})",
                 $material
             );
             return $this->response->setJSON(['success' => true, 'message' => 'Material eliminado com sucesso!']);
         } else {
          log_activity(
-                get_current_user_id(),
                 'materiais',
                 'delete_failed',
-                "Erro ao eliminar material (ID: {$id})",
                 $id,
+                "Erro ao eliminar material (ID: {$id})",
                 $material
             );
             return $this->response->setJSON(['success' => false, 'message' => 'Erro ao eliminar material.']);
@@ -268,9 +260,9 @@ class MateriaisController extends BaseController
         $stats = $this->materiaisModel->getMateriaisStats();
         
         log_activity(
-            get_current_user_id(),
             "materiais",
             "view_stats",
+            null,
             "Consultou estatísticas de materiais"
         );
 

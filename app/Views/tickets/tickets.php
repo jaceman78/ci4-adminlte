@@ -88,7 +88,7 @@
                         </div>
                         <!-- /.card-header -->
                         <div class="card-body">
-                            <table id="todosTicketsTable" class="table table-bordered table-striped">
+                            <table id="todosTicketsTable" class="table table-bordered table-striped nowrap" style="width:100%">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
@@ -124,8 +124,8 @@
 </div>
 
 <!-- Modal para Ver Ticket -->
-<div class="modal fade" id="viewTicketModal" tabindex="-1" role="dialog" aria-labelledby="viewTicketModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="viewTicketModal" tabindex="-1" aria-labelledby="viewTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="viewTicketModalLabel">Detalhes do Ticket</h5>
@@ -142,8 +142,8 @@
 </div>
 
 <!-- Modal para Editar Ticket (Admin) -->
-<div class="modal fade" id="editTicketModal" tabindex="-1" role="dialog" aria-labelledby="editTicketModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="editTicketModal" tabindex="-1" aria-labelledby="editTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="editTicketModalLabel">Editar Ticket (Admin)</h5>
@@ -239,8 +239,8 @@
 </div>
 
 <!-- Modal para Estatísticas Avançadas -->
-<div class="modal fade" id="advancedStatisticsModal" tabindex="-1" role="dialog" aria-labelledby="advancedStatisticsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl" role="document">
+<div class="modal fade" id="advancedStatisticsModal" tabindex="-1" aria-labelledby="advancedStatisticsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="advancedStatisticsModalLabel">Estatísticas Avançadas de Tickets</h5>
@@ -803,7 +803,7 @@ $(document).ready(function() {
                     toastr.success(response.message || 'Prioridade atualizada com sucesso.');
                     
                     // Recarregar tabela
-                    table.ajax.reload(null, false);
+                    $('#todosTicketsTable').DataTable().ajax.reload(null, false);
                     
                     currentTicketIdPrioridade = null;
                 } else {

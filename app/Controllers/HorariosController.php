@@ -648,3 +648,4 @@ class HorariosController extends BaseController
         ]);
     }
 }
+

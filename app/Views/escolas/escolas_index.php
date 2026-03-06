@@ -32,7 +32,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <table id="escolasTable" class="table table-bordered table-striped table-hover">
+                <table id="escolasTable" class="table table-bordered table-striped table-hover nowrap" style="width:100%">
                     <thead>
                         <tr>
                             <th>ID</th>

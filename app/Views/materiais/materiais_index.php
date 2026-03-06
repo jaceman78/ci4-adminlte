@@ -29,7 +29,7 @@
         </div>
     </div>
     <div class="card-body">
-        <table id="materiaisTable" class="table table-bordered table-striped">
+        <table id="materiaisTable" class="table table-bordered table-striped nowrap" style="width:100%">
             <thead>
                 <tr>
                     <th>Nome</th>

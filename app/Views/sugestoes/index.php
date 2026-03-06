@@ -30,7 +30,7 @@
                         <h3 class="card-title"><?= esc($page_subtitle) ?></h3>
                     </div>
                     <div class="card-body">
-                        <table id="sugestoesTable" class="table table-bordered table-striped table-hover">
+                        <table id="sugestoesTable" class="table table-bordered table-striped table-hover nowrap" style="width:100%">
                             <thead>
                                 <tr>
                                     <th style="width: 50px;">ID</th>
@@ -53,11 +53,11 @@
 </section>
 
 <!-- Modal Ver Detalhes -->
-<div class="modal fade" id="modalDetalhes" tabindex="-1">
+<div class="modal fade" id="modalDetalhes" tabindex="-1" aria-labelledby="modalDetalhesLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Detalhes da Sugestão #<span id="detalhes-id"></span></h5>
+                <h5 class="modal-title" id="modalDetalhesLabel">Detalhes da Sugestão #<span id="detalhes-id"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
@@ -123,13 +123,13 @@
 </div>
 
 <!-- Modal Responder -->
-<div class="modal fade" id="modalResponder" tabindex="-1">
+<div class="modal fade" id="modalResponder" tabindex="-1" aria-labelledby="modalResponderLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form id="formResponder">
                 <input type="hidden" id="responder-id">
                 <div class="modal-header">
-                    <h5 class="modal-title">Responder Sugestão #<span id="responder-titulo"></span></h5>
+                    <h5 class="modal-title" id="modalResponderLabel">Responder Sugestão #<span id="responder-titulo"></span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
@@ -162,6 +162,7 @@
 $(document).ready(function() {
     // DataTable
     const table = $('#sugestoesTable').DataTable({
+        responsive: true,
         ajax: {
             url: '<?= base_url('sugestoes/getDataTable') ?>',
             dataSrc: 'data'
@@ -171,7 +172,7 @@ $(document).ready(function() {
             { 
                 data: null,
                 render: function(data) {
-                    return data.user_name || 'N/A';
+                    return data.user_nome || 'N/A';
                 }
             },
             { data: 'categoria' },
@@ -248,7 +249,7 @@ $(document).ready(function() {
         const row = table.rows().data().toArray().find(r => r.id == id);
         
         $('#detalhes-id').text(row.id);
-        $('#detalhes-usuario').text(row.user_name || 'N/A');
+        $('#detalhes-usuario').text(row.user_nome || 'N/A');
         $('#detalhes-email').text(row.user_email || 'N/A');
         $('#detalhes-categoria').text(row.categoria);
         

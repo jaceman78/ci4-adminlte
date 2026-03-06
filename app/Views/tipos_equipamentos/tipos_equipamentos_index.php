@@ -36,7 +36,7 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <table id="tiposEquipamentoTable" class="table table-bordered table-striped">
+                            <table id="tiposEquipamentoTable" class="table table-bordered table-striped nowrap" style="width:100%">
                                 <thead>
                                     <tr>
                                         <th>Nome</th>

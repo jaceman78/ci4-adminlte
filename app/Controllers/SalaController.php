@@ -193,14 +193,14 @@ class SalaController extends BaseController
         $salaId = $this->salasModel->insert($salaData);
         
         if ($salaId) {
-            log_activity(session()->get('user_id'), $this->modulo, 'create', 'Sala criada com sucesso', $salaId, null, $salaData);
+            log_activity($this->modulo, 'create', $salaId, 'Sala criada com sucesso', null, $salaData);
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Sala criada com sucesso!',
                 'data' => ['id' => $salaId]
             ]);
         } else {
-            log_activity(session()->get('user_id'), $this->modulo, 'create_fail', $this->salasModel->errors().[0], null, null, $salaData, ['db_errors' => $this->salasModel->errors()]);
+            log_activity($this->modulo, 'create_fail', null, 'Erro ao criar sala', null, $salaData);
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Erro ao criar sala',
@@ -235,7 +235,7 @@ class SalaController extends BaseController
         $validation = $this->salasModel->validateSalaData($data, $id);
         
         if (!$validation['success']) {
-            log_activity(session()->get('user_id'), $this->modulo, 'update_fail', 'Dados inválidos ao atualizar sala', $id, $existingSala, $data, ['validation_errors' => $validation['errors']]);
+            log_activity($this->modulo, 'update_fail', $id, 'Dados inválidos ao atualizar sala', $existingSala, $data);
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Dados inválidos',
@@ -262,7 +262,7 @@ class SalaController extends BaseController
         $result = $this->salasModel->update($id, $salaData);
         
         if ($result) {
-            log_activity(session()->get('user_id'), $this->modulo, 'update', 'Sala atualizada com sucesso', $id, $existingSala, $salaData);
+            log_activity($this->modulo, 'update', $id, 'Sala atualizada com sucesso', $existingSala, $salaData);
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Sala atualizada com sucesso!'
@@ -298,7 +298,7 @@ class SalaController extends BaseController
         $result = $this->salasModel->delete($id);   
         
         if ($result) {
-            log_activity(session()->get('user_id'), $this->modulo, 'delete', 'Sala '.$sala['codigo_sala'].' eliminada com sucesso', $id, $sala, null);
+            log_activity($this->modulo, 'delete', $id, 'Sala '.$sala['codigo_sala'].' eliminada com sucesso', $sala, null);
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Sala eliminada com sucesso!'

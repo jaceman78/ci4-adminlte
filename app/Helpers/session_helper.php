@@ -38,13 +38,13 @@ if (!function_exists('get_user_level_name')) {
             9 => 'Super Administrador',
             8 => 'Administrador',
             7 => 'Técnico Sénior',
-            6 => 'Técnico',
-            5 => 'Técnico Júnior',
-            4 => 'Utilizador Avançado',
-            3 => 'Utilizador',
+            6 => 'Direção',
+            5 => 'Técnico',
+            4 => 'Secretariado de Exames',
+            3 => 'Serviços Administrativos',
             2 => 'Utilizador',
-            1 => 'Utilizador',
-            0 => 'Convidado',
+            1 => 'Professor',
+            0 => 'Assistente Operacional',
         ];
 
         return $levels[$level] ?? 'Utilizador';

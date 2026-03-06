@@ -14,7 +14,7 @@
           Copyright &copy; 2025-2025++&nbsp;
           <a href="#" id="teamPhotoLink" class="text-decoration-none">HardWork550</a>.
         </strong>
-        Todos os direitos reservados.
+        Todos os direitos reservados.  Versão 0.2.7
         <!--end::Copyright-->
       </footer>
       <!--end::Footer-->
@@ -73,6 +73,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <!-- Sistema Global de Toasts -->
 <script src="<?= base_url('assets/js/toast-notifications.js') ?>"></script>
+<!-- Proteção contra erros de canvas em dashboards -->
+<script src="<?= base_url('assets/js/dashboard-protection.js') ?>"></script>
+<!-- Correções de Acessibilidade para Modals Bootstrap -->
+<script src="<?= base_url('assets/js/modal-accessibility-fix.js') ?>"></script>
 
 <!-- Script para abrir modal da foto da equipa -->
 <script>

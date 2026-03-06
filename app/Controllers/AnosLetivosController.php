@@ -51,11 +51,10 @@ class AnosLetivosController extends BaseController
                 $descricao = $data['descricao'] ?? '';
                 
                 log_activity(
-                    $userId,
                     'anos_letivos',
                     'create',
-                    "Criou ano letivo '{$anoletivo}' - {$descricao}",
                     $anoId,
+                    "Criou ano letivo '{$anoletivo}' - {$descricao}",
                     null,
                     $data
                 );
@@ -92,11 +91,10 @@ class AnosLetivosController extends BaseController
                 $descricao = $data['descricao'] ?? $dadosAnteriores['descricao'] ?? '';
                 
                 log_activity(
-                    $userId,
                     'anos_letivos',
                     'update',
-                    "Atualizou ano letivo '{$anoletivo}' - {$descricao}",
                     $id,
+                    "Atualizou ano letivo '{$anoletivo}' - {$descricao}",
                     $dadosAnteriores,
                     $data
                 );
@@ -138,11 +136,10 @@ class AnosLetivosController extends BaseController
                 $descricao = $ano['descricao'] ?? '';
                 
                 log_activity(
-                    $userId,
                     'anos_letivos',
                     'delete',
-                    "Eliminou ano letivo '{$anoletivo}' - {$descricao}",
                     $id,
+                    "Eliminou ano letivo '{$anoletivo}' - {$descricao}",
                     $ano,
                     null
                 );
@@ -190,11 +187,10 @@ class AnosLetivosController extends BaseController
                 $descricao = $ano['descricao'] ?? '';
                 
                 log_activity(
-                    $userId,
                     'anos_letivos',
                     'activate',
-                    "Ativou ano letivo '{$anoletivo}' - {$descricao}",
                     $id,
+                    "Ativou ano letivo '{$anoletivo}' - {$descricao}",
                     $ano,
                     ['ativo' => 1]
                 );

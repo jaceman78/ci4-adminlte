@@ -37,7 +37,7 @@
                         </div>
                         <!-- /.card-header -->
                         <div class="card-body">
-                            <table id="tratamentoTicketsTable" class="table table-bordered table-striped">
+                            <table id="tratamentoTicketsTable" class="table table-bordered table-striped nowrap" style="width:100%">
                                 <thead>
                                     <tr>
                                         <th>Equipamento</th>

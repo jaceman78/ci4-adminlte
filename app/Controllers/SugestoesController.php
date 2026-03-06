@@ -97,11 +97,10 @@ class SugestoesController extends BaseController
             if (function_exists('log_activity')) {
                 try {
                     log_activity(
-                        $userData['id'],
                         'sugestoes',
                         'create',
-                        "Enviou sugestão: {$data['titulo']}",
                         $sugestaoId,
+                        "Enviou sugestão: {$data['titulo']}",
                         null,
                         $data
                     );
@@ -154,11 +153,10 @@ class SugestoesController extends BaseController
             if (function_exists('log_activity')) {
                 try {
                     log_activity(
-                        $userData['id'],
                         'sugestoes',
                         'update',
-                        "Respondeu à sugestão #{$id}",
                         $id,
+                        "Respondeu à sugestão #{$id}",
                         null,
                         ['resposta' => $resposta, 'estado' => $novoEstado]
                     );
@@ -225,11 +223,10 @@ class SugestoesController extends BaseController
             if (function_exists('log_activity')) {
                 try {
                     log_activity(
-                        $userData['id'],
                         'sugestoes',
                         'delete',
-                        "Excluiu sugestão #{$id}",
                         $id,
+                        "Excluiu sugestão #{$id}",
                         null,
                         null
                     );

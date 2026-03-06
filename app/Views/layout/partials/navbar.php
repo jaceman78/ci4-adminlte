@@ -24,20 +24,32 @@
       <!-- user -->
        <!--begin::User Menu Dropdown-->
         <li class="nav-item dropdown user-menu">
+          <?php
+            $navbarUser = session()->get('LoggedUserData') ?? [];
+            $navbarImg  = $navbarUser['profile_img'] ?? '';
+
+            if ($navbarImg && str_starts_with($navbarImg, 'http')) {
+                $navbarImgUrl = $navbarImg;
+            } elseif ($navbarImg && $navbarImg !== 'default.png') {
+                $navbarImgUrl = base_url('writable/uploads/profiles/' . $navbarImg);
+            } else {
+                $navbarImgUrl = base_url('assets/img/default.png');
+            }
+          ?>
           <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="<?= session()->get("LoggedUserData")['profile_img']; ?>" class="user-image rounded-circle shadow" alt="User Image">          
+            <img src="<?= esc($navbarImgUrl) ?>" class="user-image rounded-circle shadow" alt="User Image">
             <span class="d-none d-md-inline">
-              <?= session()->get("LoggedUserData")['name'] ?? ""; ?>
+              <?= esc($navbarUser['name'] ?? '') ?>
             </span>
           </a>
           <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-end">
             <li class="dropdown-header text-center">
-              <img src="<?= session()->get("LoggedUserData")['profile_img']; ?>" class="user-image rounded-circle shadow" alt="User Image">
-              <p><?= session()->get("LoggedUserData")['name'] ?? ""; ?><br><small><?= get_user_level_name() ?></small></p>
+              <img src="<?= esc($navbarImgUrl) ?>" class="user-image rounded-circle shadow" alt="User Image">
+              <p><?= esc($navbarUser['name'] ?? '') ?><br><small><?= get_user_level_name() ?></small></p>
             </li>
             <li><hr class="dropdown-divider"></li>
-            <li><a href="#" class="dropdown-item">Profile</a></li>
-            <li><a href="<?=base_url("logout")?>" class="dropdown-item">Sign out</a></li>
+            <li><a href="<?= base_url('perfil') ?>" class="dropdown-item">Perfil</a></li>
+            <li><a href="<?=base_url("logout")?>" class="dropdown-item">Terminar Sessão</a></li>
           </ul>
         </li>
 

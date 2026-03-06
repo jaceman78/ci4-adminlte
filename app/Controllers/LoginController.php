@@ -83,16 +83,29 @@ class LoginController extends BaseController
             $userlevel = (int) $existingUser['level'];
         }
 
-        // Dados do utilizador
+        // Dados base vindos do Google
         $userdata = [
-            'oauth_id'    => $googleUser->getId(),
-            'name'        => $googleUser->getName(),
-            'email'       => $email,
-            'profile_img' => $googleUser->getPicture(),
-            'updated_at'  => date('Y-m-d H:i:s'),
-            'level'       => $userlevel,
-            'status'      => 1,
+            'oauth_id'   => $googleUser->getId(),
+            'name'       => $googleUser->getName(),
+            'email'      => $email,
+            'updated_at' => date('Y-m-d H:i:s'),
+            'level'      => $userlevel,
+            'status'     => 1,
         ];
+
+        // Só sobrescreve a imagem de perfil com a do Google
+        // quando o utilizador é novo ou ainda não tem imagem local definida.
+        $googlePicture = $googleUser->getPicture();
+        if (!$existingUser) {
+            $userdata['profile_img'] = $googlePicture;
+        } else {
+            $currentImg = $existingUser['profile_img'] ?? '';
+            $hasLocalCustom = $currentImg && !str_starts_with($currentImg, 'http') && $currentImg !== 'default.png';
+
+            if (!$hasLocalCustom) {
+                $userdata['profile_img'] = $googlePicture;
+            }
+        }
 
         if ($existingUser) {
             $this->userModel->update($existingUser['id'], $userdata);

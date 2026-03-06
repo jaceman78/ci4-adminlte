@@ -104,7 +104,7 @@ class HorarioAulasModel extends Model
                 salas.descricao as sala_descricao
             ')
             ->join('user', 'user.NIF = horario_aulas.user_nif', 'left')
-            ->join('disciplina', 'disciplina.id_disciplina = horario_aulas.disciplina_id', 'left')
+            ->join('disciplina', 'disciplina.descritivo = horario_aulas.disciplina_id', 'left')
             ->join('turma', 'turma.codigo = horario_aulas.codigo_turma', 'left')
             ->join('salas', 'salas.codigo_sala = horario_aulas.sala_id', 'left');
         
@@ -128,13 +128,13 @@ class HorarioAulasModel extends Model
     {
         $builder = $this->select('
                 horario_aulas.*,
-                disciplina.abreviatura as nome_disciplina,
+                COALESCE(disciplina.descritivo, horario_aulas.disciplina_id) as nome_disciplina,
                 turma.nome as nome_turma,
                 turma.ano as ano_turma,
                 salas.codigo_sala as codigo_sala,
                 salas.descricao as sala_descricao
             ')
-            ->join('disciplina', 'disciplina.id_disciplina = horario_aulas.disciplina_id', 'left')
+            ->join('disciplina', 'disciplina.descritivo = horario_aulas.disciplina_id', 'left')
             ->join('turma', 'turma.codigo = horario_aulas.codigo_turma', 'left')
             ->join('salas', 'salas.codigo_sala = horario_aulas.sala_id', 'left')
             ->where('horario_aulas.user_nif', $idProfessor);
@@ -165,7 +165,7 @@ class HorarioAulasModel extends Model
                 salas.descricao as sala_descricao
             ')
             ->join('user', 'user.NIF = horario_aulas.user_nif', 'left')
-            ->join('disciplina', 'disciplina.id_disciplina = horario_aulas.disciplina_id', 'left')
+            ->join('disciplina', 'disciplina.descritivo = horario_aulas.disciplina_id', 'left')
             ->join('salas', 'salas.codigo_sala = horario_aulas.sala_id', 'left')
             ->where('horario_aulas.codigo_turma', $idTurma);
         
@@ -195,7 +195,7 @@ class HorarioAulasModel extends Model
                 turma.ano as ano_turma
             ')
             ->join('user', 'user.NIF = horario_aulas.user_nif', 'left')
-            ->join('disciplina', 'disciplina.id_disciplina = horario_aulas.disciplina_id', 'left')
+            ->join('disciplina', 'disciplina.descritivo = horario_aulas.disciplina_id', 'left')
             ->join('turma', 'turma.codigo = horario_aulas.codigo_turma', 'left')
             ->where('horario_aulas.sala_id', $idSala);
         

@@ -1,0 +1,11 @@
+Nº Série,Tipologia,Tipo Avaria,Descrição Avaria,Data Envio,Empresa Reparação,Nº Guia,Trabalho Efetuado,Custo (€),Data Receção,Observações,Estado
+ABC123456,Tipo I,Bateria,Bateria não carrega - capacidade inferior a 20%,2024-01-15,TechRepair Lda,GR2024001,Substituição de bateria original por compatível,45.50,2024-01-22,Equipamento em garantia - sem custos para escola,reparado
+DEF789012,Tipo II,Monitor,Ecrã partido - impacto na zona inferior esquerda,2024-01-18,InfoService SA,IS2024045,Substituição completa do ecrã LCD,125.00,,Aguardar peças - previsão 10 dias,em_reparacao
+GHI345678,Tipo I,Teclado,Teclas W e S não funcionam,2024-01-20,TechRepair Lda,GR2024002,Substituição do teclado,35.00,2024-01-25,Reparação urgente,reparado
+JKL901234,Tipo III,Disco,Disco rígido com setores danificados - falha na leitura,2024-01-10,Computadores Porto,CP2024012,Tentativa de recuperação falhada - disco irrecuperável,80.00,2024-01-17,Necessário adquirir disco novo,irreparavel
+MNO567890,Tipo II,Sistema Operativo,Windows não inicia - erro de arranque,2024-01-22,InfoService SA,IS2024046,Reinstalação do sistema operativo e drivers,0.00,2024-01-23,Reparação em garantia,reparado
+PQR123456,Tipo I,Gráfica,Placa gráfica com artefactos visuais,2024-01-25,TechRepair Lda,GR2024003,Substituição da placa gráfica,95.00,,Em análise na loja,enviado
+STU789012,Tipo II,CUCo,CPU com sobreaquecimento constante,2024-01-16,Computadores Porto,CP2024013,Substituição de pasta térmica e ventoinha,40.00,2024-01-20,Limpeza completa também efetuada,reparado
+VWX345678,Tipo III,Outro,Problemas de conectividade WiFi - placa de rede danificada,2024-01-28,InfoService SA,IS2024047,Substituição da placa de rede wireless,30.00,,Aguardar disponibilidade de peça,em_reparacao
+YZA901234,Tipo I,Bateria,Bateria incha - perigo de explosão,2024-01-12,TechRepair Lda,GR2024004,Substituição urgente da bateria,50.00,2024-01-13,Prioridade máxima - risco de segurança,reparado
+BCD567890,Tipo II,Monitor,Retroiluminação defeituosa - ecrã escuro,2024-01-14,Computadores Porto,,Orçamento recusado pela escola - valor elevado,150.00,,Cancelado por decisão administrativa,cancelado

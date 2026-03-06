@@ -131,7 +131,7 @@ if ((session()->get('LoggedUserData')['level'] ?? 0) != 9) {
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="logsTable" class="table table-bordered table-striped table-hover">
+                    <table id="logsTable" class="table table-bordered table-striped table-hover nowrap" style="width:100%">
                         <thead>
                             <tr>
                                 <th width="15%">Utilizador</th>
@@ -227,7 +227,7 @@ if ((session()->get('LoggedUserData')['level'] ?? 0) != 9) {
                 <!-- Dados Novos -->
                 <div class="row mt-3" id="dadosNovosSection" style="display: none;">
                     <div class="col-12">
-                        <h6><strong>Dados Novos</strong></h6>
+                        <h6><strong>Dados Novos</strong> <small class="text-muted" id="dadosNovosData"></small></h6>
                         <pre id="viewLogDadosNovos" class="bg-light p-3" style="max-height: 200px; overflow-y: auto;"></pre>
                     </div>
                 </div>
@@ -285,7 +285,7 @@ if ((session()->get('LoggedUserData')['level'] ?? 0) != 9) {
                 <h5 class="modal-title" id="cleanLogsModalLabel">
                     <i class="fas fa-broom"></i> Limpar Logs Antigos
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar" style="filter: invert(1) grayscale(100%) brightness(0);"></button>
             </div>
             <form id="cleanLogsForm">
                 <div class="modal-body">
@@ -335,6 +335,13 @@ if ((session()->get('LoggedUserData')['level'] ?? 0) != 9) {
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
+    // Configurar jQuery para sempre enviar X-Requested-With
+    $.ajaxSetup({
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    });
+    
     // Inicializar DataTable
     var table = $("#logsTable").DataTable({
         processing: true,
@@ -349,10 +356,21 @@ $(document).ready(function() {
                 d.filter_acao = $("#filterAcao").val();
                 d.filter_data_inicio = $("#filterDataInicio").val();
                 d.filter_data_fim = $("#filterDataFim").val();
-                
-                // Adicionar cabeçalho AJAX
-                d["X-Requested-With"] = "XMLHttpRequest";
                 return d;
+            },
+            error: function(xhr, error, thrown) {
+                console.error('DataTables AJAX Error:', error);
+                console.error('Status:', xhr.status);
+                console.error('Response:', xhr.responseText);
+                if (xhr.status === 500) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        console.error('Error details:', response);
+                        alert('Erro ao carregar logs: ' + (response.message || 'Erro desconhecido'));
+                    } catch (e) {
+                        alert('Erro ao carregar logs. Verifique a consola para mais detalhes.');
+                    }
+                }
             }
         },
         columns: [
@@ -534,6 +552,11 @@ $("#viewLogUser").html(log.user_name ?
                 }
 
                 if (log.dados_novos) {
+                    // Mostrar a data da operação
+                    const dataOperacao = new Date(log.criado_em).toLocaleString("pt-PT");
+                    $("#dadosNovosData").text("(" + dataOperacao + ")");
+                    
+                    // Mostrar os dados
                     $("#viewLogDadosNovos").text(JSON.stringify(log.dados_novos, null, 2));
                     $("#dadosNovosSection").show();
                 } else {

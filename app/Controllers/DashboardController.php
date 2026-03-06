@@ -5,6 +5,8 @@ namespace App\Controllers;
 use App\Models\TicketsModel;
 use App\Models\UserModel;
 use App\Models\EquipamentosModel;
+use App\Models\HorarioAulasModel;
+use App\Models\PermutaModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class DashboardController extends BaseController
@@ -12,12 +14,16 @@ class DashboardController extends BaseController
     protected $ticketsModel;
     protected $userModel;
     protected $equipamentosModel;
+    protected $horarioModel;
+    protected $permutaModel;
 
     public function __construct()
     {
         $this->ticketsModel = new TicketsModel();
         $this->userModel = new UserModel();
         $this->equipamentosModel = new EquipamentosModel();
+        $this->horarioModel = new HorarioAulasModel();
+        $this->permutaModel = new PermutaModel();
         helper(['log_helper', 'estado']);
     }
 
@@ -35,12 +41,10 @@ class DashboardController extends BaseController
 
         // Log de acesso ao dashboard
         log_activity(
-            $userId,
             'dashboard',
-            'view_dashboard',
+            'view',
+            $userId,
             'Acedeu ao dashboard principal',
-            null,
-            null,
             null,
             ['user_level' => $userLevel]
         );
@@ -64,6 +68,8 @@ class DashboardController extends BaseController
     {
         $userId = session()->get('id');
         $userData = session()->get('LoggedUserData');
+        $userLevel = $userData['level'] ?? (session()->get('level') ?? 0);
+        $userNif = $userData['NIF'] ?? null;
 
         // Obter tickets do utilizador
         $meusTickets = $this->ticketsModel
@@ -90,11 +96,80 @@ class DashboardController extends BaseController
                 ->countAllResults(),
         ];
 
+        // Convocatórias para vigilâncias (todas)
+        $convocatorias = [];
+        $convocatoriaModel = new \App\Models\ConvocatoriaModel();
+        $convocatorias = $convocatoriaModel->getByProfessor($userId, false);
+
+        // Permutas pendentes onde o utilizador é o substituto (precisa aceitar/recusar)
+        $permutasPendentesSubstituto = [];
+        $permutasVigilanciaModel = new \App\Models\PermutasVigilanciaModel();
+        $permutasPendentesSubstituto = $permutasVigilanciaModel->getPermutasPendentesSubstituto($userId);
+
+        // Permutas futuras (apenas para utilizadores de nível 1-3 com NIF associado)
+        $permutasFuturas = [];
+        if ($userNif && $userLevel >= 1 && $userLevel <= 3) {
+            $hoje = new \DateTimeImmutable('today');
+            $hojeStr = $hoje->format('Y-m-d');
+
+            $todasPermutas = $this->permutaModel->getPermutasProfessor($userNif, null);
+
+            foreach ($todasPermutas as $permuta) {
+                // Considerar apenas permutas ainda ativas (pendentes ou aprovadas)
+                if (!in_array($permuta['estado'], ['pendente', 'aprovada'], true)) {
+                    continue;
+                }
+
+                $dataReposicao = $permuta['data_aula_permutada'] ?? $permuta['data_aula_original'] ?? null;
+                if (!$dataReposicao) {
+                    continue;
+                }
+
+                $dataReposicaoStr = substr($dataReposicao, 0, 10);
+
+                // Apenas datas futuras (>= hoje)
+                if ($dataReposicaoStr < $hojeStr) {
+                    continue;
+                }
+
+                // Usar hora do horário associado, se existir
+                $horaInicio = isset($permuta['hora_inicio']) ? substr($permuta['hora_inicio'], 0, 5) : null;
+                $horaFim = isset($permuta['hora_fim']) ? substr($permuta['hora_fim'], 0, 5) : null;
+
+                $permutasFuturas[] = [
+                    'id' => $permuta['id'],
+                    'data_label' => date('d/m/Y', strtotime($dataReposicaoStr)),
+                    'data_ordem' => $dataReposicaoStr,
+                    'hora_inicio' => $horaInicio,
+                    'hora_fim' => $horaFim,
+                    'disciplina' => $permuta['disciplina_abrev'] ?? $permuta['disciplina_nome'] ?? $permuta['disciplina_id'] ?? '',
+                    'turma' => $permuta['codigo_turma'] ?? '',
+                    'turma_nome' => $permuta['turma_nome'] ?? '',
+                    'sala' => $permuta['codigo_sala'] ?? $permuta['sala_descricao'] ?? '',
+                    'estado' => $permuta['estado'],
+                ];
+            }
+
+            if (!empty($permutasFuturas)) {
+                usort($permutasFuturas, static function ($a, $b) {
+                    $chaveA = $a['data_ordem'] . ' ' . ($a['hora_inicio'] ?? '00:00');
+                    $chaveB = $b['data_ordem'] . ' ' . ($b['hora_inicio'] ?? '00:00');
+                    return strcmp($chaveA, $chaveB);
+                });
+
+                // Limitar ao máximo de 10 permutas futuras
+                $permutasFuturas = array_slice($permutasFuturas, 0, 10);
+            }
+        }
+
         $data = [
             'title' => 'Dashboard',
             'user' => $userData,
             'tickets' => $meusTickets,
-            'stats' => $stats
+            'stats' => $stats,
+            'permutas_futuras' => $permutasFuturas,
+            'convocatorias' => $convocatorias ?? [],
+            'permutas_pendentes_substituto' => $permutasPendentesSubstituto,
         ];
 
         return view('dashboard/user_dashboard', $data);
@@ -176,6 +251,15 @@ class DashboardController extends BaseController
         // Equipamentos mais problemáticos (top 5)
         $equipamentosProblematicos = $this->getProblematicEquipments($userId);
 
+        // Convocatórias para vigilâncias (todas)
+        $convocatorias = [];
+        $convocatoriaModel = new \App\Models\ConvocatoriaModel();
+        $convocatorias = $convocatoriaModel->getByProfessor($userId, false);
+
+        // Permutas pendentes onde o utilizador é o substituto
+        $permutasVigilanciaModel = new \App\Models\PermutasVigilanciaModel();
+        $permutasPendentesSubstituto = $permutasVigilanciaModel->getPermutasPendentesSubstituto($userId);
+
         $data = [
             'title' => 'Dashboard - Técnico',
             'user' => $userData,
@@ -188,7 +272,9 @@ class DashboardController extends BaseController
             'chart_data' => $chartData,
             'tickets_por_localizacao' => $ticketsPorLocalizacao,
             'tipos_avaria_comuns' => $tiposAvariaComuns,
-            'equipamentos_problematicos' => $equipamentosProblematicos
+            'equipamentos_problematicos' => $equipamentosProblematicos,
+            'convocatorias' => $convocatorias,
+            'permutas_pendentes_substituto' => $permutasPendentesSubstituto
         ];
 
         return view('dashboard/tecnico_dashboard', $data);
@@ -248,6 +334,16 @@ class DashboardController extends BaseController
         // Equipamentos mais problemáticos
         $equipamentosProblematicos = $this->getAdminProblematicEquipments();
 
+        // Convocatórias para vigilâncias (todas)
+        $userId = session()->get('id');
+        $convocatorias = [];
+        $convocatoriaModel = new \App\Models\ConvocatoriaModel();
+        $convocatorias = $convocatoriaModel->getByProfessor($userId, false);
+
+        // Permutas pendentes onde o utilizador é o substituto
+        $permutasVigilanciaModel = new \App\Models\PermutasVigilanciaModel();
+        $permutasPendentesSubstituto = $permutasVigilanciaModel->getPermutasPendentesSubstituto($userId);
+
         $data = [
             'title' => 'Dashboard - Administrador',
             'user' => $userData,
@@ -260,7 +356,9 @@ class DashboardController extends BaseController
             'evolucao_tickets' => $evolucaoTickets,
             'escolas_mais_tickets' => $escolasComMaisTickets,
             'tipos_avaria_frequentes' => $tiposAvariaFrequentes,
-            'equipamentos_problematicos' => $equipamentosProblematicos
+            'equipamentos_problematicos' => $equipamentosProblematicos,
+            'convocatorias' => $convocatorias,
+            'permutas_pendentes_substituto' => $permutasPendentesSubstituto
         ];
 
         return view('dashboard/admin_dashboard', $data);
@@ -273,10 +371,22 @@ class DashboardController extends BaseController
     {
         $userData = session()->get('LoggedUserData');
 
+        // Convocatórias para vigilâncias (todas)
+        $userId = session()->get('id');
+        $convocatorias = [];
+        $convocatoriaModel = new \App\Models\ConvocatoriaModel();
+        $convocatorias = $convocatoriaModel->getByProfessor($userId, false);
+
+        // Permutas pendentes onde o utilizador é o substituto
+        $permutasVigilanciaModel = new \App\Models\PermutasVigilanciaModel();
+        $permutasPendentesSubstituto = $permutasVigilanciaModel->getPermutasPendentesSubstituto($userId);
+
         // TODO: Implementar dashboard de super admin
         $data = [
             'title' => 'Dashboard - Super Administrador',
-            'user' => $userData
+            'user' => $userData,
+            'convocatorias' => $convocatorias,
+            'permutas_pendentes_substituto' => $permutasPendentesSubstituto,
         ];
 
         return view('dashboard/super_admin_dashboard', $data);
@@ -317,15 +427,17 @@ class DashboardController extends BaseController
             ->countAllResults();
 
         // Tempo médio de resolução (em horas) - últimos 30 dias
+        // Usar dados reais da tabela registos_reparacao
         $query = $db->query("
-            SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)) as tempo_medio
-            FROM tickets
-            WHERE atribuido_user_id = ?
-            AND estado = 'reparado'
-            AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            SELECT ROUND(AVG(rr.tempo_gasto_min) / 60, 1) as tempo_medio
+            FROM registos_reparacao rr
+            INNER JOIN tickets t ON t.id = rr.ticket_id
+            WHERE t.atribuido_user_id = ?
+            AND t.estado = 'reparado'
+            AND rr.criado_em >= DATE_SUB(NOW(), INTERVAL 30 DAY)
         ", [$userId]);
         $result = $query->getRow();
-        $tempoMedio = $result ? round($result->tempo_medio, 1) : 0;
+        $tempoMedio = $result && $result->tempo_medio ? (float) $result->tempo_medio : 0;
 
         // Taxa de reabertura (% de tickets reabertos)
         $totalResolvidos = $this->ticketsModel
@@ -536,8 +648,14 @@ class DashboardController extends BaseController
         
         $stats = $query->getRowArray();
         
-        $stats['total_tecnicos'] = $this->userModel->where('level >=', 5)->where('level <=', 7)->countAllResults();
-        $stats['total_usuarios'] = $this->userModel->where('level <', 5)->countAllResults();
+        // Contar técnicos ativos (level 5 ou superior)
+        $userModel = new UserModel();
+        $stats['total_tecnicos'] = $userModel->where('level >=', 5)->countAllResults();
+        
+        // Contar usuários básicos
+        $userModel2 = new UserModel();
+        $stats['total_usuarios'] = $userModel2->where('level <', 5)->countAllResults();
+        
         $stats['tempo_medio_resolucao'] = $this->getAverageResolutionTime();
         $stats['taxa_resolucao_hoje'] = $this->getTodayResolutionRate();
         
@@ -616,10 +734,10 @@ class DashboardController extends BaseController
                 COUNT(t.id) as total_atribuidos,
                 SUM(CASE WHEN t.estado = 'reparado' THEN 1 ELSE 0 END) as resolvidos,
                 SUM(CASE WHEN t.estado IN ('novo', 'em_resolucao', 'aguarda_peca') THEN 1 ELSE 0 END) as em_progresso,
-                ROUND(AVG(TIMESTAMPDIFF(HOUR, t.created_at, 
-                    CASE WHEN t.estado = 'reparado' THEN t.updated_at ELSE NOW() END)), 1) as tempo_medio_horas
+                ROUND(COALESCE(AVG(rr.tempo_gasto_min) / 60, 0), 1) as tempo_medio_horas
             FROM user u
             LEFT JOIN tickets t ON u.id = t.atribuido_user_id
+            LEFT JOIN registos_reparacao rr ON t.id = rr.ticket_id AND t.estado = 'reparado'
             WHERE u.level >= 5 AND u.level <= 7
             GROUP BY u.id
             HAVING total_atribuidos > 0
@@ -713,10 +831,10 @@ class DashboardController extends BaseController
             SELECT 
                 ta.descricao as tipo_avaria,
                 COUNT(t.id) as total,
-                ROUND(AVG(TIMESTAMPDIFF(HOUR, t.created_at, 
-                    CASE WHEN t.estado = 'reparado' THEN t.updated_at ELSE NOW() END)), 1) as tempo_medio_horas
+                ROUND(COALESCE(AVG(rr.tempo_gasto_min) / 60, 0), 1) as tempo_medio_horas
             FROM tickets t
             LEFT JOIN tipos_avaria ta ON t.tipo_avaria_id = ta.id
+            LEFT JOIN registos_reparacao rr ON t.id = rr.ticket_id AND t.estado = 'reparado'
             WHERE t.created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
             GROUP BY ta.id
             ORDER BY total DESC
@@ -760,16 +878,24 @@ class DashboardController extends BaseController
     {
         $db = \Config\Database::connect();
 
+        // Buscar tempo médio real dos registos de reparação (em minutos) e converter para horas
         $query = $db->query("
             SELECT 
-                ROUND(AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)), 1) as media
-            FROM tickets
-            WHERE estado = 'reparado'
-            AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ROUND(AVG(rr.tempo_gasto_min) / 60, 1) as media_horas
+            FROM registos_reparacao rr
+            INNER JOIN tickets t ON t.id = rr.ticket_id
+            WHERE t.estado = 'reparado'
+            AND rr.criado_em >= DATE_SUB(NOW(), INTERVAL 30 DAY)
         ");
 
-        $result = $query->getRowArray();
-        return $result['media'] ?? 0;
+        $result = $query->getRow();
+        
+        // Retornar 0 se não houver resultados ou se media for NULL
+        if (!$result || $result->media_horas === null) {
+            return 0;
+        }
+        
+        return (float) $result->media_horas;
     }
 
     /**

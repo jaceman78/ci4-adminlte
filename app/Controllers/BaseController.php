@@ -35,7 +35,7 @@ abstract class BaseController extends Controller
      *
      * @var list<string>
      */
-    public $helpers = ['LogHelper', 'SessionHelper'];
+    protected $helpers = [];
 
     /**
      * Be sure to declare properties for any property fetch you initialized.
@@ -54,5 +54,30 @@ abstract class BaseController extends Controller
         // Preload any models, libraries, etc, here.
 
         // E.g.: $this->session = service('session');
+    }
+
+    /**
+     * Verifica se o utilizador tem permissões para aceder à área de Sec. Exames
+     * Apenas níveis 4, 8 e 9
+     * 
+     * @return bool
+     */
+    protected function checkSecExamesPermissions()
+    {
+        $userLevel = session()->get('level') ?? (session()->get('LoggedUserData')['level'] ?? 0);
+        return in_array($userLevel, [4, 8, 9]);
+    }
+
+    /**
+     * Redireciona para dashboard se não tiver permissões para Sec. Exames
+     * 
+     * @return \CodeIgniter\HTTP\RedirectResponse|null
+     */
+    protected function requireSecExamesPermissions()
+    {
+        if (!$this->checkSecExamesPermissions()) {
+            return redirect()->to('/dashboard')->with('error', 'Não tem permissões para aceder a esta área.');
+        }
+        return null;
     }
 }

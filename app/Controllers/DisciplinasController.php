@@ -314,9 +314,7 @@ class DisciplinasController extends BaseController
                     
                     // LOG: Registar importação de linha
                     try {
-                        log_activity(
-                            session()->get('LoggedUserData')['id'] ?? null,
-                            'disciplinas',
+                        log_activity('disciplinas',
                             'import',
                             "Importou disciplina via CSV: '{$abreviatura}' - {$descritivo} (Código: {$codigo})",
                             $codigo,
@@ -342,9 +340,7 @@ class DisciplinasController extends BaseController
 
             // LOG: Resumo da importação
             try {
-                log_activity(
-                    session()->get('LoggedUserData')['id'] ?? null,
-                    'disciplinas',
+                log_activity('disciplinas',
                     'import',
                     "Importação CSV de disciplinas concluída (Sucesso: {$imported}, Ignoradas: {$skipped}, Erros: {$errors})",
                     null,
@@ -378,3 +374,5 @@ class DisciplinasController extends BaseController
         }
     }
 }
+
+

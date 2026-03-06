@@ -91,7 +91,7 @@
                     </div>
                 <?php else: ?>
                     <div class="table-responsive">
-                        <table id="tabelaPermutas" class="table table-bordered table-striped table-hover">
+                        <table id="tabelaPermutas" class="table table-bordered table-striped table-hover nowrap" style="width:100%">
                             <thead>
                                 <tr>
                                     <th>Aula</th>
