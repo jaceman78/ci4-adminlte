@@ -117,7 +117,7 @@ class ExameController extends BaseController
                 $exame['codigo_prova'],
                 $exame['nome_prova'],
                 '<span class="badge ' . $tipoBadge . '">' . $exame['tipo_prova'] . '</span>',
-                $exame['ano_escolaridade'] . 'º ano',
+                $exame['ano_escolaridade'] ? $exame['ano_escolaridade'] . 'º ano' : '—',
                 $badge,
                 $actions
             ];
@@ -172,7 +172,17 @@ class ExameController extends BaseController
             'ativo' => $this->request->getPost('ativo') ?? 1,
         ];
 
-        if ($this->exameModel->insert($data)) {
+        $newId = $this->exameModel->insert($data);
+        if ($newId) {
+            log_activity(
+                'exames',
+                'create',
+                $newId,
+                'Exame criado: ' . $data['codigo_prova'] . ' - ' . $data['nome_prova'] . ' (' . $data['tipo_prova'] . ')',
+                null,
+                $data
+            );
+
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Exame criado com sucesso!'
@@ -204,7 +214,17 @@ class ExameController extends BaseController
             'ativo' => $this->request->getPost('ativo') ?? 1,
         ];
 
+        $exameAnterior = $this->exameModel->find($id);
         if ($this->exameModel->update($id, $data)) {
+            log_activity(
+                'exames',
+                'update',
+                $id,
+                'Exame atualizado: ' . $data['codigo_prova'] . ' - ' . $data['nome_prova'],
+                $exameAnterior,
+                $data
+            );
+
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Exame atualizado com sucesso!'
@@ -227,7 +247,18 @@ class ExameController extends BaseController
             return redirect()->to('exames');
         }
 
+        $exame = $this->exameModel->find($id);
         if ($this->exameModel->delete($id)) {
+            log_activity(
+                'exames',
+                'delete',
+                $id,
+                'Exame eliminado: ' . ($exame['codigo_prova'] ?? '') . ' - ' . ($exame['nome_prova'] ?? ''),
+                $exame,
+                null,
+                'warning'
+            );
+
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Exame eliminado com sucesso!'

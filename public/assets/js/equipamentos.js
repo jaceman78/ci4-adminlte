@@ -294,9 +294,10 @@ function editEquipamento(id) {
             setTimeout(function() {
                 $('#sala_id').val(data.sala_atual_id);
             }, 500);
-            
-            $('#motivo_section').show();
         }
+        
+        // Mostrar motivo sempre na edição (permite atribuir sala pela primeira vez)
+        $('#motivo_section').show();
         
         $('#saveButton').text('Atualizar');
         $('#equipamentoModal').modal('show');

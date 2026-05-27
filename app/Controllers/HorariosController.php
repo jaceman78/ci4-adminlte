@@ -7,6 +7,7 @@ use App\Models\TurmaModel;
 use App\Models\DisciplinaModel;
 use App\Models\SalasModel;
 use App\Models\UserModel;
+use App\Models\AnoLetivoModel;
 
 class HorariosController extends BaseController
 {
@@ -15,6 +16,7 @@ class HorariosController extends BaseController
     protected $disciplinaModel;
     protected $salaModel;
     protected $userModel;
+    protected $anoLetivoModel;
 
     public function __construct()
     {
@@ -23,6 +25,7 @@ class HorariosController extends BaseController
         $this->disciplinaModel = new DisciplinaModel();
         $this->salaModel = new SalasModel();
         $this->userModel = new UserModel();
+        $this->anoLetivoModel = new AnoLetivoModel();
     }
 
     public function index()
@@ -55,7 +58,10 @@ class HorariosController extends BaseController
 
     public function getDataTable()
     {
-        $horarios = $this->horarioModel->getHorarioCompleto();
+        $anoAtivo = $this->anoLetivoModel->getAnoAtivo();
+        $anoLetivoId = $anoAtivo['id_anoletivo'] ?? null;
+
+        $horarios = $this->horarioModel->getHorarioCompleto(null, $anoLetivoId);
 
         $diasSemana = $this->horarioModel->getDiasSemana();
         $dados = [];
@@ -97,6 +103,10 @@ class HorariosController extends BaseController
     public function create()
     {
         $data = $this->extrairDadosFormulario();
+
+        // Adicionar ano letivo activo
+        $anoAtivo = $this->anoLetivoModel->getAnoAtivo();
+        $data['ano_letivo_id'] = $anoAtivo['id_anoletivo'] ?? null;
 
         if ($mensagemErro = $this->validarIntervaloHoras($data['hora_inicio'], $data['hora_fim'])) {
             return $this->response->setJSON([

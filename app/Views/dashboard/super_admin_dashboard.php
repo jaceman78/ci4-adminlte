@@ -20,10 +20,6 @@
 
     <section class="content">
         <div class="container-fluid">
-            <div class="alert alert-warning">
-                <h4><i class="icon fas fa-exclamation-triangle"></i> Em Desenvolvimento</h4>
-                Dashboard de Super Administrador será implementado em breve.
-            </div>
 
             <!-- Pedidos de Permuta para Aceitar/Recusar -->
             <?php if (!empty($permutas_pendentes_substituto)): ?>
@@ -34,38 +30,96 @@
                             <h3 class="card-title"><i class="fas fa-exclamation-triangle"></i> Pedidos de Permuta Pendentes - Requer Sua Resposta</h3>
                         </div>
                         <div class="card-body p-0">
-                            <table class="table table-sm table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Solicitante</th>
-                                        <th>Data</th>
-                                        <th>Hora</th>
-                                        <th>Prova</th>
-                                        <th>Sala</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($permutas_pendentes_substituto as $permuta): ?>
-                                    <tr>
-                                        <td><strong><?= esc($permuta['nome_original']) ?></strong></td>
-                                        <td><?= date('d/m/Y', strtotime($permuta['data_exame'])) ?></td>
-                                        <td><strong><?= date('H:i', strtotime($permuta['hora_exame'])) ?></strong></td>
-                                        <td><?= esc($permuta['codigo_prova']) ?></td>
-                                        <td><?= esc($permuta['codigo_sala'] ?? 'N/A') ?></td>
-                                        <td>
-                                            <button type="button" class="btn btn-xs btn-success btn-aceitar-permuta" 
+                            <!-- Desktop: Tabela -->
+                            <div class="d-none d-md-block">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Solicitante</th>
+                                            <th>Data</th>
+                                            <th>Hora</th>
+                                            <th>Prova</th>
+                                            <th>Sala</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($permutas_pendentes_substituto as $permuta): ?>
+                                        <tr>
+                                            <td><strong><?= esc($permuta['nome_original']) ?></strong></td>
+                                            <td><?= date('d/m/Y', strtotime($permuta['data_exame'])) ?></td>
+                                            <td><strong><?= date('H:i', strtotime($permuta['hora_exame'])) ?></strong></td>
+                                            <td><?= esc($permuta['codigo_prova']) ?></td>
+                                            <td><?= esc($permuta['codigo_sala'] ?? 'N/A') ?></td>
+                                            <td>
+                                                <button type="button" class="btn btn-xs btn-success btn-aceitar-permuta" 
+                                                        data-permuta-id="<?= $permuta['id'] ?>"
+                                                        data-prova="<?= esc($permuta['codigo_prova']) ?>">
+                                                    <i class="fas fa-check"></i> Aceitar
+                                                </button>
+                                                <button type="button" class="btn btn-xs btn-danger btn-recusar-permuta" 
+                                                        data-permuta-id="<?= $permuta['id'] ?>"
+                                                        data-prova="<?= esc($permuta['codigo_prova']) ?>">
+                                                    <i class="fas fa-times"></i> Recusar
+                                                </button>
+                                                <button type="button" class="btn btn-xs btn-info btn-ver-detalhes-permuta" 
+                                                        title="Ver detalhes"
+                                                        data-solicitante="<?= esc($permuta['nome_original']) ?>"
+                                                        data-data="<?= date('d/m/Y', strtotime($permuta['data_exame'])) ?>"
+                                                        data-hora="<?= date('H:i', strtotime($permuta['hora_exame'])) ?>"
+                                                        data-prova="<?= esc($permuta['codigo_prova']) ?>"
+                                                        data-sala="<?= esc($permuta['codigo_sala'] ?? 'N/A') ?>"
+                                                        data-estado="Aguarda a sua resposta"
+                                                        data-permuta-id="<?= $permuta['id'] ?>">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Mobile: Cards -->
+                            <div class="d-md-none p-3">
+                                <?php foreach ($permutas_pendentes_substituto as $permuta): ?>
+                                <div class="card mb-3 border-warning">
+                                    <div class="card-header bg-warning">
+                                        <strong><i class="fas fa-user"></i> <?= esc($permuta['nome_original']) ?></strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <small class="text-muted"><i class="fas fa-calendar"></i> Data</small><br>
+                                                <strong><?= date('d/m/Y', strtotime($permuta['data_exame'])) ?></strong>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted"><i class="fas fa-clock"></i> Hora</small><br>
+                                                <strong><?= date('H:i', strtotime($permuta['hora_exame'])) ?></strong>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted"><i class="fas fa-file-alt"></i> Prova</small><br>
+                                                <?= esc($permuta['codigo_prova']) ?>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted"><i class="fas fa-door-open"></i> Sala</small><br>
+                                                <?= esc($permuta['codigo_sala'] ?? 'N/A') ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer">
+                                        <div class="d-grid gap-2">
+                                            <button type="button" class="btn btn-success btn-aceitar-permuta" 
                                                     data-permuta-id="<?= $permuta['id'] ?>"
                                                     data-prova="<?= esc($permuta['codigo_prova']) ?>">
                                                 <i class="fas fa-check"></i> Aceitar
                                             </button>
-                                            <button type="button" class="btn btn-xs btn-danger btn-recusar-permuta" 
+                                            <button type="button" class="btn btn-danger btn-recusar-permuta" 
                                                     data-permuta-id="<?= $permuta['id'] ?>"
                                                     data-prova="<?= esc($permuta['codigo_prova']) ?>">
                                                 <i class="fas fa-times"></i> Recusar
                                             </button>
-                                            <button type="button" class="btn btn-xs btn-info btn-ver-detalhes-permuta" 
-                                                    title="Ver detalhes"
+                                            <button type="button" class="btn btn-info btn-ver-detalhes-permuta" 
                                                     data-solicitante="<?= esc($permuta['nome_original']) ?>"
                                                     data-data="<?= date('d/m/Y', strtotime($permuta['data_exame'])) ?>"
                                                     data-hora="<?= date('H:i', strtotime($permuta['hora_exame'])) ?>"
@@ -73,13 +127,13 @@
                                                     data-sala="<?= esc($permuta['codigo_sala'] ?? 'N/A') ?>"
                                                     data-estado="Aguarda a sua resposta"
                                                     data-permuta-id="<?= $permuta['id'] ?>">
-                                                <i class="fas fa-eye"></i>
+                                                <i class="fas fa-eye"></i> Ver Detalhes
                                             </button>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -87,123 +141,230 @@
             <?php endif; ?>
 
             <!-- Convocatórias para Exames -->
-            <?php if (!empty($convocatorias)): ?>
+            <?php if (!empty($convocatoriasFuturas) || !empty($convocatoriasPassadas)): ?>
             <div class="row mt-4">
                 <div class="col-12">
+                    <?php if (!empty($convocatoriasFuturas)): ?>
                     <div class="card card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-clipboard-list"></i> Convocatórias para Exames</h3>
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h3 class="card-title"><i class="fas fa-clipboard-list"></i> Próximas Convocatórias</h3>
+                            <span class="badge bg-warning text-dark ms-2"><?= count($convocatoriasFuturas) ?></span>
                         </div>
                         <div class="card-body p-0">
-                            <table class="table table-sm table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Data</th>
-                                        <th>Hora</th>
-                                        <th>Prova</th>
-                                        <th>Fase</th>
-                                        <th>Sala</th>
-                                        <th>Função</th>
-                                        <th>Presença</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php 
-                                    $hoje = date('Y-m-d');
-                                    foreach ($convocatorias as $conv): 
-                                        $dataExame = date('Y-m-d', strtotime($conv['data_exame']));
-                                        $isPassado = ($dataExame < $hoje);
-                                        $isHoje = ($dataExame === $hoje);
-                                        $rowClass = $isPassado ? 'table-secondary' : ($isHoje ? 'table-success' : '');
-                                    ?>
-                                    <tr class="<?= $rowClass ?>">
-                                        <td><?= date('d/m/Y', strtotime($conv['data_exame'])) ?></td>
-                                        <td><strong><?= date('H:i', strtotime($conv['hora_exame'])) ?></strong></td>
-                                        <td><?= esc($conv['codigo_prova']) ?> - <?= esc($conv['nome_prova']) ?></td>
-                                        <td><?= esc($conv['fase']) ?></td>
-                                        <td><?= esc($conv['codigo_sala'] ?? 'N/A') ?></td>
-                                        <td><span class="badge badge-light border text-dark"><?= esc($conv['funcao']) ?></span></td>
-                                        <td>
-                                            <?php if ($isPassado): ?>
-                                                <?php 
-                                                $presencaBadge = [
-                                                    'Presente' => 'badge-success',
-                                                    'Falta' => 'badge-danger',
-                                                    'Falta Justificada' => 'badge-warning',
-                                                    'Pendente' => 'badge-secondary'
-                                                ];
-                                                $presencaLabel = $conv['presenca'] ?? 'Pendente';
-                                                $badgeClass = $presencaBadge[$presencaLabel] ?? 'badge-secondary';
-                                                ?>
-                                                <span class="badge <?= $badgeClass ?>"><?= $presencaLabel ?></span>
-                                            <?php else: ?>
-                                                <span class="badge badge-light">-</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
+                            <!-- Desktop: Tabela -->
+                            <div class="d-none d-lg-block table-responsive">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Hora</th>
+                                            <th>Prova</th>
+                                            <th>Fase</th>
+                                            <th>Escola</th>
+                                            <th>Sala</th>
+                                            <th>Função</th>
+                                            <th>Presença</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php 
+                                        $hoje = date('Y-m-d');
+                                        foreach ($convocatoriasFuturas as $conv): 
+                                            $dataExame = date('Y-m-d', strtotime($conv['data_exame']));
+                                            $isHoje = ($dataExame === $hoje);
+                                            $isPassado = false;
+                                            $diffDias = (int) round((strtotime($dataExame) - strtotime($hoje)) / 86400);
+                                            if ($isHoje) {
+                                                $badgeUrgencia = '<span class="badge bg-danger ms-1">HOJE</span>';
+                                                $rowClass = 'table-success';
+                                            } elseif ($diffDias === 1) {
+                                                $badgeUrgencia = '<span class="badge bg-warning text-dark ms-1">Amanhã</span>';
+                                                $rowClass = 'table-warning';
+                                            } elseif ($diffDias <= 7) {
+                                                $badgeUrgencia = '<span class="badge bg-info text-white ms-1">Em ' . $diffDias . ' dias</span>';
+                                                $rowClass = '';
+                                            } else {
+                                                $badgeUrgencia = '';
+                                                $rowClass = '';
+                                            }
+                                        ?>
+                                        <tr class="<?= $rowClass ?>">
+                                            <td><?= date('d/m/Y', strtotime($conv['data_exame'])) ?><?= $badgeUrgencia ?></td>
+                                            <td><strong><?= date('H:i', strtotime($conv['hora_exame'])) ?></strong></td>
+                                            <td><?= esc($conv['codigo_prova']) ?> - <?= esc($conv['nome_prova']) ?></td>
+                                            <td><?= esc($conv['fase']) ?></td>
+                                            <td><?= esc($conv['escola_nome'] ?? 'N/A') ?></td>
+                                            <td><?= esc($conv['codigo_sala'] ?? 'N/A') ?></td>
+                                            <td><span class="badge badge-light border text-dark"><?= esc($conv['funcao']) ?></span></td>
+                                            <td><span class="badge badge-light">-</span></td>
+                                            <td>
+                                                <?php if (isset($conv['estado_confirmacao']) && $conv['estado_confirmacao'] === 'Confirmado'): ?>
+                                                    <span class="badge badge-success">
+                                                        <i class="fas fa-check-circle"></i> Confirmado
+                                                    </span>
+                                                <?php else: ?>
+                                                    <button type="button" class="btn btn-xs btn-success btn-confirmar-presenca" 
+                                                            data-convocatoria-id="<?= $conv['id'] ?>"
+                                                            data-prova="<?= esc($conv['codigo_prova']) ?>"
+                                                            data-nome-prova="<?= esc($conv['nome_prova']) ?>"
+                                                            data-data="<?= date('d/m/Y', strtotime($conv['data_exame'])) ?>"
+                                                            data-hora="<?= date('H:i', strtotime($conv['hora_exame'])) ?>"
+                                                            title="Confirmar Presença">
+                                                        <i class="fas fa-check-circle"></i> Confirmar Presença
+                                                    </button>
+                                                <?php endif; ?>
+                                                <?php if (!empty($conv['permuta_id'])): ?>
+                                                    <?php
+                                                    $estadoBadge = [
+                                                        'PENDENTE' => 'badge-warning',
+                                                        'ACEITE_SUBSTITUTO' => 'badge-info',
+                                                        'VALIDADO_SECRETARIADO' => 'badge-success',
+                                                        'REJEITADO_SECRETARIADO' => 'badge-danger',
+                                                        'RECUSADO_SUBSTITUTO' => 'badge-danger',
+                                                        'CANCELADO' => 'badge-secondary'
+                                                    ];
+                                                    $estadoTexto = [
+                                                        'PENDENTE' => 'Permuta Pendente',
+                                                        'ACEITE_SUBSTITUTO' => 'Aceite pelo Substituto',
+                                                        'VALIDADO_SECRETARIADO' => 'Permuta Aprovada',
+                                                        'REJEITADO_SECRETARIADO' => 'Permuta Rejeitada',
+                                                        'RECUSADO_SUBSTITUTO' => 'Recusada pelo Substituto',
+                                                        'CANCELADO' => 'Permuta Cancelada'
+                                                    ];
+                                                    $badgeClass = $estadoBadge[$conv['permuta_estado']] ?? 'badge-secondary';
+                                                    $estadoLabel = $estadoTexto[$conv['permuta_estado']] ?? $conv['permuta_estado'];
+                                                    ?>
+                                                    <span class="badge <?= $badgeClass ?>" style="<?= $conv['permuta_estado'] == 'PENDENTE' ? 'color: #856404;' : '' ?>">
+                                                        <i class="fas fa-exchange-alt"></i> <?= $estadoLabel ?>
+                                                    </span>
+                                                    <button type="button" class="btn btn-xs btn-outline-primary btn-ver-detalhes-convocatoria" 
+                                                            title="Ver detalhes"
+                                                            data-data="<?= date('d/m/Y', strtotime($conv['data_exame'])) ?>"
+                                                            data-hora="<?= date('H:i', strtotime($conv['hora_exame'])) ?>"
+                                                            data-prova="<?= esc($conv['codigo_prova']) ?>"
+                                                            data-nome-prova="<?= esc($conv['nome_prova']) ?>"
+                                                            data-fase="<?= esc($conv['fase']) ?>"
+                                                            data-escola="<?= esc($conv['escola_nome'] ?? 'N/A') ?>"
+                                                            data-sala="<?= esc($conv['codigo_sala'] ?? 'N/A') ?>"
+                                                            data-funcao="<?= esc($conv['funcao']) ?>"
+                                                            data-estado="<?= $estadoLabel ?>"
+                                                            data-estado-class="<?= $badgeClass ?>">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <?php
+                                                    $dataHoraExame = new DateTime($conv['data_exame'] . ' ' . $conv['hora_exame']);
+                                                    $agora = new DateTime();
+                                                    $diferencaHoras = ($dataHoraExame->getTimestamp() - $agora->getTimestamp()) / 3600;
+                                                    $podePermuta = $diferencaHoras >= 24;
+                                                    ?>
+                                                    <?php if ($podePermuta): ?>
+                                                    <button type="button" class="btn btn-xs btn-warning btn-pedir-permuta" 
+                                                            data-convocatoria-id="<?= $conv['id'] ?>"
+                                                            data-prova="<?= esc($conv['codigo_prova']) ?>"
+                                                            data-data="<?= date('d/m/Y', strtotime($conv['data_exame'])) ?>"
+                                                            data-hora="<?= date('H:i', strtotime($conv['hora_exame'])) ?>"
+                                                            data-sala="<?= esc($conv['codigo_sala'] ?? 'N/A') ?>"
+                                                            data-sessao-id="<?= $conv['sessao_exame_id'] ?>">
+                                                        <i class="fas fa-exchange-alt"></i> Pedir Permuta
+                                                    </button>
+                                                    <?php else: ?>
+                                                    <span class="badge badge-secondary" title="Prazo expirado (menos de 24h)">
+                                                        <i class="fas fa-clock"></i> Prazo expirado
+                                                    </span>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Mobile: Cards -->
+                            <div class="d-lg-none p-2">
+                                <?php 
+                                $hoje = date('Y-m-d');
+                                foreach ($convocatoriasFuturas as $conv): 
+                                    $dataExame = date('Y-m-d', strtotime($conv['data_exame']));
+                                    $isHoje = ($dataExame === $hoje);
+                                    $diffDias = (int) round((strtotime($dataExame) - strtotime($hoje)) / 86400);
+                                    if ($isHoje) {
+                                        $cardClass = 'border-success';
+                                        $headerClass = 'bg-success text-white';
+                                        $badgeUrgencia = '<span class="badge bg-danger ms-1">HOJE</span>';
+                                    } elseif ($diffDias === 1) {
+                                        $cardClass = 'border-warning';
+                                        $headerClass = 'bg-warning text-dark';
+                                        $badgeUrgencia = '<span class="badge bg-warning text-dark ms-1">Amanhã</span>';
+                                    } elseif ($diffDias <= 7) {
+                                        $cardClass = 'border-info';
+                                        $headerClass = 'bg-info text-white';
+                                        $badgeUrgencia = '<span class="badge bg-info text-white ms-1">Em ' . $diffDias . ' dias</span>';
+                                    } else {
+                                        $cardClass = 'border-primary';
+                                        $headerClass = 'bg-primary text-white';
+                                        $badgeUrgencia = '';
+                                    }
+                                ?>
+                                <div class="card mb-3 shadow-sm <?= $cardClass ?>">
+                                    <div class="card-header <?= $headerClass ?>">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-calendar-alt"></i>
+                                                <?= date('d/m/Y', strtotime($conv['data_exame'])) ?>
+                                                <strong class="ms-2"><?= date('H:i', strtotime($conv['hora_exame'])) ?></strong>
+                                            </h6>
+                                            <?= $badgeUrgencia ?>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <h6 class="text-primary mb-2">
+                                            <i class="fas fa-file-alt"></i>
+                                            <?= esc($conv['codigo_prova']) ?> - <?= esc($conv['nome_prova']) ?>
+                                        </h6>
+                                        <div class="row g-2 mt-1">
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">Fase</small>
+                                                <strong><?= esc($conv['fase']) ?></strong>
+                                            </div>
+                                            <div class="col-12">
+                                                <small class="text-muted d-block">Escola</small>
+                                                <strong><?= esc($conv['escola_nome'] ?? 'N/A') ?></strong>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">Sala</small>
+                                                <strong><?= esc($conv['codigo_sala'] ?? 'N/A') ?></strong>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">Função</small>
+                                                <span class="badge bg-light text-dark border"><?= esc($conv['funcao']) ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="d-grid gap-2 mt-3">
                                             <?php if (isset($conv['estado_confirmacao']) && $conv['estado_confirmacao'] === 'Confirmado'): ?>
-                                                <span class="badge badge-success">
-                                                    <i class="fas fa-check-circle"></i> Confirmado
-                                                </span>
+                                                <div class="alert alert-success mb-0 p-2 text-center">
+                                                    <i class="fas fa-check-circle"></i> <strong>Presença Confirmada</strong>
+                                                </div>
                                             <?php else: ?>
-                                                <button type="button" class="btn btn-xs btn-success btn-confirmar-presenca" 
+                                                <button type="button" class="btn btn-success btn-confirmar-presenca" 
                                                         data-convocatoria-id="<?= $conv['id'] ?>"
                                                         data-prova="<?= esc($conv['codigo_prova']) ?>"
                                                         data-nome-prova="<?= esc($conv['nome_prova']) ?>"
                                                         data-data="<?= date('d/m/Y', strtotime($conv['data_exame'])) ?>"
-                                                        data-hora="<?= date('H:i', strtotime($conv['hora_exame'])) ?>"
-                                                        title="Confirmar Presença">
+                                                        data-hora="<?= date('H:i', strtotime($conv['hora_exame'])) ?>">
                                                     <i class="fas fa-check-circle"></i> Confirmar Presença
                                                 </button>
                                             <?php endif; ?>
-                                            <?php if (!empty($conv['permuta_id'])): ?>
+                                            <?php if (empty($conv['permuta_id'])): ?>
                                                 <?php
-                                                $estadoBadge = [
-                                                    'PENDENTE' => 'badge-warning',
-                                                    'ACEITE_SUBSTITUTO' => 'badge-info',
-                                                    'VALIDADO_SECRETARIADO' => 'badge-success',
-                                                    'REJEITADO_SECRETARIADO' => 'badge-danger',
-                                                    'RECUSADO_SUBSTITUTO' => 'badge-danger',
-                                                    'CANCELADO' => 'badge-secondary'
-                                                ];
-                                                $estadoTexto = [
-                                                    'PENDENTE' => 'Permuta Pendente',
-                                                    'ACEITE_SUBSTITUTO' => 'Aceite pelo Substituto',
-                                                    'VALIDADO_SECRETARIADO' => 'Permuta Aprovada',
-                                                    'REJEITADO_SECRETARIADO' => 'Permuta Rejeitada',
-                                                    'RECUSADO_SUBSTITUTO' => 'Recusada pelo Substituto',
-                                                    'CANCELADO' => 'Permuta Cancelada'
-                                                ];
-                                                $badgeClass = $estadoBadge[$conv['permuta_estado']] ?? 'badge-secondary';
-                                                $estadoLabel = $estadoTexto[$conv['permuta_estado']] ?? $conv['permuta_estado'];
-                                                ?>
-                                                <span class="badge <?= $badgeClass ?>" style="<?= $conv['permuta_estado'] == 'PENDENTE' ? 'color: #856404;' : '' ?>">
-                                                    <i class="fas fa-exchange-alt"></i> <?= $estadoLabel ?>
-                                                </span>
-                                                <button type="button" class="btn btn-xs btn-outline-primary btn-ver-detalhes-convocatoria" 
-                                                        title="Ver detalhes"
-                                                        data-data="<?= date('d/m/Y', strtotime($conv['data_exame'])) ?>"
-                                                        data-hora="<?= date('H:i', strtotime($conv['hora_exame'])) ?>"
-                                                        data-prova="<?= esc($conv['codigo_prova']) ?>"
-                                                        data-nome-prova="<?= esc($conv['nome_prova']) ?>"
-                                                        data-fase="<?= esc($conv['fase']) ?>"
-                                                        data-sala="<?= esc($conv['codigo_sala'] ?? 'N/A') ?>"
-                                                        data-funcao="<?= esc($conv['funcao']) ?>"
-                                                        data-estado="<?= $estadoLabel ?>"
-                                                        data-estado-class="<?= $badgeClass ?>">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                            <?php else: ?>
-                                                <?php
-                                                // Verificar se faltam pelo menos 24 horas para o exame
                                                 $dataHoraExame = new DateTime($conv['data_exame'] . ' ' . $conv['hora_exame']);
                                                 $agora = new DateTime();
                                                 $diferencaHoras = ($dataHoraExame->getTimestamp() - $agora->getTimestamp()) / 3600;
-                                                $podePermuta = $diferencaHoras >= 24;
                                                 ?>
-                                                <?php if ($podePermuta): ?>
-                                                <button type="button" class="btn btn-xs btn-warning btn-pedir-permuta" 
+                                                <?php if ($diferencaHoras >= 24): ?>
+                                                <button type="button" class="btn btn-warning btn-pedir-permuta" 
                                                         data-convocatoria-id="<?= $conv['id'] ?>"
                                                         data-prova="<?= esc($conv['codigo_prova']) ?>"
                                                         data-data="<?= date('d/m/Y', strtotime($conv['data_exame'])) ?>"
@@ -212,19 +373,105 @@
                                                         data-sessao-id="<?= $conv['sessao_exame_id'] ?>">
                                                     <i class="fas fa-exchange-alt"></i> Pedir Permuta
                                                 </button>
-                                                <?php else: ?>
-                                                <span class="badge badge-secondary" title="Prazo expirado (menos de 24h)">
-                                                    <i class="fas fa-clock"></i> Prazo expirado
-                                                </span>
                                                 <?php endif; ?>
                                             <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                                        </div>
+                                    </div>
+                                    <?php if ($isHoje): ?>
+                                    <div class="card-footer bg-success text-white text-center py-1">
+                                        <small><i class="fas fa-info-circle"></i> Exame realiza-se hoje</small>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     </div>
+                    <?php endif; ?>
+
+                    <!-- Histórico de Convocatórias (colapsável) -->
+                    <?php if (!empty($convocatoriasPassadas)): ?>
+                    <div class="card card-secondary mt-3">
+                        <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#historicoConvocatoriasSA" aria-expanded="false" aria-controls="historicoConvocatoriasSA">
+                            <h3 class="card-title text-muted">
+                                <i class="fas fa-history"></i> Histórico de Convocatórias
+                                <span class="badge bg-secondary ms-2"><?= count($convocatoriasPassadas) ?></span>
+                            </h3>
+                            <span class="text-muted small"><i class="fas fa-chevron-down"></i> clique para expandir</span>
+                        </div>
+                        <div class="collapse" id="historicoConvocatoriasSA">
+                            <div class="card-body p-0">
+                                <div class="d-none d-lg-block table-responsive">
+                                    <table class="table table-sm table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Data</th>
+                                                <th>Hora</th>
+                                                <th>Prova</th>
+                                                <th>Fase</th>
+                                                <th>Sala</th>
+                                                <th>Função</th>
+                                                <th>Presença</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($convocatoriasPassadas as $conv): ?>
+                                            <tr class="table-secondary">
+                                                <td class="text-muted"><?= date('d/m/Y', strtotime($conv['data_exame'])) ?></td>
+                                                <td class="text-muted"><?= date('H:i', strtotime($conv['hora_exame'])) ?></td>
+                                                <td class="text-muted"><?= esc($conv['codigo_prova']) ?> - <?= esc($conv['nome_prova']) ?></td>
+                                                <td class="text-muted"><?= esc($conv['fase']) ?></td>
+                                                <td class="text-muted"><?= esc($conv['codigo_sala'] ?? 'N/A') ?></td>
+                                                <td><span class="badge badge-light border text-muted"><?= esc($conv['funcao']) ?></span></td>
+                                                <td>
+                                                    <?php
+                                                    $presencaBadge = [
+                                                        'Presente' => 'badge-success',
+                                                        'Falta' => 'badge-danger',
+                                                        'Falta Justificada' => 'badge-warning',
+                                                        'Pendente' => 'badge-secondary'
+                                                    ];
+                                                    $presencaLabel = $conv['presenca'] ?? 'Pendente';
+                                                    $badgeClass = $presencaBadge[$presencaLabel] ?? 'badge-secondary';
+                                                    ?>
+                                                    <span class="badge <?= $badgeClass ?>"><?= $presencaLabel ?></span>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="d-lg-none p-2">
+                                    <?php foreach ($convocatoriasPassadas as $conv): ?>
+                                    <div class="card mb-2 border-secondary bg-light">
+                                        <div class="card-body p-2">
+                                            <div class="d-flex justify-content-between">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                    <?= date('d/m/Y', strtotime($conv['data_exame'])) ?>
+                                                    <strong class="ms-1"><?= date('H:i', strtotime($conv['hora_exame'])) ?></strong>
+                                                </small>
+                                                <?php
+                                                $presencaBadge = [
+                                                    'Presente' => 'bg-success',
+                                                    'Falta' => 'bg-danger',
+                                                    'Falta Justificada' => 'bg-warning text-dark',
+                                                    'Pendente' => 'bg-secondary'
+                                                ];
+                                                $presencaLabel = $conv['presenca'] ?? 'Pendente';
+                                                $badgeClass = $presencaBadge[$presencaLabel] ?? 'bg-secondary';
+                                                ?>
+                                                <span class="badge <?= $badgeClass ?>"><?= $presencaLabel ?></span>
+                                            </div>
+                                            <small class="text-muted d-block mt-1"><?= esc($conv['codigo_prova']) ?> - <?= esc($conv['nome_prova']) ?> | <?= esc($conv['fase']) ?></small>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>
@@ -234,7 +481,7 @@
 
 <!-- Modal Ver Detalhes de Permuta Pendente -->
 <div class="modal fade" id="modalDetalhesPermuta" tabindex="-1" aria-labelledby="modalDetalhesPermutaLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header bg-warning">
                 <h5 class="modal-title" id="modalDetalhesPermutaLabel"><i class="fas fa-exchange-alt"></i> Detalhes do Pedido de Permuta</h5>
@@ -290,9 +537,10 @@
     </div>
 </div>
 
+
 <!-- Modal Ver Detalhes de Convocatória -->
 <div class="modal fade" id="modalDetalhesConvocatoria" tabindex="-1" aria-labelledby="modalDetalhesConvocatoriaLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header bg-primary">
                 <h5 class="modal-title text-white" id="modalDetalhesConvocatoriaLabel"><i class="fas fa-clipboard-list"></i> Detalhes da Convocatória</h5>
@@ -343,7 +591,7 @@
 
 <!-- Modal Pedir Permuta -->
 <div class="modal fade" id="modalPedirPermuta" tabindex="-1" aria-labelledby="modalPedirPermutaLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header bg-warning">
                 <h5 class="modal-title" id="modalPedirPermutaLabel"><i class="fas fa-exchange-alt"></i> Pedir Permuta de Vigilância</h5>
@@ -397,6 +645,9 @@
 // ========================================
 
 $(document).ready(function() {
+    // Flags para prevenir múltiplos cliques
+    let aceitandoPermuta = false;
+    let aceitandoPermutaModal = false;
     // Abrir modal de detalhes de permuta pendente
     $('.btn-ver-detalhes-permuta').on('click', function() {
         const solicitante = $(this).data('solicitante');
@@ -468,7 +719,12 @@ $(document).ready(function() {
     
     // Aceitar permuta a partir da modal de detalhes
     $('#btnAceitarPermutaModal').on('click', function() {
+        if (aceitandoPermutaModal) {
+            return; // Ignora se já está processando
+        }
+        
         const permutaId = $(this).data('permuta-id');
+        const $btn = $(this);
         
         Swal.fire({
             title: 'Aceitar Permuta?',
@@ -481,6 +737,9 @@ $(document).ready(function() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
+                aceitandoPermutaModal = true;
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> A processar...');
+                
                 $.ajax({
                     url: '<?= base_url('permutas-vigilancia/aceitar') ?>/' + permutaId,
                     method: 'POST',
@@ -503,6 +762,9 @@ $(document).ready(function() {
                                         location.reload();
                                     });
                                 } else {
+                                    aceitandoPermutaModal = false;
+                                    $btn.prop('disabled', false).html('<i class="fas fa-check"></i> Aceitar Permuta');
+                                    
                                     Swal.fire({
                                         icon: 'error',
                                         title: 'Erro',
@@ -513,6 +775,9 @@ $(document).ready(function() {
                         }
                     },
                     error: function(xhr) {
+                        aceitandoPermutaModal = false;
+                        $btn.prop('disabled', false).html('<i class="fas fa-check"></i> Aceitar Permuta');
+                        
                         // Fechar modal ANTES do SweetAlert
                         const modalElement = document.getElementById('modalDetalhesPermuta');
                         const modal = bootstrap.Modal.getInstance(modalElement);
@@ -610,8 +875,13 @@ $(document).ready(function() {
 
     // Aceitar permuta
     $('.btn-aceitar-permuta').on('click', function() {
+        if (aceitandoPermuta) {
+            return; // Ignora se já está processando
+        }
+        
         const permutaId = $(this).data('permuta-id');
         const prova = $(this).data('prova');
+        const $btn = $(this);
         
         Swal.fire({
             title: 'Aceitar Permuta?',
@@ -624,6 +894,10 @@ $(document).ready(function() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
+                // Marcar como processando e desabilitar botão
+                aceitandoPermuta = true;
+                $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> A processar...');
+                
                 $.ajax({
                     url: '<?= base_url('permutas-vigilancia/aceitar') ?>/' + permutaId,
                     method: 'POST',
@@ -639,6 +913,9 @@ $(document).ready(function() {
                                 location.reload();
                             });
                         } else {
+                            aceitandoPermuta = false;
+                            $btn.prop('disabled', false).html('<i class="fas fa-check"></i> Aceitar');
+                            
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Erro',
@@ -647,6 +924,9 @@ $(document).ready(function() {
                         }
                     },
                     error: function(xhr) {
+                        aceitandoPermuta = false;
+                        $btn.prop('disabled', false).html('<i class="fas fa-check"></i> Aceitar');
+                        
                         let errorMsg = 'Erro ao processar pedido';
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMsg = xhr.responseJSON.message;

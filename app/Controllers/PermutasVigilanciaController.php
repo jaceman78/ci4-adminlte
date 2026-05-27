@@ -24,7 +24,7 @@ class PermutasVigilanciaController extends BaseController
 
     public function index()
     {
-        $userId = session()->get('LoggedUserData')['id'] ?? null;
+        $userId = $this->getEffectiveUser()['id'] ?? null;
         if (!$userId) return redirect()->to('/login');
 
         $data = ['title' => 'Minhas Permutas', 'permutas' => $this->permutasModel->getPermutasProfessor($userId)];
@@ -42,7 +42,7 @@ class PermutasVigilanciaController extends BaseController
 
     public function criar()
     {
-        $userId = session()->get('LoggedUserData')['id'] ?? null;
+        $userId = $this->getEffectiveUser()['id'] ?? null;
         $convocatoriaId = $this->request->getPost('convocatoria_id');
         $substitutoId = $this->request->getPost('user_substituto_id');
         $motivo = $this->request->getPost('motivo');
@@ -99,7 +99,7 @@ class PermutasVigilanciaController extends BaseController
 
     public function responder($id)
     {
-        $userId = session()->get('LoggedUserData')['id'] ?? null;
+        $userId = $this->getEffectiveUser()['id'] ?? null;
         $aceitar = $this->request->getPost('aceitar') == '1';
 
         $permuta = $this->permutasModel->getPermutaCompleta($id);
@@ -168,7 +168,7 @@ class PermutasVigilanciaController extends BaseController
 
     public function aceitar($id)
     {
-        $userId = session()->get('LoggedUserData')['id'] ?? null;
+        $userId = $this->getEffectiveUser()['id'] ?? null;
 
         $permuta = $this->permutasModel->getPermutaCompleta($id);
         if (!$permuta || $permuta['user_substituto_id'] != $userId) {
@@ -231,7 +231,7 @@ class PermutasVigilanciaController extends BaseController
 
     public function recusar($id)
     {
-        $userId = session()->get('LoggedUserData')['id'] ?? null;
+        $userId = $this->getEffectiveUser()['id'] ?? null;
 
         $permuta = $this->permutasModel->getPermutaCompleta($id);
         if (!$permuta || $permuta['user_substituto_id'] != $userId) {
@@ -306,7 +306,7 @@ class PermutasVigilanciaController extends BaseController
 
     public function cancelar($id)
     {
-        $userId = session()->get('LoggedUserData')['id'] ?? null;
+        $userId = $this->getEffectiveUser()['id'] ?? null;
         $userLevel = session()->get('LoggedUserData')['level'] ?? 0;
         $permuta = $this->permutasModel->find($id);
 
@@ -341,6 +341,7 @@ class PermutasVigilanciaController extends BaseController
         $email = \Config\Services::email();
         $email->setTo($permuta['email_substituto']);
         $email->setFrom(getenv('email.fromEmail'), getenv('email.fromName'));
+        $email->setReplyTo('secretariadoexamesaejb@aejoaodebarros.pt', 'Secretariado de Exames');
         $email->setSubject('Pedido de Permuta de Vigilância');
         $email->setMessage(view('emails/permuta_pedido', ['permuta' => $permuta]));
         $email->send();
@@ -352,6 +353,7 @@ class PermutasVigilanciaController extends BaseController
         $email = \Config\Services::email();
         $email->setTo($permuta['email_original']);
         $email->setFrom(getenv('email.fromEmail'), getenv('email.fromName'));
+        $email->setReplyTo('secretariadoexamesaejb@aejoaodebarros.pt', 'Secretariado de Exames');
         $email->setSubject('Resposta à Permuta de Vigilância');
         $email->setMessage(view('emails/permuta_resposta', ['permuta' => $permuta, 'aceite' => $aceite]));
         $email->send();
@@ -372,6 +374,7 @@ class PermutasVigilanciaController extends BaseController
         foreach ($secretariado as $user) {
             $email->setTo($user['email']);
             $email->setFrom(getenv('email.fromEmail'), getenv('email.fromName'));
+            $email->setReplyTo('secretariadoexamesaejb@aejoaodebarros.pt', 'Secretariado de Exames');
             $email->setSubject('Permuta Pendente Validação');
             $email->setMessage(view('emails/permuta_secretariado', ['permuta' => $permuta]));
             $email->send();
@@ -385,6 +388,7 @@ class PermutasVigilanciaController extends BaseController
         foreach ([$permuta['email_original'], $permuta['email_substituto']] as $destinatario) {
             $email->setTo($destinatario);
             $email->setFrom(getenv('email.fromEmail'), getenv('email.fromName'));
+            $email->setReplyTo('secretariadoexamesaejb@aejoaodebarros.pt', 'Secretariado de Exames');
             $email->setSubject($aprovado ? 'Permuta Aprovada' : 'Permuta Rejeitada');
             $email->setMessage(view('emails/permuta_validacao', ['permuta' => $permuta, 'aprovado' => $aprovado, 'destinatario' => $destinatario]));
             $email->send();

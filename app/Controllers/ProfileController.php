@@ -4,16 +4,19 @@ namespace App\Controllers;
 
 use App\Models\UserModel;
 use App\Models\HorarioAulasModel;
+use App\Models\AnoLetivoModel;
 
 class ProfileController extends BaseController
 {
     protected $userModel;
     protected $horarioModel;
+    protected $anoLetivoModel;
 
     public function __construct()
     {
         $this->userModel = new UserModel();
         $this->horarioModel = new HorarioAulasModel();
+        $this->anoLetivoModel = new AnoLetivoModel();
         helper(['url', 'form']);
     }
 
@@ -34,7 +37,9 @@ class ProfileController extends BaseController
         $disciplinasTurmas = [];
 
         if (!empty($user['NIF'])) {
-            $horario = $this->horarioModel->getHorarioProfessor($user['NIF']);
+            $anoAtivo = $this->anoLetivoModel->getAnoAtivo();
+            $anoLetivoId = $anoAtivo['id_anoletivo'] ?? null;
+            $horario = $this->horarioModel->getHorarioProfessor($user['NIF'], null, $anoLetivoId);
 
             foreach ($horario as $linha) {
                 $disciplina = $linha['nome_disciplina'] ?? $linha['disciplina_id'] ?? '';

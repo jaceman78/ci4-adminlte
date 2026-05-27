@@ -119,7 +119,7 @@
                 <div class="col-md-4">
                     <!-- Localização -->
                     <div class="card">
-                        <div class="card-header bg-primary">
+                        <div class="card-header bg-primary text-white">
                             <h3 class="card-title"><i class="fas fa-map-marker-alt"></i> Localização</h3>
                         </div>
                         <div class="card-body">

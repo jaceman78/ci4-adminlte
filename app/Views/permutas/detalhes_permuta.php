@@ -47,7 +47,7 @@
 
                 <!-- Informações da Aula Original -->
                 <div class="card">
-                    <div class="card-header bg-primary">
+                    <div class="card-header bg-primary text-white">
                         <h3 class="card-title text-white"><i class="fas fa-book"></i> Aula Original</h3>
                     </div>
                     <div class="card-body">

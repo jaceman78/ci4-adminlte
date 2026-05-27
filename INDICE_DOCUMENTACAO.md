@@ -123,6 +123,85 @@
 
 ---
 
+## 🏖️ Sistema de Gestão de Férias (v1.0) ⭐ NOVO
+
+### 🚀 Guias de Instalação
+- **[INSTALACAO_RAPIDA_FERIAS.md](INSTALACAO_RAPIDA_FERIAS.md)** - Instalação rápida (10 minutos)
+  - Checklist completo passo a passo
+  - 9 passos de instalação
+  - Testes automatizados
+  - Resolução de problemas comuns
+  - Verificação final
+
+### 📘 Documentação Técnica
+- **[IMPLEMENTACAO_SISTEMA_FERIAS.md](IMPLEMENTACAO_SISTEMA_FERIAS.md)** - Documentação completa (500+ linhas)
+  - 5 tabelas + 1 vista
+  - 5 Models com 50+ métodos
+  - Controller com 15+ métodos
+  - Helper com 10 funções utilitárias
+  - Workflow completo (8 estados)
+  - Emails e notificações
+  - Geração de PDF oficial
+  - Transição entre anos letivos
+  - Referência completa de API
+
+### 🎨 Personalização
+- **[PERSONALIZACAO_DOCUMENTO_FERIAS.md](PERSONALIZACAO_DOCUMENTO_FERIAS.md)** - Guia de personalização
+  - Configurar dados da escola
+  - Adicionar logo institucional
+  - Customizar template PDF
+  - Adicionar campos personalizados
+  - Alterar cálculo de faltas
+  - Exemplos práticos (QR Code, departamento, etc.)
+  - Resolução de problemas (fonte, imagem, geração)
+
+- **[app/Config/FeriasConfig.php](app/Config/FeriasConfig.php)** - Ficheiro de configuração
+  - Dados da escola (código, nome, morada, NMec, tel, contribuinte)
+  - Categoria padrão dos professores
+  - Parâmetros do sistema (dias base, ajustes, antecedência)
+  - Notificações email
+  - Validações e limites
+  - Logs e auditoria
+  - Métodos auxiliares
+
+### 📄 Documento Oficial
+- **[EXEMPLO_DOCUMENTO_FERIAS.md](EXEMPLO_DOCUMENTO_FERIAS.md)** - Preview visual do PDF
+  - Formato oficial português
+  - Layout completo A4
+  - 11 seções do documento
+  - Comparação antes/depois
+  - Casos de uso práticos
+  - Compatibilidade (impressão, visualização, assinatura digital)
+  - Checklist de validação
+
+### 🗄️ Scripts SQL
+- **[CREATE_SISTEMA_FERIAS.sql](CREATE_SISTEMA_FERIAS.sql)** - Script completo
+  - 5 tabelas (atribuicao, pedido, periodo, log, feriados)
+  - 1 vista (resumo)
+  - Foreign keys e constraints
+  - Feriados portugueses 2026 pré-carregados
+  - Índices otimizados
+
+### ✨ Características Principais
+- ✅ Secretaria atribui dias de férias (base + ajuste + extra)
+- ✅ Professores marcam períodos múltiplos
+- ✅ Cálculo automático de dias úteis (exclui fins de semana + feriados portugueses)
+- ✅ Verificação de conflitos de datas
+- ✅ Workflow com 8 estados (rascunho → concluído)
+- ✅ Geração de PDF oficial conforme formato escolas portuguesas
+- ✅ Upload de documento assinado
+- ✅ Notificações email em cada etapa
+- ✅ Sistema de logs completo
+- ✅ Transição entre anos letivos com saldo e ajuste negativo
+- ✅ Dashboard professor e secretaria
+- ✅ Histórico completo de ações
+
+### 📊 Dashboard
+- 📈 **Dashboard Professor**: Saldo de dias, pedidos ativos, timeline colorida, upload documentos
+- 📈 **Dashboard Secretaria**: Estatísticas, pedidos pendentes, atribuição de dias, aprovação/rejeição
+
+---
+
 ## 🔐 Autenticação e Segurança
 
 ### 📘 Documentação
@@ -214,6 +293,14 @@
 1. IMPLEMENTACAO_PERMUTAS.md
 2. IMPLEMENTACAO_ANO_LETIVO_PERMUTAS.md
 
+#### Gestão de Férias (6 documentos) ⭐ NOVO
+1. IMPLEMENTACAO_SISTEMA_FERIAS.md
+2. INSTALACAO_RAPIDA_FERIAS.md
+3. PERSONALIZACAO_DOCUMENTO_FERIAS.md
+4. EXEMPLO_DOCUMENTO_FERIAS.md
+5. CREATE_SISTEMA_FERIAS.sql
+6. app/Config/FeriasConfig.php
+
 #### Autenticação (2 documentos)
 1. GOOGLE_OAUTH_SETUP.md
 2. PERMISSOES_ACESSO.md
@@ -227,12 +314,13 @@
 
 ## 📖 Por Tipo de Documento
 
-### 🚀 Instalação e Setup (3)
+### 🚀 Instalação e Setup (4)
 - INSTALACAO_SISTEMA_EXAMES.md
 - INSTALACAO_RAPIDA_SALAS.md
+- INSTALACAO_RAPIDA_FERIAS.md ⭐ NOVO
 - GOOGLE_OAUTH_SETUP.md
 
-### 📘 Implementação Técnica (13)
+### 📘 Implementação Técnica (14)
 - IMPLEMENTACAO_CONVOCATORIAS_EXAMES.md
 - IMPLEMENTACAO_ALOCACAO_SALAS_EXAMES.md
 - IMPLEMENTACAO_EQUIPAMENTOS.md
@@ -242,13 +330,24 @@
 - IMPLEMENTACAO_PERMUTAS.md
 - IMPLEMENTACAO_ANO_LETIVO_PERMUTAS.md
 - IMPLEMENTACAO_DASHBOARD_TECNICOS.md
+- IMPLEMENTACAO_SISTEMA_FERIAS.md ⭐ NOVO
 - LOGS_IMPLEMENTATION_GUIDE.md
 - SISTEMA_TOASTS.md
 - MIGRACAO_ESTADOS_TICKET.md
 - DOCUMENTACAO_REPARACOES_EXTERNAS.md
 
-### 🗄️ Scripts SQL (3)
+### 🎨 Personalização e Configuração (2) ⭐ NOVO
+- PERSONALIZACAO_DOCUMENTO_FERIAS.md
+- app/Config/FeriasConfig.php
+
+### 📋 Exemplos e Previews (1) ⭐ NOVO
+- EXEMPLO_DOCUMENTO_FERIAS.md
+
+### 🗄️ Scripts SQL (4)
 - CREATE_SISTEMA_CONVOCATORIAS_EXAMES.sql
+- MIGRATION_ALOCACAO_SALAS.sql
+- QUERIES_UTEIS_CONVOCATORIAS.sql
+- CREATE_SISTEMA_FERIAS.sql ⭐ NOVO
 - MIGRATION_ALOCACAO_SALAS.sql
 - QUERIES_UTEIS_CONVOCATORIAS.sql
 
@@ -264,6 +363,20 @@
 ---
 
 ## 🆕 Documentos Mais Recentes (Últimos 30 dias)
+
+### 8 Março 2026 ⭐ NOVO
+- 🏖️ **Sistema de Gestão de Férias v1.0** - Sistema completo implementado
+- ✨ **IMPLEMENTACAO_SISTEMA_FERIAS.md** - Documentação completa (500+ linhas)
+- ✨ **INSTALACAO_RAPIDA_FERIAS.md** - Instalação rápida (10 minutos)
+- ✨ **PERSONALIZACAO_DOCUMENTO_FERIAS.md** - Guia de personalização
+- ✨ **EXEMPLO_DOCUMENTO_FERIAS.md** - Preview visual do documento oficial
+- ✨ **CREATE_SISTEMA_FERIAS.sql** - 5 tabelas + 1 vista
+- ✨ **app/Config/FeriasConfig.php** - Ficheiro de configuração
+- 📄 **app/Views/ferias/documento_pdf.php** - Template PDF oficial português
+- 🎨 Documento segue formato oficial das escolas portuguesas
+- ✅ 8 estados completos desde rascunho até conclusão
+- ✅ Cálculo automático de dias úteis (exclui fins de semana + feriados PT)
+- ✅ Transição entre anos letivos com saldo e ajustes
 
 ### 2 Fevereiro 2026
 - ✨ **README_SISTEMA.md** - Visão geral completa (criado)
@@ -285,13 +398,16 @@
 
 ### Para Começar
 1. [Visão Geral do Sistema](README_SISTEMA.md)
-2. [Instalar Sistema de Exames](INSTALACAO_SISTEMA_EXAMES.md)
-3. [Configurar Google OAuth](GOOGLE_OAUTH_SETUP.md)
+2. [Instalar Sistema de Exames](INSTALACAO_SISTEMA_EXAMES.md)  
+3. [Instalar Sistema de Férias](INSTALACAO_RAPIDA_FERIAS.md) ⭐ NOVO
+4. [Configurar Google OAuth](GOOGLE_OAUTH_SETUP.md)
 
 ### Para Desenvolvedores
 1. [Estrutura de Base de Dados - Exames](IMPLEMENTACAO_CONVOCATORIAS_EXAMES.md)
-2. [Alocação de Salas - Técnico](IMPLEMENTACAO_ALOCACAO_SALAS_EXAMES.md)
-3. [Sistema de Logs](LOGS_IMPLEMENTATION_GUIDE.md)
+2. [Estrutura de Base de Dados - Férias](IMPLEMENTACAO_SISTEMA_FERIAS.md) ⭐ NOVO
+3. [Alocação de Salas - Técnico](IMPLEMENTACAO_ALOCACAO_SALAS_EXAMES.md)
+4. [Personalizar Documento Férias](PERSONALIZACAO_DOCUMENTO_FERIAS.md) ⭐ NOVO
+5. [Sistema de Logs](LOGS_IMPLEMENTATION_GUIDE.md)
 
 ### Para Administradores
 1. [Permissões de Acesso](PERMISSOES_ACESSO.md)

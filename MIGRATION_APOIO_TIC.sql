@@ -15,7 +15,7 @@ ALTER TABLE `exame`
 MODIFY COLUMN `tipo_prova` ENUM(
     'Exame Nacional', 
     'Prova Final', 
-    'MODa', 
+    'ModA', 
     'Suplentes',
     'Verificacao Calculadoras',
     'Apoio TIC'

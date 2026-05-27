@@ -1,9 +1,15 @@
+<?php
+// Utilizar utilizador impersonado se ativo, senão o utilizador real.
+// NUNCA usar ImpersonatedUserData para logs — apenas para UI/menus.
+$_sidebarEffectiveUser = session()->get('ImpersonatedUserData') ?? session()->get('LoggedUserData') ?? [];
+$userLevel = (int)($_sidebarEffectiveUser['level'] ?? 0);
+?>
 <aside class="app-sidebar bg-primary shadow" data-bs-theme="dark">
   <div class="sidebar-brand">
     <a href="https://www.aejoaodebarros.pt/" class="brand-link">
       <img src="<?= base_url('adminlte/img/passaro_vermelho.png') ?>" alt="HardWork550 Logo"
            class="brand-image opacity-75 shadow">
-      <span class="brand-text fw-light">HardWork550 JB</span>
+      <span class="brand-text fw-light">Intranet - AEJB</span>
     </a>
   </div>
 
@@ -36,7 +42,7 @@
         <p>Meus Tickets</p>
       </a>
     </li>
-    <?php $userLevel = session()->get('LoggedUserData')['level'] ?? 0; ?>
+    <?php // $userLevel already set from effective user at top of file ?>
     <?php if ($userLevel >= 5): ?>
     <li class="nav-item">
       <a href="<?= base_url('tickets/tratamento') ?>" class="nav-link <?= $isTickets && (($segments[1] ?? '') === 'tratamento') ? 'active' : '' ?>">
@@ -69,8 +75,8 @@ $isPermutas = ($segments[0] ?? '') === 'permutas';
     </p>
   </a>
   <ul class="nav nav-treeview">
-    <?php $userLevel = session()->get('LoggedUserData')['level'] ?? 0; ?>
-    <?php if ($userLevel != 0): ?>
+    <?php // $userLevel already set from effective user at top of file ?>
+    <?php if ($userLevel != 0 && $userLevel != 3): ?>
     <li class="nav-item">
       <a href="<?= base_url('permutas') ?>" class="nav-link <?= $isPermutas && (($segments[1] ?? '') === '' || !isset($segments[1])) ? 'active' : '' ?>">
         <i class="nav-icon bi bi-eye"></i>
@@ -78,7 +84,7 @@ $isPermutas = ($segments[0] ?? '') === 'permutas';
       </a>
     </li>
     <?php endif; ?>
-    <?php if ($userLevel != 0): ?>
+    <?php if ($userLevel != 0 && $userLevel != 3): ?>
     <li class="nav-item">
       <a href="<?= base_url('permutas/minhas') ?>" class="nav-link <?= $isPermutas && (($segments[1] ?? '') === 'minhas') ? 'active' : '' ?>">
         <i class="nav-icon bi bi-list-check"></i>
@@ -106,7 +112,7 @@ $isPermutas = ($segments[0] ?? '') === 'permutas';
       </a>
     </li>
     <?php endif; ?>
-    <?php if ($userLevel == 0 || $userLevel >= 8): ?>
+    <?php if ($userLevel == 0 || $userLevel == 3 || $userLevel >= 8): ?>
     <li class="nav-item">
       <a href="<?= base_url('permutas/aprovadas') ?>" class="nav-link <?= $isPermutas && (($segments[1] ?? '') === 'aprovadas') ? 'active' : '' ?>">
         <i class="nav-icon bi bi-check2-square"></i>
@@ -228,10 +234,135 @@ $isSecExamesActive = $isExames || $isSessoesExame || $isConvocatorias;
 <?php endif; ?>
 
 <?php 
+// ============================================================
+// MENU DE FÉRIAS - Sistema de Gestão de Férias
+// ============================================================
+// Verificar se está em alguma página de Férias
+$isFerias = ($segments[0] ?? '') === 'ferias';
+$isFeriasSecretaria = $isFerias && (($segments[1] ?? '') === 'secretaria' || ($segments[1] ?? '') === 'atribuir' || ($segments[1] ?? '') === 'aprovar');
+$isFeriasActive = $isFerias;
+// Verificar configuração: mostrar menu de férias
+$_feriasConfig = model('App\Models\FeriasConfiguracaoModel')->getConfiguracaoAnoAtivo();
+$_mostrarMenuFerias = $_feriasConfig ? (bool)($_feriasConfig['mostrar_menu_ferias'] ?? 1) : true;
+// A secretaria vê sempre o menu (para poder reativar)
+$_mostrarMenuFerias = $_mostrarMenuFerias || ($userLevel == 3 || $userLevel >= 6);
+?>
+
+<?php if ($userLevel >= 1 && $_mostrarMenuFerias): ?>
+<li class="nav-item <?= $isFeriasActive ? 'menu-open' : '' ?>">
+  <a href="#" class="nav-link <?= $isFeriasActive ? 'active' : '' ?>">
+    <i class="nav-icon bi bi-calendar-heart"></i>
+    <p>
+      Férias
+      <i class="nav-arrow bi bi-chevron-right"></i>
+    </p>
+  </a>
+  <ul class="nav nav-treeview">
+    
+    <!-- =============================================== -->
+    <!-- MENU FUNCIONÁRIOS - Minhas Férias (Todos exceto nível 3 - Secretaria) -->
+    <!-- =============================================== -->
+    <?php if ($userLevel >= 1 && $userLevel != 3): ?>
+    <li class="nav-header" style="padding-left: 2rem; font-size: 0.7rem; color: #6c757d; text-transform: uppercase;">
+      <i class="bi bi-person-fill"></i> Minhas Férias
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias') ?>" class="nav-link <?= $isFerias && !isset($segments[1]) ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-house-heart-fill"></i>
+        <p>Minhas Férias</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/marcar') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'marcar' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-calendar-plus"></i>
+        <p>Marcar Período</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/meus-pedidos') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'meus-pedidos' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-clock-history"></i>
+        <p>Histórico de Pedidos</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/meus-documentos') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'meus-documentos' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-file-earmark-pdf"></i>
+        <p>Meus Documentos</p>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if ($userLevel == 3 || $userLevel >= 6): ?>
+    <!-- =============================================== -->
+    <!-- MENU SERVIÇOS ADMINISTRATIVOS (Level 3 ou >= 6) -->
+    <!-- Exclui níveis 4 e 5 que são professores        -->
+    <!-- =============================================== -->
+    <li class="nav-header" style="padding-left: 2rem; font-size: 0.7rem; color: #6c757d; text-transform: uppercase;">
+      <i class="bi bi-building"></i> Secretaria
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/secretaria') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'secretaria' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-speedometer2"></i>
+        <p>Dashboard Secretaria</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/atribuir') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'atribuir' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-calendar-check"></i>
+        <p>Atribuir Dias</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/pedidos-pendentes') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'pedidos-pendentes' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-hourglass-split"></i>
+        <p>Pedidos Pendentes</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/todos-pedidos') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'todos-pedidos' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-list-ul"></i>
+        <p>Todos os Pedidos</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/relatorios') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'relatorios' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-graph-up-arrow"></i>
+        <p>Relatórios</p>
+      </a>
+    </li>
+    
+    <li class="nav-header" style="padding-left: 2rem; font-size: 0.7rem; color: #6c757d; text-transform: uppercase;">
+      <i class="bi bi-gear-fill"></i> Configurações
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/feriados') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'feriados' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-calendar-x"></i>
+        <p>Gestão de Feriados</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/utilizadores') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'utilizadores' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-people"></i>
+        <p>Gestão de Utilizadores</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('ferias/logs') ?>" class="nav-link <?= $isFerias && ($segments[1] ?? '') === 'logs' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-file-text"></i>
+        <p>Logs do Sistema</p>
+      </a>
+    </li>
+    <?php endif; ?>
+
+  </ul>
+</li>
+<?php endif; ?>
+
+<?php 
 // Verificar se está em alguma página de Gestão Letiva
 $gestaoLetivaPages = ['turmas', 'disciplinas', 'horarios', 'blocos', 'tipologias', 'anos-letivos'];
 $isGestaoLetivaActive = in_array($segments[0] ?? '', $gestaoLetivaPages);
-$userLevel = session()->get('LoggedUserData')['level'] ?? 0;
+// $userLevel already set from effective user at top of file
 ?>
 
 <?php if ($userLevel >= 6): ?>
@@ -352,7 +483,7 @@ $isDashboardActive = in_array($segments[0] ?? '', $dashboardPages);
         <p>Materiais</p>
       </a>
     </li>
-    <?php if ((session()->get('LoggedUserData')['level'] ?? 0) == 9): ?>
+    <?php if ($userLevel == 9): ?>
     <li class="nav-item">
       <a href="<?= base_url('logs') ?>" class="nav-link <?= ($segments[0] ?? '') == 'logs' ? 'active' : '' ?>">
         <i class="nav-icon bi bi-circle"></i>
@@ -363,6 +494,12 @@ $isDashboardActive = in_array($segments[0] ?? '', $dashboardPages);
       <a href="<?= base_url('empresas-chaves') ?>" class="nav-link <?= ($segments[0] ?? '') == 'empresas-chaves' ? 'active' : '' ?>">
         <i class="nav-icon bi bi-key"></i>
         <p>Chaves de Acesso</p>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="<?= base_url('manutencao/admin') ?>" class="nav-link <?= ($segments[0] ?? '') == 'manutencao' ? 'active' : '' ?>">
+        <i class="nav-icon bi bi-tools"></i>
+        <p>Manutenção</p>
       </a>
     </li>
     <?php endif; ?>

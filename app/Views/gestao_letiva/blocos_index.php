@@ -117,7 +117,7 @@ $(document).ready(function() {
                 orderable: false,
                 render: function(data, type, row) {
                     return `
-                        <button class="btn btn-sm btn-info btn-edit" data-id="${row.id_bloco}">`
+                        <button class="btn btn-sm btn-info btn-edit" data-id="${row.id_bloco}">
                             <i class="bi bi-pencil"></i>
                         </button>
                         <button class="btn btn-sm btn-danger btn-delete" data-id="${row.id_bloco}">

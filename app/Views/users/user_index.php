@@ -36,7 +36,7 @@
                 <table id="usersTable" class="table table-bordered table-striped table-hover nowrap" style="width:100%">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>Cód. Funcionário</th>
                             <th>Foto</th>
                             <th>Nome</th>
                             <th>Email</th>
@@ -44,7 +44,7 @@
                             <th>NIF</th>
                             <th>Nível</th>
                             <th>Status</th>
-                            <th>Data Criação</th>
+                            <th>Grupo</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -101,6 +101,47 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="userCodFuncionario" class="form-label">Código de Funcionário</label>
+                                <input type="text" class="form-control" id="userCodFuncionario" name="cod_funcionario" placeholder="F001" maxlength="20">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="userCategoria" class="form-label">Categoria</label>
+                                <select class="form-select" id="userCategoria" name="categoria">
+                                    <option value="">Selecione...</option>
+                                    <?php if (isset($categorias) && is_array($categorias)): ?>
+                                        <?php foreach ($categorias as $codigo => $nome): ?>
+                                            <option value="<?= esc($codigo) ?>"><?= esc($nome) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="userEscolaServico" class="form-label">Escola de Serviço</label>
+                                <select class="form-select" id="userEscolaServico" name="escola_servico">
+                                    <option value="">Selecione...</option>
+                                    <?php if (isset($escolas) && is_array($escolas)): ?>
+                                        <?php foreach ($escolas as $escola): ?>
+                                            <option value="<?= $escola['id'] ?>"><?= esc($escola['nome']) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="userOAuthId" class="form-label">OAuth ID</label>
@@ -115,6 +156,17 @@
                             <div class="mb-3">
                                 <label for="userGrupoId" class="form-label">Grupo ID</label>
                                 <input type="number" class="form-control" id="userGrupoId" name="grupo_id" placeholder="1">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="userGrupoMapaFerias" class="form-label">Grupo no Mapa de Férias</label>
+                                <select class="form-select" id="userGrupoMapaFerias" name="grupo_mapa_ferias">
+                                    <option value="geral">Geral (mapa padrão)</option>
+                                    <option value="direcao">Direção (férias pelo Conselho Geral)</option>
+                                    <option value="tecnico_superior">Técnico Superior (mapa próprio)</option>
+                                </select>
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -143,6 +195,11 @@
                                     <option value="1">Ativo</option>
                                     <option value="0">Inativo</option>
                                     <option value="2">Pendente</option>
+                                    <option value="3">Junta Médica</option>
+                                    <option value="4">Mobilidade Especial</option>
+                                    <option value="5">Em Mobilidade</option>
+                                    <option value="6">Licença s/ vencimento</option>
+                                    <option value="7">Licença de maternidade</option>
                                 </select>
                                 <div class="invalid-feedback"></div>
                             </div>
@@ -208,6 +265,18 @@
                             <tr>
                                 <td><strong>NIF:</strong></td>
                                 <td id="viewUserNIF"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Código Funcionário:</strong></td>
+                                <td id="viewUserCodFuncionario"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Categoria:</strong></td>
+                                <td id="viewUserCategoria"></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Escola de Serviço:</strong></td>
+                                <td id="viewUserEscolaServico"></td>
                             </tr>
                             <tr>
                                 <td><strong>OAuth ID:</strong></td>
@@ -334,7 +403,7 @@ $(document).ready(function() {
             }
         },
         columns: [
-            { data: 0, name: 'id' },
+            { data: 0, name: 'cod_funcionario' },
             { data: 1, name: 'profile_img', orderable: false, searchable: false },
             { data: 2, name: 'name' },
             { data: 3, name: 'email' },
@@ -342,7 +411,7 @@ $(document).ready(function() {
             { data: 5, name: 'NIF' },
             { data: 6, name: 'level' },
             { data: 7, name: 'status' },
-            { data: 8, name: 'created_at' },
+            { data: 8, name: 'grupo_id' },
             { data: 9, name: 'actions', orderable: false, searchable: false }
         ],
         language: {
@@ -477,8 +546,12 @@ function editUser(id) {
                 $('#userEmail').val(user.email);
                 $('#userTelefone').val(user.telefone);
                 $('#userNIF').val(user.NIF);
+                $('#userCodFuncionario').val(user.cod_funcionario || '');
+                $('#userCategoria').val(user.categoria || '');
+                $('#userEscolaServico').val(user.escola_servico || '');
                 $('#userOAuthId').val(user.oauth_id);
                 $('#userGrupoId').val(user.grupo_id);
+                $('#userGrupoMapaFerias').val(user.grupo_mapa_ferias || 'geral');
                 $('#userLevel').val(user.level);
                 $('#userStatus').val(user.status);
                 
@@ -509,6 +582,9 @@ function viewUser(id) {
                 $('#viewUserEmail').text(user.email);
                 $('#viewUserTelefone').text(user.telefone || 'N/A');
                 $('#viewUserNIF').text(user.NIF || 'N/A');
+                $('#viewUserCodFuncionario').text(user.cod_funcionario || 'N/A');
+                $('#viewUserCategoria').text(user.categoria || 'N/A');
+                $('#viewUserEscolaServico').text(user.escola_nome || 'N/A');
                 $('#viewUserOAuthId').text(user.oauth_id || 'N/A');
                 $('#viewUserGrupoId').text(user.grupo_id || 'N/A');
                 
@@ -526,20 +602,24 @@ function viewUser(id) {
                 $('#viewUserLevel').text(levels[user.level] || 'Desconhecido');
                 
                 // Status
-                if(user.status == null || user.status == 2) // Pendente se nulo
-                    {
-                       statusBadge = '<span class="badge bg-warning text-dark">Pendente</span>';
-                    }
-                    else if(user.status === 1) // Ativo
-                    {
-                       statusBadge = '<span class="badge bg-success">Ativo</span>';
-                    }
-                    else if(user.status === 0) // Inativo
-                    {
-                       statusBadge = '<span class="badge bg-danger">Inativo</span>';
-                    }
-           
-                    
+                var statusBadge = '<span class="badge bg-secondary">Desconhecido</span>';
+                if (user.status == null || user.status == 2) {
+                    statusBadge = '<span class="badge bg-warning text-dark">Pendente</span>';
+                } else if (user.status == 1) {
+                    statusBadge = '<span class="badge bg-success">Ativo</span>';
+                } else if (user.status == 0) {
+                    statusBadge = '<span class="badge bg-danger">Inativo</span>';
+                } else if (user.status == 3) {
+                    statusBadge = '<span class="badge bg-info text-dark">Junta Médica</span>';
+                } else if (user.status == 4) {
+                    statusBadge = '<span class="badge bg-primary">Mobilidade Especial</span>';
+                } else if (user.status == 5) {
+                    statusBadge = '<span class="badge bg-secondary">Em Mobilidade</span>';
+                } else if (user.status == 6) {
+                    statusBadge = '<span class="badge bg-dark">Licença s/ vencimento</span>';
+                } else if (user.status == 7) {
+                    statusBadge = '<span class="badge bg-light text-dark border">Licença de maternidade</span>';
+                }
                 $('#viewUserStatus').html(statusBadge);
                 
                 // Imagem

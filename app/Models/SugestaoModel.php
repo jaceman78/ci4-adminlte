@@ -76,9 +76,12 @@ class SugestaoModel extends Model
         return $this->select('sugestoes.*, 
                              user.name as user_nome, 
                              user.email as user_email,
-                             respondedor.name as respondedor_nome')
+                             respondedor.name as respondedor_nome,
+                             COUNT(sugestoes_anexos.id) as num_anexos')
                     ->join('user', 'user.NIF = sugestoes.user_nif', 'left')
                     ->join('user as respondedor', 'respondedor.id = sugestoes.respondido_por', 'left')
+                    ->join('sugestoes_anexos', 'sugestoes_anexos.sugestao_id = sugestoes.id', 'left')
+                    ->groupBy('sugestoes.id')
                     ->orderBy('sugestoes.created_at', 'DESC')
                     ->findAll();
     }

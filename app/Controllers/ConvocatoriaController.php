@@ -524,7 +524,7 @@ class ConvocatoriaController extends BaseController
 
         $presenca = $this->request->getPost('presenca');
 
-        if (!in_array($presenca, ['Pendente', 'Presente', 'Falta', 'Falta Justificada'])) {
+        if (!in_array($presenca, ['Presente', 'Falta'])) {
             return $this->response->setJSON(['success' => false, 'message' => 'Estado de presença inválido']);
         }
 
@@ -565,7 +565,7 @@ class ConvocatoriaController extends BaseController
 
         $erros = 0;
         foreach ($presencas as $convId => $presenca) {
-            if (!in_array($presenca, ['Pendente', 'Presente', 'Falta', 'Falta Justificada'])) {
+            if (!in_array($presenca, ['Presente', 'Falta'])) {
                 continue;
             }
             
@@ -634,34 +634,95 @@ class ConvocatoriaController extends BaseController
             }
 
             $data = [
-                'sessao' => $sessao,
-                'vigilantes' => $vigilantes,
-                'suplentes' => $suplentes,
+                'sessao'       => $sessao,
+                'vigilantes'   => $vigilantes,
+                'suplentes'    => $suplentes,
                 'coadjuvantes' => $coadjuvantes,
-                'outros' => $outros
+                'outros'       => $outros
             ];
 
-            // Gerar HTML
-            $html = view('sessoes_exame/pdf_presencas', $data);
-
-            // Gerar PDF usando Dompdf
+            // Configurar Dompdf
             $options = new \Dompdf\Options();
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isPhpEnabled', true);
             $options->set('defaultFont', 'DejaVu Sans');
             $options->set('isRemoteEnabled', true);
             $options->set('chroot', FCPATH);
-            
+
+            // Nome base do arquivo
+            $mesesAbrev = ['01'=>'Jan','02'=>'Fev','03'=>'Mar','04'=>'Abr','05'=>'Mai','06'=>'Jun','07'=>'Jul','08'=>'Ago','09'=>'Set','10'=>'Out','11'=>'Nov','12'=>'Dez'];
+            $dataProva    = new \DateTime($sessao['data_exame']);
+            $diaProva     = $dataProva->format('d');
+            $mesProva     = $mesesAbrev[$dataProva->format('m')];
+            $baseFilename = $diaProva . $mesProva . '_Presencas_' . $sessao['codigo_prova'] . '_' . $sessao['fase'];
+
+            // Determinar escolas distintas das salas alocadas
+            $escolasMap = [];
+            foreach ($convocatorias as $conv) {
+                if (!empty($conv['escola_id'])) {
+                    $escolasMap[$conv['escola_id']] = $conv['escola_nome'] ?? '';
+                }
+            }
+
+            if (count($escolasMap) <= 1) {
+                // Escola única → PDF simples
+                $data['escolaNomePdf'] = !empty($escolasMap) ? reset($escolasMap) : null;
+                $dompdf = new \Dompdf\Dompdf($options);
+                $dompdf->loadHtml(view('sessoes_exame/pdf_presencas', $data));
+                $dompdf->setPaper('A4', 'portrait');
+                $dompdf->render();
+                $escolaSlug = !empty($data['escolaNomePdf']) ? '_' . $this->sanitizeFilename($data['escolaNomePdf']) : '';
+                $dompdf->stream($baseFilename . $escolaSlug . '.pdf', ['Attachment' => true]);
+                exit;
+            }
+
+            // Múltiplas escolas → extrair body de cada HTML e combinar num único documento
+            $headHtml   = '';
+            $bodyPartes = [];
+
+            foreach ($escolasMap as $escolaId => $escolaNome) {
+                $convEscola = array_values(array_filter(
+                    $convocatorias,
+                    fn($c) => $c['escola_id'] == $escolaId || empty($c['escola_id'])
+                ));
+
+                $vigilantesE = $suplentesE = $coadjuvantesE = $outrosE = [];
+                foreach ($convEscola as $conv) {
+                    switch ($conv['funcao']) {
+                        case 'Vigilante':   $vigilantesE[]   = $conv; break;
+                        case 'Suplente':    $suplentesE[]    = $conv; break;
+                        case 'Coadjuvante': $coadjuvantesE[] = $conv; break;
+                        default:            $outrosE[]       = $conv; break;
+                    }
+                }
+
+                $dataEscola = array_merge($data, [
+                    'vigilantes'    => $vigilantesE,
+                    'suplentes'     => $suplentesE,
+                    'coadjuvantes'  => $coadjuvantesE,
+                    'outros'        => $outrosE,
+                    'escolaNomePdf' => $escolaNome,
+                ]);
+
+                $htmlEscola = view('sessoes_exame/pdf_presencas', $dataEscola);
+
+                if ($headHtml === '' && preg_match('/<head>(.*?)<\/head>/si', $htmlEscola, $m)) {
+                    $headHtml = $m[1];
+                }
+
+                if (preg_match('/<body[^>]*>(.*?)<\/body>/si', $htmlEscola, $m)) {
+                    $bodyPartes[] = $m[1];
+                }
+            }
+
+            $bodyContent   = implode('<div style="page-break-before: always; margin:0; padding:0; line-height:0; font-size:0;">&nbsp;</div>', $bodyPartes);
+            $htmlCombinado = "<!DOCTYPE html><html lang=\"pt\"><head>{$headHtml}</head><body>{$bodyContent}</body></html>";
+
             $dompdf = new \Dompdf\Dompdf($options);
-            $dompdf->loadHtml($html);
+            $dompdf->loadHtml($htmlCombinado);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
-
-            // Nome do arquivo
-            $filename = 'Folha_Presencas_' . $sessao['codigo_prova'] . '_' . $sessao['fase'] . '_' . date('d-m-Y') . '.pdf';
-
-            // Output do PDF
-            $dompdf->stream($filename, ['Attachment' => true]);
+            $dompdf->stream($baseFilename . '.pdf', ['Attachment' => true]);
             exit;
 
         } catch (\Exception $e) {
@@ -774,5 +835,13 @@ class ConvocatoriaController extends BaseController
             echo '</body></html>';
             exit;
         }
+    }
+
+    private function sanitizeFilename(string $name): string
+    {
+        $name = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
+        $name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $name);
+        $name = preg_replace('/_+/', '_', $name);
+        return trim($name, '_');
     }
 }

@@ -22,6 +22,7 @@ class SessaoExameModel extends Model
         'num_alunos',
         'observacoes',
         'ativo',
+        'ano_letivo_id',
         'created_at',
         'updated_at'
     ];
@@ -70,16 +71,21 @@ class SessaoExameModel extends Model
     /**
      * Busca sessões com informações do exame
      */
-    public function getWithExame($id = null)
+    public function getWithExame($id = null, $anoLetivoId = null)
     {
         $this->select('sessao_exame.id, sessao_exame.exame_id, sessao_exame.data_exame, 
                        sessao_exame.hora_exame, sessao_exame.duracao_minutos, sessao_exame.tolerancia_minutos,
                        sessao_exame.fase, sessao_exame.num_alunos, sessao_exame.observacoes, sessao_exame.ativo,
+                       sessao_exame.ano_letivo_id,
                        exame.codigo_prova, exame.nome_prova, exame.tipo_prova, exame.ano_escolaridade')
              ->join('exame', 'exame.id = sessao_exame.exame_id', 'left');
         
         if ($id !== null) {
             return $this->find($id);
+        }
+
+        if ($anoLetivoId) {
+            $this->where('sessao_exame.ano_letivo_id', $anoLetivoId);
         }
         
         return $this->where('sessao_exame.ativo', 1)

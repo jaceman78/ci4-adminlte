@@ -72,7 +72,7 @@ class Email extends BaseConfig
 
         // Carregar configurações do .env
         $this->fromEmail      = getenv('email.fromEmail') ?: 'escoladigitaljb@aejoaodebarros.pt';
-        $this->fromName       = getenv('email.fromName') ?: 'Escola Digital - AE João de Barros';
+        $this->fromName       = getenv('email.fromName') ?: 'Agrupamento AEJB - Comunicação ';
         $this->protocol       = getenv('email.protocol') ?: 'smtp';
         $this->SMTPHost       = getenv('email.SMTPHost') ?: 'smtp.gmail.com';
         $this->SMTPUser       = getenv('email.SMTPUser') ?: '';

@@ -35,6 +35,8 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'auth'          => \App\Filters\AuthFilter::class,
+        'maintenance'   => \App\Filters\MaintenanceFilter::class,
+        'impersonation' => \App\Filters\ImpersonationBannerFilter::class,
     ];
 
     /**
@@ -70,11 +72,13 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
+            'maintenance', // Verificação de modo de manutenção
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',
         ],
         'after' => [
+            'impersonation', // Banner fixo quando impersonificação está ativa
             // 'honeypot',
             // 'secureheaders',
         ],

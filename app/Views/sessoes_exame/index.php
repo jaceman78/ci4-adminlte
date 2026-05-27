@@ -43,6 +43,7 @@
                             <th>Data</th>
                             <th>Hora</th>
                             <th>Duração</th>
+                            <th>Alunos</th>
                             <th>Convocatórias</th>
                             <th>Estado</th>
                             <th>Ações</th>
@@ -81,6 +82,7 @@
                                 <option value="">Selecione...</option>
                                 <option value="1ª Fase">1ª Fase</option>
                                 <option value="2ª Fase">2ª Fase</option>
+                                <option value="Fase única">Fase única</option>
                                 <option value="Prova Ensaio">Prova Ensaio</option>
                                 <option value="Oral">Oral</option>
                                 <option value="Época Especial">Época Especial</option>
@@ -136,13 +138,16 @@ $(document).ready(function() {
         const tipoProva = selectedOption.data('tipo');
         
         // Sessões especiais não requerem número de alunos
-        const tiposEspeciais = ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC'];
+        const tiposEspeciais = ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais'];
         if (tiposEspeciais.includes(tipoProva)) {
             $('#numAlunos').val('').prop('disabled', true);
             const nomesTipos = {
                 'Suplentes': 'Suplentes',
                 'Verificacao Calculadoras': 'Verificação de Calculadoras',
-                'Apoio TIC': 'Apoio TIC'
+                'Apoio TIC': 'Apoio TIC',
+                'Estrutura de Apoio': 'Estrutura de Apoio',
+                'Verificação de Materiais': 'Verificação de Materiais',
+                'Verificação de Materiais': 'Verificação de Materiais'
             };
             $('#numAlunosContainer small').html(`<span class="badge bg-info">Não aplicável para ${nomesTipos[tipoProva]}</span>`);
         } else {
@@ -169,7 +174,7 @@ $(document).ready(function() {
         },
         columns: [
             {data: 0}, {data: 1}, {data: 2}, {data: 3}, {data: 4}, 
-            {data: 5}, {data: 6}, {data: 7}, {data: 8}, {data: 9, orderable: false, searchable: false}
+            {data: 5}, {data: 6}, {data: 7}, {data: 8}, {data: 9}, {data: 10, orderable: false, searchable: false}
         ],
         columnDefs: [
             { targets: 0, visible: false, searchable: false }
@@ -213,7 +218,7 @@ function editSessao(id) {
             if (response.success) {
                 const s = response.data;
                 $('#sessaoId').val(s.id);
-                $('#exameId').val(s.exame_id);
+                $('#exameId').val(s.exame_id).trigger('change');
                 $('#fase').val(s.fase);
                 $('#dataExame').val(s.data_exame);
                 $('#horaExame').val(s.hora_exame);

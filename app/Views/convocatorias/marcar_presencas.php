@@ -294,11 +294,13 @@ $(document).ready(function() {
     }
 
     function gerarOpcoesPresenca(presencaAtual) {
-        const opcoes = ['Pendente', 'Presente', 'Falta', 'Falta Justificada'];
+        // Pendente e Falta Justificada removidos — por defeito é Presente
+        const opcoes = ['Presente', 'Falta'];
+        const valorAtual = (!presencaAtual || presencaAtual === 'Pendente') ? 'Presente' : presencaAtual;
         let html = '';
         
         opcoes.forEach(function(opcao) {
-            const selected = (presencaAtual === opcao) ? 'selected' : '';
+            const selected = (valorAtual === opcao) ? 'selected' : '';
             const color = getCorPresenca(opcao);
             html += '<option value="' + opcao + '" ' + selected + ' style="background-color: ' + color + ';">' + opcao + '</option>';
         });
@@ -310,8 +312,7 @@ $(document).ready(function() {
         switch(presenca) {
             case 'Presente': return '#d4edda';
             case 'Falta': return '#f8d7da';
-            case 'Falta Justificada': return '#fff3cd';
-            default: return '#ffffff';
+            default: return '#d4edda'; // Presente por defeito
         }
     }
 

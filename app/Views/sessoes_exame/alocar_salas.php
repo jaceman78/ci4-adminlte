@@ -56,8 +56,7 @@
                         </div>
                         <div class="card-body">
                             <p><strong>Total de Salas:</strong> <?= count($salasAlocadas) ?></p>
-                            <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC'])): ?>
-                            <p><strong>Alunos Inscritos:</strong> <?= number_format($totalAlunosInscritos, 0, ',', '.') ?></p>
+                            <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais'])): ?> <?= number_format($totalAlunosInscritos, 0, ',', '.') ?></p>
                             <p><strong>Alunos Alocados:</strong> 
                                 <?= number_format($totalAlunosAlocados, 0, ',', '.') ?>
                                 <?php if ($totalAlunosAlocados < $totalAlunosInscritos): ?>
@@ -73,7 +72,9 @@
                                 $tiposEspeciais = [
                                     'Suplentes' => 'Sala de Espera para Suplentes',
                                     'Verificacao Calculadoras' => 'Verificação de Calculadoras',
-                                    'Apoio TIC' => 'Apoio TIC - Provas em Computador'
+                                    'Apoio TIC' => 'Apoio TIC - Provas em Computador',
+                                    'Estrutura de Apoio' => 'Estrutura de Apoio',
+                                    'Verificação de Materiais' => 'Verificação de Materiais'
                                 ];
                                 $descricaoEspecial = $tiposEspeciais[$sessao['tipo_prova']] ?? 'Sessão Especial';
                             ?>
@@ -84,6 +85,8 @@
                             <p><strong>Vigilantes Necessários:</strong> <span class="badge bg-primary fs-6"><?= $totalVigilantesNecessarios ?></span></p>
                             <?php if ($sessao['tipo_prova'] === 'MODa'): ?>
                                 <p class="text-info"><i class="bi bi-info-circle"></i> <small>MODa: 1 vigilante por sala</small></p>
+                            <?php elseif ((int)($sessao['ano_escolaridade'] ?? 0) === 4): ?>
+                                <p class="text-info"><i class="bi bi-info-circle"></i> <small>Regra: 1 vigilante por sala (4º ano)</small></p>
                             <?php else: ?>
                                 <p class="text-info"><i class="bi bi-info-circle"></i> <small>Regra: 2 vigilantes por sala</small></p>
                             <?php endif; ?>
@@ -117,7 +120,7 @@
                         <table id="tableSalas" class="table table-bordered table-striped table-hover">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th>Escola</th>
                                     <th>Sala</th>
                                     <th>Alunos</th>
                                     <th>Vigilantes Necessários</th>
@@ -179,7 +182,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <?php $isTipoEspecial = in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC']); ?>
+                        <?php $isTipoEspecial = in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais']); ?>
                         <label for="num_alunos_sala" class="form-label">Número de Alunos <?php if (!$isTipoEspecial): ?><span class="text-danger">*</span><?php endif; ?></label>
                         <input type="number" class="form-control" id="num_alunos_sala" name="num_alunos_sala" min="0" <?php if (!$isTipoEspecial): ?>required<?php endif; ?> <?php if ($isTipoEspecial): ?>value="0"<?php endif; ?>>
                         <?php if ($isTipoEspecial): ?>
@@ -187,7 +190,9 @@
                                 $mensagensEspeciais = [
                                     'Suplentes' => 'Para suplentes, deixe em 0 (sala de espera)',
                                     'Verificacao Calculadoras' => 'Para verificação de calculadoras, deixe em 0',
-                                    'Apoio TIC' => 'Para apoio TIC, deixe em 0'
+                                    'Apoio TIC' => 'Para apoio TIC, deixe em 0',
+                                    'Estrutura de Apoio' => 'Para estrutura de apoio, deixe em 0',
+                                    'Verificação de Materiais' => 'Para verificação de materiais, deixe em 0'
                                 ];
                                 $mensagemEspecial = $mensagensEspeciais[$sessao['tipo_prova']] ?? 'Deixe em 0';
                             ?>
@@ -231,7 +236,7 @@
 $(document).ready(function() {
     const sessaoExameId = <?= $sessao['id'] ?>;
     const isMODa = <?= $sessao['tipo_prova'] === 'MODa' ? 'true' : 'false' ?>;
-    const isTipoEspecial = <?= in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC']) ? 'true' : 'false' ?>;
+    const isTipoEspecial = <?= in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais']) ? 'true' : 'false' ?>;
     let dataTable;
 
     // Inicializar DataTable
@@ -289,21 +294,61 @@ $(document).ready(function() {
                 $('#num_alunos_sala').val(response.data.num_alunos_sala);
                 $('#observacoes').val(response.data.observacoes);
                 
+                const salaIdAtual = response.data.sala_id;
+                const salaTextoAtual = response.data.escola_nome + ' - ' + response.data.codigo_sala;
+                
                 // Limpar dropdown
                 $('#sala_select').empty();
                 
-                // Adicionar apenas a sala atual (não permitir trocar)
-                const salaTexto = response.data.escola_nome + ' - ' + response.data.codigo_sala;
-                $('#sala_select').append(
-                    $('<option></option>')
-                        .val(response.data.sala_id)
-                        .text(salaTexto)
-                        .prop('selected', true)
-                );
-                
-                $('#sala_select').prop('disabled', true);
-                $('#modalSalaTitle').text('Editar Sala');
-                $('#modalSala').modal('show');
+                // Carregar salas disponíveis (incluindo a atual)
+                $.get('<?= base_url('sessoes-exame-salas/getSalasDisponiveis') ?>', {
+                    sessao_exame_id: sessaoExameId,
+                    exclude_alocacao_id: id  // Excluir a alocação atual da verificação
+                }, function(salasResponse) {
+                    if (salasResponse.success) {
+                        // Adicionar a sala atual primeiro (selecionada)
+                        $('#sala_select').append(
+                            $('<option></option>')
+                                .val(salaIdAtual)
+                                .text(salaTextoAtual + ' (Atual)')
+                                .prop('selected', true)
+                        );
+                        
+                        // Adicionar salas disponíveis agrupadas por escola
+                        let escolaAtual = '';
+                        let optgroup = null;
+                        
+                        salasResponse.data.forEach(function(sala) {
+                            // Se a escola mudou, criar novo optgroup
+                            if (escolaAtual !== sala.escola_nome) {
+                                if (optgroup) {
+                                    $('#sala_select').append(optgroup);
+                                }
+                                escolaAtual = sala.escola_nome;
+                                optgroup = $('<optgroup></optgroup>').attr('label', escolaAtual);
+                            }
+                            
+                            // Adicionar sala ao optgroup (se não for a sala atual)
+                            if (sala.id != salaIdAtual) {
+                                optgroup.append(
+                                    $('<option></option>')
+                                        .val(sala.id)
+                                        .text(sala.codigo_sala)
+                                );
+                            }
+                        });
+                        
+                        // Adicionar último optgroup
+                        if (optgroup) {
+                            $('#sala_select').append(optgroup);
+                        }
+                    }
+                    
+                    // Habilitar select para permitir trocar de sala
+                    $('#sala_select').prop('disabled', false);
+                    $('#modalSalaTitle').text('Editar/Trocar Sala');
+                    $('#modalSala').modal('show');
+                });
             }
         });
     });
@@ -359,28 +404,49 @@ $(document).ready(function() {
     // Eliminar Sala
     $(document).on('click', '.btn-eliminar', function() {
         const id = $(this).data('id');
+        const numProfessores = $(this).data('professores') || $(this).data('pessoas') || 0;
+        const labelPessoas = $(this).data('label') || 'professores';
+        
+        // Determinar mensagem conforme a situação
+        let titulo, texto, textoConfirmar, icone;
+        
+        if (numProfessores > 0) {
+            titulo = 'Atenção: Esta sala tem ' + numProfessores + ' ' + labelPessoas + ' alocado(s)!';
+            texto = 'Ao remover esta sala, os ' + numProfessores + ' ' + labelPessoas + ' também serão automaticamente removidos desta sessão de exame. Deseja continuar?';
+            textoConfirmar = 'Sim, remover tudo!';
+            icone = 'warning';
+        } else {
+            titulo = 'Tem a certeza?';
+            texto = 'Esta ação irá remover a sala desta sessão.';
+            textoConfirmar = 'Sim, remover!';
+            icone = 'question';
+        }
         
         Swal.fire({
-            title: 'Tem a certeza?',
-            text: 'Esta ação irá remover a sala desta sessão. As convocatórias associadas também serão afetadas.',
-            icon: 'warning',
+            title: titulo,
+            html: texto,
+            icon: icone,
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sim, remover!',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: textoConfirmar,
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
                     url: '<?= base_url('sessoes-exame-salas/delete') ?>/' + id,
                     type: 'POST',
+                    data: {
+                        force_delete: numProfessores > 0 ? 'true' : 'false'
+                    },
                     success: function(response) {
                         if (response.success) {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Removido!',
                                 text: response.message,
-                                timer: 2000
+                                timer: 3000,
+                                timerProgressBar: true
                             }).then(() => {
                                 location.reload();
                             });
@@ -391,6 +457,15 @@ $(document).ready(function() {
                                 text: response.message
                             });
                         }
+                    },
+                    error: function(xhr) {
+                        const response = xhr.responseJSON;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Não é possível remover',
+                            html: response?.message || 'Erro ao remover sala.',
+                            confirmButtonText: 'Entendi'
+                        });
                     }
                 });
             }

@@ -6,24 +6,26 @@
     <title>Folha de Presenças - <?= esc($sessao['codigo_prova']) ?></title>
     <style>
         @page {
-            margin: 15mm 15mm 15mm 15mm;
+            margin: 10mm 15mm 8mm 15mm;
         }
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
             font-size: 11pt;
-            line-height: 1.4;
+            line-height: 1.35;
             color: #000;
+            orphans: 4;
+            widows: 4;
         }
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             border-bottom: 2px solid #000;
-            padding-bottom: 15px;
+            padding-bottom: 10px;
         }
         .header-logos {
             display: table;
             width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         .logo-left, .logo-right {
             display: table-cell;
@@ -52,12 +54,12 @@
         .info-box {
             background-color: #f5f5f5;
             border: 1px solid #ccc;
-            padding: 12px;
-            margin: 15px 0;
+            padding: 8px;
+            margin: 10px 0;
             border-radius: 4px;
         }
         .info-row {
-            margin: 5px 0;
+            margin: 3px 0;
         }
         .info-label {
             font-weight: bold;
@@ -67,45 +69,57 @@
         .section-title {
             background-color: #2c3e50;
             color: white;
-            padding: 8px 12px;
-            margin: 20px 0 10px 0;
-            font-size: 13pt;
+            padding: 5px 8px;
+            margin: 12px 0 6px 0;
+            font-size: 11pt;
             font-weight: bold;
             border-radius: 3px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             font-size: 10pt;
+            page-break-after: auto;
         }
         table th {
             background-color: #34495e;
             color: white;
-            padding: 8px;
+            padding: 6px;
             text-align: left;
             font-weight: bold;
             border: 1px solid #2c3e50;
         }
         table td {
-            padding: 6px 8px;
+            padding: 5px 6px;
             border: 1px solid #ddd;
         }
         table tr:nth-child(even) {
             background-color: #f9f9f9;
         }
+        .assinatura-footer {
+            page-break-inside: avoid !important;
+            page-break-before: auto;
+            margin-top: 12px;
+            min-height: 100px;
+        }
+        .assinatura {
+            text-align: center;
+            margin-bottom: 6px;
+        }
         .footer {
-            margin-top: 30px;
-            padding-top: 15px;
+            padding-top: 6px;
             border-top: 1px solid #ccc;
-            font-size: 9pt;
+            font-size: 7pt;
             color: #666;
+            line-height: 1.15;
+            text-align: center;
         }
         .importante {
             background-color: #fff3cd;
             border-left: 4px solid #ffc107;
-            padding: 10px;
-            margin: 15px 0;
+            padding: 6px;
+            margin: 10px 0;
             font-size: 10pt;
         }
         .destaque {
@@ -134,11 +148,16 @@
                 $subtitulosEspeciais = [
                     'Suplentes' => 'Professores Suplentes',
                     'Verificacao Calculadoras' => 'Verificação de Calculadoras',
-                    'Apoio TIC' => 'Equipa de Apoio TIC'
+                    'Apoio TIC' => 'Equipa de Apoio TIC',
+                    'Estrutura de Apoio' => 'Estrutura de Apoio',
+                    'Verificação de Materiais' => 'Verificação de Materiais'
                 ];
                 if (isset($subtitulosEspeciais[$sessao['tipo_prova']])):
                 ?>
                     <p style="font-size: 12pt; margin: 5px 0 0 0; color: #555;"><?= esc($subtitulosEspeciais[$sessao['tipo_prova']]) ?></p>
+                <?php endif; ?>
+                <?php if (!empty($escolaNomePdf)): ?>
+                    <p style="font-size: 11pt; margin: 4px 0 0 0; color: #d9534f; font-weight: bold;"><?= esc($escolaNomePdf) ?></p>
                 <?php endif; ?>
             </div>
             <div class="logo-right">
@@ -155,8 +174,8 @@
     </div>
 
     <div class="info-box">
-        <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC'])): ?>
-        <h2 style="margin: 0 0 10px 0; font-size: 14pt; color: #2c3e50;">Informações do Exame</h2>
+        <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais'])): ?>
+        <h2 style="margin: 0 0 10px 0; font-size: 14pt; color: #2c3e50;">Informações d<?= ($sessao['fase'] === 'Prova Ensaio') ? 'a Prova' : 'o Exame' ?></h2>
         <div class="info-row">
             <span class="info-label">Prova:</span>
             <span><?= esc($sessao['codigo_prova']) ?> - <?= esc($sessao['nome_prova']) ?></span>
@@ -178,7 +197,7 @@
         </div>
         <div class="info-row">
             <span class="info-label">Hora de Início:</span>
-            <span><strong><?= date('H:i', strtotime($sessao['hora_exame'])) ?>h</strong></span>
+            <span><strong><?= date('H', strtotime($sessao['hora_exame'])) ?>h <?= date('i', strtotime($sessao['hora_exame'])) ?>min</strong></span>
         </div>
         <div class="info-row">
             <span class="info-label">Duração:</span>
@@ -197,10 +216,10 @@
     <table>
         <thead>
             <tr>
-                <th width="40%">Nome</th>
-                <th width="20%">Sala</th>
-                <th width="20%">Início</th>
-                <th width="20%">Fim</th>
+                <th width="48%">Nome</th>
+                <th width="10%">Sala</th>
+                <th width="21%">Início</th>
+                <th width="21%">Fim</th>
             </tr>
         </thead>
         <tbody>
@@ -261,7 +280,18 @@
     <?php endif; ?>
 
     <?php if (!empty($outros)): ?>
-    <div class="section-title">OUTROS CONVOCADOS</div>
+    <?php
+    $titulosOutros = [
+        'Apoio TIC'              => 'EQUIPA DE APOIO TIC',
+        'Estrutura de Apoio'     => 'ESTRUTURA DE APOIO',
+        'Verificar Calculadoras' => 'VERIFICAÇÃO DE CALCULADORAS',
+        'Verificar Materiais'    => 'VERIFICAÇÃO DE MATERIAIS',
+        'Júri'                   => 'JÚRI',
+    ];
+    $primeiraFuncao = $outros[0]['funcao'] ?? '';
+    $tituloSecao    = $titulosOutros[$primeiraFuncao] ?? strtoupper($primeiraFuncao) ?: 'OUTROS CONVOCADOS';
+    ?>
+    <div class="section-title"><?= esc($tituloSecao) ?></div>
     <table>
         <thead>
             <tr>
@@ -284,18 +314,22 @@
     </table>
     <?php endif; ?>
 
-    <div style="text-align: center; margin-top: 50px; margin-bottom: 30px;">
-        <?php
-        $meses = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
-                  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-        $mes = $meses[(int)date('n')];
-        ?>
-        <p>Corroios, <?= date('d') ?> de <?= $mes ?> de <?= date('Y') ?></p>
-    </div>
+    <div class="assinatura-footer">
+        <div class="assinatura">
+            <?php
+            $meses = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
+                      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+            $mes = $meses[(int)date('n')];
+            ?>
+            <p style="margin: 0 0 10px 0;">Corroios, <?= date('d') ?> de <?= $mes ?> de <?= date('Y') ?></p>
+            <p style="margin: 0 0 3px 0;"><strong>O Diretor</strong></p>
+            <p style="margin: 25px 0 1px 0;">______________________________</p>
+            <p style="margin: 0;">( António de Carvalho )</p>
+        </div>
 
-    <div class="footer">
-        <p>Agrupamento de Escolas João de Barros | Rua Dr. Manuel de Arriaga, 2855-098 Corroios, Portugal</p>
-        <p>Tel.: 212 559 800 / 212 559 809 | secretaria@aejoaodebarros.pt | https://www.aejoaodebarros.pt/</p>
+        <div class="footer">
+            <p style="margin: 0;">Agrupamento de Escolas João de Barros | Rua Dr. Manuel de Arriaga, 2855-098 Corroios, Portugal | Tel.: 212 559 800 / 212 559 809 | secretariadoexamesaejb@aejoaodebarros.pt | https://www.aejoaodebarros.pt/</p>
+        </div>
     </div>
 </body>
 </html>

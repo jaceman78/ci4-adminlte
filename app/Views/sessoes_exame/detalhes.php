@@ -23,7 +23,7 @@
         <div class="row">
             <div class="col-md-6">
                 <div class="card">
-                    <div class="card-header bg-primary">
+                    <div class="card-header bg-primary text-white">
                         <h3 class="card-title"><i class="bi bi-file-earmark-text"></i> Informações do Exame</h3>
                     </div>
                     <div class="card-body">
@@ -37,7 +37,7 @@
                             <dt class="col-sm-4">Tipo:</dt>
                             <dd class="col-sm-8"><span class="badge bg-info"><?= esc($sessao['tipo_prova']) ?></span></dd>
 
-                            <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC'])): ?>
+                            <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais'])): ?>
                             <dt class="col-sm-4">Ano:</dt>
                             <dd class="col-sm-8"><?= esc($sessao['ano_escolaridade']) ?>º ano</dd>
                             <?php endif; ?>
@@ -87,7 +87,7 @@
                     </div>
                     <div class="card-body">
                         <dl class="row">
-                            <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC'])): ?>
+                            <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais'])): ?>
                             <dt class="col-sm-6">Vigilantes Necessários:</dt>
                             <dd class="col-sm-6"><span class="badge bg-primary"><?= $vigilantesNecessarios ?></span></dd>
 
@@ -107,14 +107,16 @@
                                 $labelsEspeciais = [
                                     'Suplentes' => 'Suplentes Convocados',
                                     'Verificacao Calculadoras' => 'Professores para Verificação',
-                                    'Apoio TIC' => 'Equipa de Apoio TIC'
+                                    'Apoio TIC' => 'Equipa de Apoio TIC',
+                                    'Estrutura de Apoio' => 'Estrutura de Apoio Convocada',
+                                    'Verificação de Materiais' => 'Professores para Verificação de Materiais'
                                 ];
                                 $labelEspecial = $labelsEspeciais[$sessao['tipo_prova']] ?? 'Suplentes Convocados';
                             ?>
                             <dt class="col-sm-6"><?= $labelEspecial ?>:</dt>
                             <dd class="col-sm-6"><span class="badge bg-info"><?= $suplentesConvocados ?></span></dd>
 
-                            <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC'])): ?>
+                            <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais'])): ?>
                             <dt class="col-sm-6">Total Convocados:</dt>
                             <dd class="col-sm-6"><span class="badge bg-success"><?= count($convocatorias) ?></span></dd>
                             <?php endif; ?>
@@ -184,12 +186,12 @@
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <?php if (!empty($conv['email_enviado'])): ?>
-                                            <span class="badge bg-success" title="Enviado em <?= date('d/m/Y H:i', strtotime($conv['data_envio_email'])) ?>">
+                                        <?php if (!empty($conv['email_enviado_em'])): ?>
+                                            <span class="badge bg-success" title="Enviado em <?= date('d/m/Y H:i', strtotime($conv['email_enviado_em'])) ?>">
                                                 <i class="bi bi-check-circle"></i> Sim
                                             </span>
                                             <br>
-                                            <small class="text-muted"><?= date('d/m/Y H:i', strtotime($conv['data_envio_email'])) ?></small>
+                                            <small class="text-muted"><?= date('d/m/Y H:i', strtotime($conv['email_enviado_em'])) ?></small>
                                         <?php else: ?>
                                             <span class="badge bg-secondary">
                                                 <i class="bi bi-x-circle"></i> Não

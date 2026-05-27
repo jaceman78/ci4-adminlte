@@ -6,22 +6,24 @@
     <title>Relatório de Faltas - Sessão <?= esc($sessao['codigo_prova']) ?></title>
     <style>
         @page {
-            margin: 15mm 10mm;
+            margin: 10mm 10mm 8mm 10mm;
         }
         body {
             font-family: DejaVu Sans, sans-serif;
             font-size: 10pt;
             margin: 0;
             padding: 0;
+            orphans: 4;
+            widows: 4;
         }
         .header {
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             border-bottom: 2px solid #000;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
         }
         .logo-container {
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         .logo-left {
             float: left;
@@ -50,8 +52,8 @@
         .info-box {
             background-color: #f8f9fa;
             border: 1px solid #dee2e6;
-            padding: 10px;
-            margin: 15px 0;
+            padding: 8px;
+            margin: 12px 0;
             border-radius: 4px;
         }
         .info-box strong {
@@ -60,28 +62,28 @@
         .date-highlight {
             background-color: #fff3cd;
             border: 2px solid #856404;
-            padding: 8px 15px;
-            margin: 10px 0;
+            padding: 6px 12px;
+            margin: 8px 0;
             text-align: center;
-            font-size: 16pt;
+            font-size: 14pt;
             font-weight: bold;
             color: #dc3545;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 15px 0;
+            margin: 12px 0;
         }
         table th {
             background-color: #343a40;
             color: white;
-            padding: 8px;
+            padding: 6px;
             text-align: left;
             border: 1px solid #000;
             font-weight: bold;
         }
         table td {
-            padding: 6px 8px;
+            padding: 5px 6px;
             border: 1px solid #ddd;
         }
         table tr:nth-child(even) {
@@ -94,13 +96,13 @@
             background-color: #fff3cd !important;
         }
         .statistics {
-            margin: 20px 0;
-            padding: 10px;
+            margin: 15px 0;
+            padding: 8px;
             background-color: #e9ecef;
             border-left: 4px solid #007bff;
         }
         .statistics h3 {
-            margin: 0 0 10px 0;
+            margin: 0 0 8px 0;
             font-size: 11pt;
         }
         .stat-item {
@@ -110,27 +112,32 @@
             background-color: white;
             border-radius: 3px;
         }
+        .signature-footer {
+            page-break-inside: avoid !important;
+            margin-top: 15px;
+            min-height: 120px;
+        }
         .signature {
-            margin-top: 40px;
-            page-break-inside: avoid;
+            page-break-inside: avoid !important;
             text-align: center;
+            margin-bottom: 6px;
         }
         .signature-line {
-            margin-top: 40px;
+            margin-top: 30px;
             text-align: center;
             border-top: 1px solid #000;
-            padding-top: 5px;
+            padding-top: 3px;
             width: 50%;
             margin-left: auto;
             margin-right: auto;
         }
         .footer {
             text-align: center;
-            font-size: 8pt;
+            font-size: 7pt;
             color: #666;
-            margin-top: 30px;
-            padding-top: 10px;
+            padding-top: 6px;
             border-top: 1px solid #ccc;
+            line-height: 1.15;
         }
         .no-faltas {
             text-align: center;
@@ -171,7 +178,7 @@
 
     <!-- Data em Destaque -->
     <div class="date-highlight">
-        <?= date('d/m/Y', strtotime($sessao['data_exame'])) ?> às <?= date('H:i', strtotime($sessao['hora_exame'])) ?>
+        <?= date('d/m/Y', strtotime($sessao['data_exame'])) ?> às <?= date('H', strtotime($sessao['hora_exame'])) ?>h <?= date('i', strtotime($sessao['hora_exame'])) ?>min
     </div>
 
     <!-- Informações da Sessão -->
@@ -191,8 +198,6 @@
         <div class="stat-item"><strong>Total:</strong> <?= $estatisticas['total'] ?></div>
         <div class="stat-item"><strong>Presentes:</strong> <?= $estatisticas['presentes'] ?></div>
         <div class="stat-item"><strong>Faltas:</strong> <?= $estatisticas['faltas'] ?></div>
-        <div class="stat-item"><strong>Faltas Justificadas:</strong> <?= $estatisticas['faltas_justificadas'] ?></div>
-        <div class="stat-item"><strong>Pendentes:</strong> <?= $estatisticas['pendentes'] ?></div>
     </div>
 
     <?php if (empty($faltas)): ?>
@@ -223,24 +228,25 @@
     </table>
     <?php endif; ?>
 
-    <!-- Assinatura do Diretor -->
-    <div class="signature">
-        <?php
-        $meses = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
-                  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-        $mes = $meses[(int)date('n')];
-        ?>
-        <p>Corroios, <?= date('d') ?> de <?= $mes ?> de <?= date('Y') ?></p>
-        <p style="margin-top: 30px;">O Diretor</p>
-        <div class="signature-line">
-            (António de Carvalho)
+    <!-- Assinatura e Rodapé -->
+    <div class="signature-footer">
+        <div class="signature">
+            <?php
+            $meses = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
+                      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+            $mes = $meses[(int)date('n')];
+            ?>
+            <p style="margin: 0 0 8px 0;">Corroios, <?= date('d') ?> de <?= $mes ?> de <?= date('Y') ?></p>
+            <p style="margin: 0;">O Diretor</p>
+            <div class="signature-line">
+                (António de Carvalho)
+            </div>
         </div>
-    </div>
 
-    <!-- Footer -->
-    <div class="footer">
-        <p>Agrupamento de Escolas João de Barros | Rua Dr. Manuel de Arriaga, 2855-098 Corroios, Portugal</p>
-        <p>Tel.: 212 559 800 / 212 559 809 | secretaria@aejoaodebarros.pt | https://www.aejoaodebarros.pt/</p>
+        <!-- Footer -->
+        <div class="footer">
+            <p style="margin: 0;">Agrupamento de Escolas João de Barros | Rua Dr. Manuel de Arriaga, 2855-098 Corroios, Portugal | Tel.: 212 559 800 / 212 559 809 | secretariadoexamesaejb@aejoaodebarros.pt | https://www.aejoaodebarros.pt/</p>
+        </div>
     </div>
 </body>
 </html>

@@ -177,27 +177,27 @@ class EquipamentosController extends BaseController
     }
 
     /**
-     * Atualizar apenas dados do equipamento (não altera sala)
-     * Para mudar sala, use editarSala()
+     * Atualizar dados do equipamento e, se fornecida, atribuir/mover sala
      */
     public function update($id = null)
     {
-        // Log para debug
-        log_message('info', 'Update chamado para equipamento ID: ' . $id);
-        log_message('info', 'Dados POST recebidos: ' . json_encode($this->request->getPost()));
-        
         $rules = [
             'tipo_id'        => 'required|is_natural_no_zero',
             'marca'          => 'required|max_length[100]',
             'modelo'         => 'permit_empty|max_length[100]',
             'numero_serie'   => 'permit_empty|max_length[255]',
             'estado'         => 'permit_empty|in_list[ativo,fora_servico,por_atribuir,abate]',
-            'observacoes'    => 'permit_empty|max_length[1000]'
+            'observacoes'    => 'permit_empty|max_length[1000]',
+            'sala_id'        => 'permit_empty|is_natural'
         ];
 
         if (!$this->validate($rules)) {
-            log_message('error', 'Validação falhou: ' . json_encode($this->validator->getErrors()));
             return $this->failValidationErrors($this->validator->getErrors());
+        }
+
+        $equipamentoAntes = $this->equipamentosModel->find($id);
+        if (!$equipamentoAntes) {
+            return $this->failNotFound('Equipamento não encontrado.');
         }
 
         $data = [
@@ -209,15 +209,61 @@ class EquipamentosController extends BaseController
             'observacoes'    => $this->request->getPost('observacoes')
         ];
 
-        log_message('info', 'Dados a atualizar: ' . json_encode($data));
-
-        if ($this->equipamentosModel->update($id, $data)) {
-            log_message('info', 'Equipamento atualizado com sucesso');
-            return $this->respond(['message' => 'Equipamento atualizado com sucesso.']);
-        } else {
-            log_message('error', 'Falha ao atualizar equipamento: ' . json_encode($this->equipamentosModel->errors()));
+        if (!$this->equipamentosModel->update($id, $data)) {
             return $this->failServerError('Não foi possível atualizar o equipamento.');
         }
+
+        // Gerir sala, se fornecida
+        $novaSalaId = $this->request->getPost('sala_id');
+        if (!empty($novaSalaId)) {
+            $salaAtual = $this->equipamentosSalaModel->getSalaAtual($id);
+
+            if (!$salaAtual) {
+                // Equipamento sem sala — atribuir nova sala
+                $motivo = $this->request->getPost('motivo_movimentacao') ?: 'Atribuído durante edição';
+                $this->equipamentosSalaModel->insert([
+                    'equipamento_id'      => $id,
+                    'sala_id'             => $novaSalaId,
+                    'data_entrada'        => date('Y-m-d H:i:s'),
+                    'motivo_movimentacao' => $motivo,
+                    'user_id'             => session()->get('user_id')
+                ]);
+                log_activity(
+                    'equipamentos',
+                    'atribuir_sala',
+                    (int) $id,
+                    "Sala atribuída ao equipamento ID: {$id} durante edição",
+                    null,
+                    ['sala_id' => $novaSalaId, 'motivo' => $motivo],
+                    'info'
+                );
+            } elseif ((int) $salaAtual['sala_id'] !== (int) $novaSalaId) {
+                // Sala diferente — mover equipamento
+                $motivo = $this->request->getPost('motivo_movimentacao') ?: 'Movido durante edição';
+                $this->equipamentosSalaModel->moverEquipamento($id, $novaSalaId, $motivo, session()->get('user_id'));
+                log_activity(
+                    'equipamentos',
+                    'mover_sala',
+                    (int) $id,
+                    "Equipamento ID: {$id} movido para nova sala durante edição",
+                    ['sala_id' => $salaAtual['sala_id']],
+                    ['sala_id' => $novaSalaId, 'motivo' => $motivo],
+                    'info'
+                );
+            }
+        }
+
+        log_activity(
+            'equipamentos',
+            'update',
+            (int) $id,
+            "Equipamento ID: {$id} atualizado",
+            $equipamentoAntes,
+            $data,
+            'info'
+        );
+
+        return $this->respond(['message' => 'Equipamento atualizado com sucesso.']);
     }
 
     public function delete($id = null)

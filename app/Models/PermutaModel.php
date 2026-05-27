@@ -25,7 +25,8 @@ class PermutaModel extends Model
         'observacoes',
         'motivo_rejeicao',
         'aprovada_por_user_id',
-        'data_aprovacao'
+        'data_aprovacao',
+        'ano_letivo_id'
     ];
 
     // Dates
@@ -74,7 +75,7 @@ class PermutaModel extends Model
     /**
      * Obter permutas de um professor (como autor ou substituto)
      */
-    public function getPermutasProfessor($professorNif, $estado = null)
+    public function getPermutasProfessor($professorNif, $estado = null, $anoLetivoId = null)
     {
         $builder = $this->db->table($this->table . ' p');
         $builder->select('p.*, 
@@ -95,6 +96,10 @@ class PermutaModel extends Model
         
         if ($estado !== null) {
             $builder->where('p.estado', $estado);
+        }
+
+        if ($anoLetivoId !== null) {
+            $builder->where('p.ano_letivo_id', $anoLetivoId);
         }
         
         $builder->orderBy('p.created_at', 'DESC');
@@ -160,21 +165,25 @@ class PermutaModel extends Model
     /**
      * Obter estatísticas de permutas de um professor
      */
-    public function getEstatisticasProfessor($professorNif)
+    public function getEstatisticasProfessor($professorNif, $anoLetivoId = null)
     {
         $stats = [
             'pendentes' => $this->where('professor_autor_nif', $professorNif)
                                 ->where('estado', 'pendente')
+                                ->when($anoLetivoId !== null, fn($q) => $q->where('ano_letivo_id', $anoLetivoId))
                                 ->countAllResults(),
             'aprovadas' => $this->where('professor_autor_nif', $professorNif)
                                 ->where('estado', 'aprovada')
+                                ->when($anoLetivoId !== null, fn($q) => $q->where('ano_letivo_id', $anoLetivoId))
                                 ->countAllResults(),
             'rejeitadas' => $this->where('professor_autor_nif', $professorNif)
                                  ->where('estado', 'rejeitada')
+                                 ->when($anoLetivoId !== null, fn($q) => $q->where('ano_letivo_id', $anoLetivoId))
                                  ->countAllResults(),
             'como_substituto' => $this->where('professor_substituto_nif', $professorNif)
                                       ->where('professor_autor_nif !=', $professorNif)
                                       ->where('estado', 'aprovada')
+                                      ->when($anoLetivoId !== null, fn($q) => $q->where('ano_letivo_id', $anoLetivoId))
                                       ->countAllResults()
         ];
         

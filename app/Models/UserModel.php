@@ -18,6 +18,10 @@ class UserModel extends Model
         'email',
         'telefone',
         'NIF',
+        'cod_funcionario',
+        'categoria',
+        'escola_servico',
+        'grupo_mapa_ferias',
         'profile_img',
         'grupo_id',
         'level',
@@ -38,6 +42,9 @@ class UserModel extends Model
         'name' => 'permit_empty|max_length[100]',
         'telefone' => 'permit_empty|max_length[20]',
         'NIF' => 'permit_empty|integer|max_length[11]',
+        'cod_funcionario' => 'permit_empty|max_length[50]',
+        'categoria' => 'permit_empty|max_length[100]',
+        'escola_servico' => 'permit_empty|integer|is_not_unique[escolas.id]',
         'profile_img' => 'permit_empty|max_length[500]',
         'grupo_id' => 'permit_empty|integer',
         'level' => 'permit_empty|integer',
@@ -60,6 +67,16 @@ class UserModel extends Model
         'NIF' => [
             'integer' => 'O NIF deve ser um número.',
             'max_length' => 'O NIF não pode ter mais de 9 dígitos.'
+        ],
+        'cod_funcionario' => [
+            'max_length' => 'O código de funcionário não pode ter mais de 50 caracteres.'
+        ],
+        'categoria' => [
+            'max_length' => 'A categoria não pode ter mais de 100 caracteres.'
+        ],
+        'escola_servico' => [
+            'integer' => 'A escola de serviço deve ser um ID válido.',
+            'is_not_unique' => 'A escola selecionada não existe.'
         ]
     ];
 
@@ -248,6 +265,7 @@ class UserModel extends Model
                    ->orLike('email', $search)
                    ->orLike('telefone', $search)
                    ->orLike('NIF', $search)
+                   ->orLike('cod_funcionario', $search)
                    ->groupEnd();
         }
         
@@ -298,6 +316,93 @@ class UserModel extends Model
                     ->join('grupos', 'grupos.id = user.grupo_id', 'left')
                     ->orderBy('user.name', 'ASC')
                     ->findAll();
+    }
+
+    /**
+     * Obter utilizadores com informações de escola
+     * 
+     * @return array
+     */
+    public function getUsersWithEscola()
+    {
+        $db = \Config\Database::connect();
+        $fields = $db->getFieldNames('user');
+        
+        if (in_array('escola_servico', $fields)) {
+            return $this->select('user.*, escolas.nome as escola_nome, escolas.morada as escola_morada')
+                        ->join('escolas', 'escolas.id = user.escola_servico', 'left')
+                        ->orderBy('user.name', 'ASC')
+                        ->findAll();
+        } else {
+            return $this->orderBy('name', 'ASC')->findAll();
+        }
+    }
+
+    /**
+     * Obter um utilizador com informações completas (grupo e escola)
+     * 
+     * @param int $id
+     * @return array|null
+     */
+    public function getUserWithRelations($id)
+    {
+        // Verificar se a coluna escola_servico existe
+        $db = \Config\Database::connect();
+        $fields = $db->getFieldNames('user');
+        
+        if (in_array('escola_servico', $fields)) {
+            // Se o campo existe, fazer join com escolas
+            return $this->select('user.*, 
+                                escolas.nome as escola_nome,
+                                escolas.morada as escola_morada')
+                        ->join('escolas', 'escolas.id = user.escola_servico', 'left')
+                        ->where('user.id', $id)
+                        ->first();
+        } else {
+            // Se o campo não existe, retornar apenas o utilizador
+            return $this->find($id);
+        }
+    }
+
+    /**
+     * Obter utilizadores por escola
+     * 
+     * @param int $escolaId
+     * @return array
+     */
+    public function getUsersByEscola($escolaId)
+    {
+        $db = \Config\Database::connect();
+        $fields = $db->getFieldNames('user');
+        
+        if (in_array('escola_servico', $fields)) {
+            return $this->where('escola_servico', $escolaId)
+                        ->orderBy('name', 'ASC')
+                        ->findAll();
+        } else {
+            return [];
+        }
+    }
+
+    /**
+     * Obter estatísticas de utilizadores por escola
+     * 
+     * @return array
+     */
+    public function getEstatisticasPorEscola()
+    {
+        $db = \Config\Database::connect();
+        $fields = $db->getFieldNames('user');
+        
+        if (in_array('escola_servico', $fields)) {
+            return $this->select('escolas.nome as escola, COUNT(user.id) as total')
+                        ->join('escolas', 'escolas.id = user.escola_servico', 'left')
+                        ->groupBy('user.escola_servico, escolas.nome')
+                        ->orderBy('total', 'DESC')
+                        ->findAll();
+        } else {
+            return [];
+        }
     }
 
     /**

@@ -5,17 +5,20 @@ namespace App\Controllers;
 helper('log');
  helper("LogHelper"); // Carrega o helper de logs 
 use App\Models\UserModel;
+use App\Models\EscolasModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\RESTful\ResourceController;
 
 class UserController extends ResourceController
 {
     protected $userModel;
+    protected $escolasModel;
     protected $validation;
 
     public function __construct()
     {
         $this->userModel = new UserModel();
+        $this->escolasModel = new EscolasModel();
         $this->validation = \Config\Services::validation();
         helper("LogHelper"); // Carrega o helper de logs
     }
@@ -47,7 +50,56 @@ class UserController extends ResourceController
     
     // echo '</pre>';
     // exit;
-        return view('users/user_index');
+        
+        // Obter valores ENUM da coluna categoria
+        $data['categorias'] = $this->getCategoriaEnumValues();
+        
+        // Obter escolas para o select
+        $data['escolas'] = $this->escolasModel->getEscolasOrderedByName();
+        
+        return view('users/user_index', $data);
+    }
+    
+    /**
+     * Obter valores ENUM da coluna categoria
+     * 
+     * @return array
+     */
+    private function getCategoriaEnumValues()
+    {
+        $db = \Config\Database::connect();
+        $query = $db->query("SHOW COLUMNS FROM user WHERE Field = 'categoria'");
+        $result = $query->getRowArray();
+        
+        $enumValues = [];
+        
+        if ($result && preg_match("/^enum\('(.*)'\)$/", $result['Type'], $matches)) {
+            $values = explode("','", $matches[1]);
+            foreach ($values as $value) {
+                $enumValues[$value] = $this->getCategoriaNomeCompleto($value);
+            }
+        }
+        
+        return $enumValues;
+    }
+    
+    /**
+     * Obter nome completo da categoria baseado no código
+     * 
+     * @param string $codigo
+     * @return string
+     */
+    private function getCategoriaNomeCompleto($codigo)
+    {
+        $nomes = [
+            'PQND' => 'PQND - Professor Quadro Nomeação Definitiva',
+            'PQNP' => 'PQNP - Professor Quadro Nomeação Provisória',
+            'QZP'  => 'QZP - Professor Quadro de Zona Pedagógica',
+            'PC'   => 'PC - Professor Contratado',
+            'outro' => 'Outro'
+        ];
+        
+        return $nomes[$codigo] ?? $codigo;
     }
 
     /**
@@ -72,13 +124,13 @@ class UserController extends ResourceController
         $search = $request['search']['value'] ?? '';
         
         // Configurar ordenação
-        $orderColumn = 'id';
+        $orderColumn = 'cod_funcionario';
         $orderDir = 'asc';
         
         if (isset($request['order'][0])) {
-            $columns = ['id', 'name', 'email', 'telefone', 'NIF', 'level', 'status', 'created_at'];
+            $columns = ['cod_funcionario', 'name', 'email', 'telefone', 'NIF', 'level', 'status', 'grupo_id'];
             $orderColumnIndex = $request['order'][0]['column'];
-            $orderColumn = $columns[$orderColumnIndex] ?? 'id';
+            $orderColumn = $columns[$orderColumnIndex] ?? 'cod_funcionario';
             $orderDir = $request['order'][0]['dir'] ?? 'asc';
         }
 
@@ -95,11 +147,17 @@ class UserController extends ResourceController
         // Formatar dados para DataTable
         $data = [];
         foreach ($result['data'] as $user) {
-            $statusBadge = $user['status'] == 1 
-                ? '<span class="badge bg-success">Ativo</span>' 
-                : ($user['status'] == 2 
-                    ? '<span class="badge bg-warning text-dark">Pendente</span>' 
-                    : '<span class="badge bg-danger">Inativo</span>');
+            $statusBadges = [
+                0 => '<span class="badge bg-danger">Inativo</span>',
+                1 => '<span class="badge bg-success">Ativo</span>',
+                2 => '<span class="badge bg-warning text-dark">Pendente</span>',
+                3 => '<span class="badge bg-info text-dark">Junta Médica</span>',
+                4 => '<span class="badge bg-primary">Mobilidade Especial</span>',
+                5 => '<span class="badge bg-secondary">Em Mobilidade</span>',
+                6 => '<span class="badge bg-dark">Licença s/ vencimento</span>',
+                7 => '<span class="badge bg-light text-dark border">Licença de maternidade</span>',
+            ];
+            $statusBadge = $statusBadges[$user['status']] ?? '<span class="badge bg-danger">Inativo</span>';
             
             $profileImg = '';
             if ($user['profile_img'] && str_starts_with($user['profile_img'], 'http' )) {
@@ -124,7 +182,7 @@ class UserController extends ResourceController
                 </div>';
             
             $data[] = [
-                $user['id'],
+                $user['cod_funcionario'] ?? 'N/A',
                 $profileImg,
                 $user['name'] ?? 'N/A',
                 $user['email'],
@@ -132,7 +190,7 @@ class UserController extends ResourceController
                 $user['NIF'] ?? 'N/A',
                 $user['level'],
                 $statusBadge,
-                date('d/m/Y H:i', strtotime($user['created_at'])),
+                $user['grupo_id'] ?? 'N/A',
                 $actions
             ];
         }
@@ -159,7 +217,8 @@ class UserController extends ResourceController
             return $this->response->setStatusCode(400)->setJSON(['error' => 'ID não fornecido']);
         }
 
-        $user = $this->userModel->find($id);
+        // Obter utilizador com relações (escola e grupo)
+        $user = $this->userModel->getUserWithRelations($id);
         
         if (!$user) {
             // Log de tentativa de acesso a utilizador inexistente
@@ -214,11 +273,20 @@ class UserController extends ResourceController
             'email' => $data['email'],
             'telefone' => $data['telefone'] ?? null,
             'NIF' => $data['NIF'] ?? null,
+            'cod_funcionario' => $data['cod_funcionario'] ?? null,
+            'categoria' => $data['categoria'] ?? null,
             'profile_img' => $data['profile_img'] ?? 'default.png',
             'grupo_id' => $data['grupo_id'] ?? null,
             'level' => $data['level'] ?? 0,
             'status' => $data['status'] ?? 1
         ];
+        
+        // Incluir escola_servico apenas se o campo existir na BD
+        $db = \Config\Database::connect();
+        $fields = $db->getFieldNames('user');
+        if (in_array('escola_servico', $fields)) {
+            $userData['escola_servico'] = $data['escola_servico'] ?? null;
+        }
 
         $userId = $this->userModel->insert($userData);
             
@@ -305,10 +373,23 @@ class UserController extends ResourceController
             'email' => $data['email'],
             'telefone' => $data['telefone'] ?? null,
             'NIF' => $data['NIF'] ?? null,
+            'cod_funcionario' => $data['cod_funcionario'] ?? null,
+            'categoria' => $data['categoria'] ?? null,
             'grupo_id' => $data['grupo_id'] ?? null,
             'level' => $data['level'] ?? 0,
             'status' => $data['status'] ?? 1
         ];
+        
+        // Incluir escola_servico apenas se o campo existir na BD
+        $db = \Config\Database::connect();
+        $fields = $db->getFieldNames('user');
+        if (in_array('escola_servico', $fields)) {
+            $userData['escola_servico'] = $data['escola_servico'] ?? null;
+        }
+        if (in_array('grupo_mapa_ferias', $fields)) {
+            $gmf = $data['grupo_mapa_ferias'] ?? 'geral';
+            $userData['grupo_mapa_ferias'] = in_array($gmf, ['geral', 'direcao', 'tecnico_superior']) ? $gmf : 'geral';
+        }
 
         // Só atualizar profile_img se fornecida
         if (isset($data['profile_img']) && !empty($data['profile_img'])) {
@@ -471,18 +552,17 @@ class UserController extends ResourceController
             // Log de alteração de status bem-sucedida
             
                             // Status
-                if($status == null || $status == 2) // Pendente se nulo
-                    {
-                       $statusText='Pendente';
-                    }
-                    else if($status === 1) // Ativo
-                    {
-                       $statusText = 'Ativo';
-                    }
-                    else if($status === 0) // Inativo
-                    {
-                       $statusText = 'Inativo';
-                    }
+                $statusTexts = [
+                    0 => 'Inativo',
+                    1 => 'Ativo',
+                    2 => 'Pendente',
+                    3 => 'Junta Médica',
+                    4 => 'Mobilidade Especial',
+                    5 => 'Em Mobilidade',
+                    6 => 'Licença s/ vencimento',
+                    7 => 'Licença de maternidade',
+                ];
+                $statusText = $status === null ? 'Pendente' : ($statusTexts[$status] ?? 'Pendente');
             $dadosAnteriores = ['status' => $user['status']];
             $dadosNovos = ['status' => $status];
            log_activity(
@@ -743,7 +823,8 @@ class UserController extends ResourceController
         
         // Dados
         foreach ($users as $user) {
-            $statusText = $user['status'] == 1 ? 'Ativo' : ($user['status'] == 2 ? 'Pendente' : 'Inativo');
+            $statusTexts = [0 => 'Inativo', 1 => 'Ativo', 2 => 'Pendente', 3 => 'Junta Médica', 4 => 'Mobilidade Especial', 5 => 'Em Mobilidade', 6 => 'Licença s/ vencimento', 7 => 'Licença de maternidade'];
+            $statusText = $statusTexts[$user['status']] ?? 'Inativo';
             fputcsv($output, [
                 $user['id'],
                 $user['name'],

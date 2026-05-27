@@ -50,6 +50,110 @@
 <!-- Custom Styles from Views -->
 <?= $this->renderSection('styles') ?>
 
-<!-- No layout/master.php -->
+<!-- ── Tema: Dark Total ── -->
+<style>
+  :root {
+    --bs-primary:              #2a2f5b;
+    --bs-primary-rgb:          42, 47, 91;
+    --bs-link-color:           #7b8cde;
+    --bs-link-hover-color:     #a3afe8;
+  }
+  /* Navbar escura */
+  .app-header.navbar {
+    background: #16213e !important;
+    border-bottom: 1px solid #0f1629;
+  }
+  .app-header .nav-link,
+  .app-header .nav-link i { color: #c8d0e7 !important; }
+  .app-header .nav-link:hover { color: #ffffff !important; }
+  /* Sidebar: tom ligeiramente diferente da navbar para hierarquia */
+  .app-sidebar { background: #1a1a2e !important; }
+  .sidebar-brand { background: rgba(0,0,0,0.25) !important; }
+  /* Botões */
+  .btn-primary { background-color: #2a2f5b !important; border-color: #2a2f5b !important; }
+  .btn-primary:hover, .btn-primary:focus { background-color: #1e2244 !important; border-color: #1e2244 !important; }
+  .btn-outline-primary { color: #2a2f5b !important; border-color: #2a2f5b !important; }
+  .btn-outline-primary:hover { background-color: #2a2f5b !important; color: #fff !important; }
+  /* Cards */
+  .card-primary.card-outline { border-top: 3px solid #2a2f5b !important; }
+  .card-primary > .card-header { background-color: #2a2f5b !important; }
+  .bg-primary { background-color: #2a2f5b !important; }
+  /* Tabs & texto */
+  .nav-tabs .nav-link.active { border-top: 3px solid #2a2f5b; color: #2a2f5b; }
+  .text-primary { color: #2a2f5b !important; }
+  .sidebar-menu .nav-link.active { background: rgba(255,255,255,0.15) !important; }
+  a { color: #2a2f5b; }
+  a:hover { color: #4a56a8; }
+</style>
+
+<!-- Preloader -->
+<style>
+  #esjb-preloader {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    margin: 0;
+    background: radial-gradient(circle at center, #1a0033, #0a001a, #000);
+    perspective: 1200px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, sans-serif;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+  }
+  #esjb-preloader.esjb-preloader-hide {
+    opacity: 0;
+    visibility: hidden;
+  }
+  #esjb-preloader .spinner-container {
+    position: relative;
+    width: 180px;
+    height: 180px;
+  }
+  #esjb-preloader .logo-3d {
+    width: 100%;
+    height: 100%;
+    animation: spin3D 2.8s linear infinite, pulse3D 2.2s ease-in-out infinite;
+    transform-style: preserve-3d;
+    filter: drop-shadow(0 0 30px rgba(180, 80, 255, 0.9));
+  }
+  #esjb-preloader .text {
+    margin-top: 40px;
+    color: #d0a0ff;
+    font-size: 20px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    animation: textGlow 1.8s ease-in-out infinite;
+    text-shadow: 0 0 20px rgba(180, 80, 255, 0.8);
+  }
+  #esjb-preloader .light-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: rgba(200, 150, 255, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 0 12px #fff;
+    animation: particleFloat 6s linear infinite;
+  }
+  @keyframes spin3D {
+    from { transform: rotateX(15deg) rotateY(0deg) rotateZ(0deg); }
+    to   { transform: rotateX(15deg) rotateY(360deg) rotateZ(360deg); }
+  }
+  @keyframes pulse3D {
+    0%, 100% { transform: scale(1) rotateX(15deg); }
+    50%       { transform: scale(1.12) rotateX(25deg); }
+  }
+  @keyframes textGlow {
+    0%, 100% { opacity: 0.75; text-shadow: 0 0 15px rgba(180, 80, 255, 0.6); }
+    50%       { opacity: 1;    text-shadow: 0 0 30px rgba(200, 120, 255, 1); }
+  }
+  @keyframes particleFloat {
+    0%   { transform: translateY(0)   translateX(0)   scale(1);    opacity: 0.8; }
+    50%  { transform: translateY(-60px) translateX(20px) scale(1.3); opacity: 0.4; }
+    100% { transform: translateY(-120px) translateX(-10px) scale(0.7); opacity: 0; }
+  }
+</style>
 
 </head>

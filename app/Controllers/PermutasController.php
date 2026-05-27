@@ -24,7 +24,7 @@ class PermutasController extends BaseController
 
     public function __construct()
     {
-        helper('logs'); // Carregar helper de logs
+        helper(['logs', 'notification']); // Carregar helpers de logs e notificações
         
         $this->horarioModel = new HorarioAulasModel();
         $this->blocosModel = new BlocosHorariosModel();
@@ -42,7 +42,7 @@ class PermutasController extends BaseController
     public function index()
     {
         // Verificar se o usuário está logado
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
         if (!$userData) {
             return redirect()->to('/login')->with('error', 'É necessário fazer login');
         }
@@ -73,8 +73,10 @@ class PermutasController extends BaseController
                 ->orderBy('hora_inicio', 'ASC')
                 ->findAll();
 
-            // Buscar horário do professor
-            $horarioProfessor = $this->horarioModel->getHorarioProfessor($userNif);
+            // Buscar horário do professor filtrado pelo ano letivo activo
+            $anoAtivo = $this->anoLetivoModel->getAnoAtivo();
+            $anoLetivoId = $anoAtivo['id_anoletivo'] ?? null;
+            $horarioProfessor = $this->horarioModel->getHorarioProfessor($userNif, null, $anoLetivoId);
         }
 
         // Organizar blocos por dia da semana
@@ -142,7 +144,7 @@ class PermutasController extends BaseController
      */
     public function minhasPermutas()
     {
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
         if (!$userData) {
             return redirect()->to('/login')->with('error', 'É necessário fazer login');
         }
@@ -160,11 +162,13 @@ class PermutasController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'NIF não encontrado no seu perfil');
         }
 
-        // Buscar permutas do professor
-        $permutas = $this->permutaModel->getPermutasProfessor($userNif);
+        // Buscar permutas do professor filtradas pelo ano letivo activo
+        $anoAtivo = $this->anoLetivoModel->getAnoAtivo();
+        $anoLetivoId = $anoAtivo['id_anoletivo'] ?? null;
+        $permutas = $this->permutaModel->getPermutasProfessor($userNif, null, $anoLetivoId);
         
         // Buscar estatísticas
-        $stats = $this->permutaModel->getEstatisticasProfessor($userNif);
+        $stats = $this->permutaModel->getEstatisticasProfessor($userNif, $anoLetivoId);
 
         $data = [
             'title' => 'As Minhas Permutas',
@@ -183,7 +187,7 @@ class PermutasController extends BaseController
      */
     public function pedirPermuta($idAula = null)
     {
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
         if (!$userData) {
             return redirect()->to('/login')->with('error', 'É necessário fazer login');
         }
@@ -300,7 +304,10 @@ class PermutasController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Sem permissão para aceder a esta página');
         }
 
-        // Buscar todas as permutas com informações completas
+        // Buscar todas as permutas com informações completas (apenas ano letivo activo)
+        $anoAtivo = $this->anoLetivoModel->getAnoAtivo();
+        $anoLetivoId = $anoAtivo['id_anoletivo'] ?? null;
+
         $todasPermutas = $this->permutaModel
             ->select('permutas.*, 
                 permutas.data_aula_original,
@@ -320,6 +327,7 @@ class PermutasController extends BaseController
             ->join('user autor', 'autor.NIF = permutas.professor_autor_nif', 'left')
             ->join('user substituto', 'substituto.NIF = permutas.professor_substituto_nif', 'left')
             ->join('user aprovador', 'aprovador.id = permutas.aprovada_por_user_id', 'left')
+            ->when($anoLetivoId !== null, fn($q) => $q->where('permutas.ano_letivo_id', $anoLetivoId))
             ->orderBy('permutas.data_aula_original', 'DESC')
             ->orderBy('permutas.created_at', 'DESC')
             ->findAll();
@@ -362,7 +370,10 @@ class PermutasController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Sem permissão para aceder a esta página');
         }
 
-        // Buscar todas as permutas pendentes
+        // Buscar permutas pendentes do ano letivo activo
+        $anoAtivo = $this->anoLetivoModel->getAnoAtivo();
+        $anoLetivoId = $anoAtivo['id_anoletivo'] ?? null;
+
         $permutasPendentes = $this->permutaModel
             ->select('permutas.*, 
                 ha.dia_semana, ha.hora_inicio, ha.hora_fim,
@@ -378,6 +389,7 @@ class PermutasController extends BaseController
             ->join('user autor', 'autor.NIF = permutas.professor_autor_nif', 'left')
             ->join('user substituto', 'substituto.NIF = permutas.professor_substituto_nif', 'left')
             ->where('permutas.estado', 'pendente')
+            ->when($anoLetivoId !== null, fn($q) => $q->where('permutas.ano_letivo_id', $anoLetivoId))
             ->orderBy('permutas.created_at', 'DESC')
             ->findAll();
 
@@ -396,7 +408,7 @@ class PermutasController extends BaseController
      */
     public function salvarPermuta()
     {
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
         if (!$userData) {
             return $this->response->setJSON(['success' => false, 'message' => 'Sessão expirada']);
         }
@@ -726,7 +738,42 @@ class PermutasController extends BaseController
             } catch (\Exception $e) {
                 log_message('error', 'Erro ao enviar emails de aprovação: ' . $e->getMessage());
             }
-            
+
+            // Notificar professores envolvidos
+            try {
+                $userModel = new \App\Models\UserModel();
+                $autorNif = $permuta['professor_autor_nif'] ?? null;
+                $substNif = $permuta['professor_substituto_nif'] ?? null;
+                if ($autorNif) {
+                    $autor = $userModel->where('NIF', $autorNif)->first();
+                    if ($autor) {
+                        criar_notificacao(
+                            (int) $autor['id'],
+                            'permutas',
+                            'success',
+                            'Permuta aprovada',
+                            'A sua permuta #' . $permutaId . ' foi aprovada.',
+                            base_url('permutas')
+                        );
+                    }
+                }
+                if ($substNif && $substNif !== $autorNif) {
+                    $subst = $userModel->where('NIF', $substNif)->first();
+                    if ($subst) {
+                        criar_notificacao(
+                            (int) $subst['id'],
+                            'permutas',
+                            'success',
+                            'Permuta aprovada',
+                            'A permuta #' . $permutaId . ' em que participa foi aprovada.',
+                            base_url('permutas')
+                        );
+                    }
+                }
+            } catch (\Exception $e) {
+                log_message('warning', 'Erro ao notificar professores sobre aprovação de permuta: ' . $e->getMessage());
+            }
+
             return $this->response->setJSON(['success' => true, 'message' => 'Permuta aprovada com sucesso']);
         }
 
@@ -769,7 +816,42 @@ class PermutasController extends BaseController
             } catch (\Exception $e) {
                 log_message('error', 'Erro ao enviar emails de rejeição: ' . $e->getMessage());
             }
-            
+
+            // Notificar professores envolvidos
+            try {
+                $userModel = new \App\Models\UserModel();
+                $autorNif = $permuta['professor_autor_nif'] ?? null;
+                $substNif = $permuta['professor_substituto_nif'] ?? null;
+                if ($autorNif) {
+                    $autor = $userModel->where('NIF', $autorNif)->first();
+                    if ($autor) {
+                        criar_notificacao(
+                            (int) $autor['id'],
+                            'permutas',
+                            'danger',
+                            'Permuta rejeitada',
+                            'A sua permuta #' . $permutaId . ' foi rejeitada. Motivo: ' . $motivo,
+                            base_url('permutas')
+                        );
+                    }
+                }
+                if ($substNif && $substNif !== $autorNif) {
+                    $subst = $userModel->where('NIF', $substNif)->first();
+                    if ($subst) {
+                        criar_notificacao(
+                            (int) $subst['id'],
+                            'permutas',
+                            'danger',
+                            'Permuta rejeitada',
+                            'A permuta #' . $permutaId . ' em que participa foi rejeitada. Motivo: ' . $motivo,
+                            base_url('permutas')
+                        );
+                    }
+                }
+            } catch (\Exception $e) {
+                log_message('warning', 'Erro ao notificar professores sobre rejeição de permuta: ' . $e->getMessage());
+            }
+
             return $this->response->setJSON(['success' => true, 'message' => 'Permuta rejeitada']);
         }
 
@@ -824,6 +906,16 @@ class PermutasController extends BaseController
         } catch (\Exception $e) {
             log_message('error', 'Erro ao enviar email de grupo aprovado: ' . $e->getMessage());
         }
+
+        // Log da aprovação do grupo
+        log_activity(
+            'permutas',
+            'approve_group',
+            null,
+            "Grupo de permutas '{$grupoId}' aprovado: {$countAprovadas} permuta(s) por {$userData['name']} (ID: {$userData['id']})",
+            null,
+            ['grupo_permuta' => $grupoId, 'estado' => 'aprovada', 'aprovado_por' => $userData['id'], 'total_aprovadas' => $countAprovadas]
+        );
 
         return $this->response->setJSON([
             'success' => true, 
@@ -885,6 +977,17 @@ class PermutasController extends BaseController
             log_message('error', 'Erro ao enviar email de grupo rejeitado: ' . $e->getMessage());
         }
 
+        // Log da rejeição do grupo
+        log_activity(
+            'permutas',
+            'reject_group',
+            null,
+            "Grupo de permutas '{$grupoId}' rejeitado: {$countRejeitadas} permuta(s) por {$userData['name']} (ID: {$userData['id']}) - Motivo: {$motivo}",
+            null,
+            ['grupo_permuta' => $grupoId, 'estado' => 'rejeitada', 'rejeitado_por' => $userData['id'], 'total_rejeitadas' => $countRejeitadas, 'motivo' => $motivo],
+            'warning'
+        );
+
         return $this->response->setJSON([
             'success' => true, 
             'message' => "{$countRejeitadas} permuta(s) rejeitada(s)"
@@ -896,7 +999,7 @@ class PermutasController extends BaseController
      */
     public function cancelarPermuta($permutaId)
     {
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
         if (!$userData) {
             return $this->response->setJSON(['success' => false, 'message' => 'Sessão expirada']);
         }
@@ -919,6 +1022,13 @@ class PermutasController extends BaseController
         $success = $this->permutaModel->cancelarPermuta($permutaId);
 
         if ($success) {
+            log_permuta(
+                'cancel',
+                $permutaId,
+                "Permuta cancelada pelo professor autor (NIF: {$userData['NIF']})",
+                ['estado' => $permuta['estado']],
+                ['estado' => 'cancelada']
+            );
             return $this->response->setJSON(['success' => true, 'message' => 'Permuta cancelada']);
         }
 
@@ -930,7 +1040,7 @@ class PermutasController extends BaseController
      */
     public function verPermuta($permutaId)
     {
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
         if (!$userData) {
             return redirect()->to('/login');
         }
@@ -1374,7 +1484,7 @@ class PermutasController extends BaseController
      */
     public function getBlocosHorarios()
     {
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
         if (!$userData) {
             return $this->response->setJSON(['success' => false, 'message' => 'Sessão expirada']);
         }
@@ -1397,7 +1507,7 @@ class PermutasController extends BaseController
      */
     public function getSalasLivres()
     {
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
         if (!$userData) {
             return $this->response->setJSON(['success' => false, 'message' => 'Sessão expirada']);
         }
@@ -1548,7 +1658,7 @@ class PermutasController extends BaseController
      */
     public function creditos()
     {
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
         if (!$userData) {
             return redirect()->to('/login')->with('error', 'É necessário fazer login');
         }
@@ -1799,6 +1909,14 @@ class PermutasController extends BaseController
         if ($resultado) {
             // Log
             log_message('info', "Créditos criados: {$numAulas} aulas para professor {$post['professor_nif']} por user {$userData['id']}");
+            log_activity(
+                'permutas',
+                'create_credito',
+                null,
+                "Criados {$numAulas} crédito(s) de aula para professor NIF {$post['professor_nif']} - Turma: {$post['codigo_turma']}, Disciplina: {$post['disciplina_id']}, Origem: {$post['origem']}",
+                null,
+                ['professor_nif' => $post['professor_nif'], 'codigo_turma' => $post['codigo_turma'], 'disciplina_id' => $post['disciplina_id'], 'num_aulas' => $numAulas, 'data_visita' => $post['data_visita']]
+            );
 
             return $this->response->setJSON([
                 'success' => true,
@@ -1835,10 +1953,20 @@ class PermutasController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Dados incompletos']);
         }
 
+        $oldCredito = $this->creditoModel->find($creditoId);
+
         $resultado = $this->creditoModel->cancelarCredito($creditoId, $userData['id'], $motivo);
 
         if ($resultado) {
             log_message('info', "Crédito {$creditoId} cancelado por user {$userData['id']}");
+            log_credito(
+                'cancel',
+                $creditoId,
+                "Crédito cancelado por {$userData['name']} (ID: {$userData['id']}) - Motivo: {$motivo}",
+                $oldCredito ? ['estado' => $oldCredito['estado']] : null,
+                ['estado' => 'cancelado', 'cancelado_por' => $userData['id'], 'motivo' => $motivo],
+                'warning'
+            );
 
             return $this->response->setJSON([
                 'success' => true,
@@ -1860,8 +1988,8 @@ class PermutasController extends BaseController
         $userData = session()->get('LoggedUserData');
         $userLevel = $userData['level'] ?? 0;
 
-        // Verificar permissões: apenas níveis 0, 8 e 9
-        if ($userLevel != 0 && $userLevel < 8) {
+        // Verificar permissões: apenas níveis 0, 3, 8 e 9
+        if ($userLevel != 0 && $userLevel != 3 && $userLevel < 8) {
             return redirect()->to('/dashboard')->with('error', 'Sem permissão para aceder a esta página');
         }
 
@@ -1899,8 +2027,8 @@ class PermutasController extends BaseController
         $userData = session()->get('LoggedUserData');
         $userLevel = $userData['level'] ?? 0;
 
-        // Verificar permissões
-        if ($userLevel != 0 && $userLevel < 8) {
+        // Verificar permissões: apenas níveis 0, 3, 8 e 9
+        if ($userLevel != 0 && $userLevel != 3 && $userLevel < 8) {
             return $this->response->setJSON(['error' => 'Sem permissão'])->setStatusCode(403);
         }
 
@@ -1929,7 +2057,13 @@ class PermutasController extends BaseController
         $builder->join('escolas e', 'e.id = t.escola_id', 'left');
         $builder->where('p.estado', 'aprovada');
 
-        // Aplicar filtro de data in\u00edcio
+        // Filtrar pelo ano letivo activo
+        $anoAtivo = $this->anoLetivoModel->getAnoAtivo();
+        if ($anoAtivo) {
+            $builder->where('p.ano_letivo_id', $anoAtivo['id_anoletivo']);
+        }
+
+        // Aplicar filtro de data início
         if ($filtroDataInicio) {
             $builder->where('p.data_aula_permutada >=', $filtroDataInicio);
         }
@@ -1996,6 +2130,12 @@ class PermutasController extends BaseController
         $builder->join('blocos_horarios bh', 'bh.id_bloco = p.bloco_reposicao_id', 'left');
         $builder->join('escolas e', 'e.id = t.escola_id', 'left');
         $builder->where('p.estado', 'aprovada');
+
+        // Filtrar pelo ano letivo activo
+        $anoAtivoP = $this->anoLetivoModel->getAnoAtivo();
+        if ($anoAtivoP) {
+            $builder->where('p.ano_letivo_id', $anoAtivoP['id_anoletivo']);
+        }
 
         // Aplicar filtros
         if ($filtroDataInicio) {

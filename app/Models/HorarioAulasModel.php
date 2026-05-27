@@ -22,7 +22,8 @@ class HorarioAulasModel extends Model
         'tempo',
         'intervalo',
         'hora_inicio',
-        'hora_fim'
+        'hora_fim',
+        'ano_letivo_id'
     ];
 
     // Dates
@@ -91,7 +92,7 @@ class HorarioAulasModel extends Model
      * @param int|null $idAula
      * @return array
      */
-    public function getHorarioCompleto($idAula = null)
+    public function getHorarioCompleto($idAula = null, $anoLetivoId = null)
     {
         $builder = $this->select('
                 horario_aulas.*,
@@ -107,6 +108,10 @@ class HorarioAulasModel extends Model
             ->join('disciplina', 'disciplina.descritivo = horario_aulas.disciplina_id', 'left')
             ->join('turma', 'turma.codigo = horario_aulas.codigo_turma', 'left')
             ->join('salas', 'salas.codigo_sala = horario_aulas.sala_id', 'left');
+
+        if ($anoLetivoId) {
+            $builder->where('horario_aulas.ano_letivo_id', $anoLetivoId);
+        }
         
         if ($idAula) {
             return $builder->where('horario_aulas.id_aula', $idAula)->first();
@@ -124,7 +129,7 @@ class HorarioAulasModel extends Model
      * @param int|null $diaSemana
      * @return array
      */
-    public function getHorarioProfessor($idProfessor, $diaSemana = null)
+    public function getHorarioProfessor($idProfessor, $diaSemana = null, $anoLetivoId = null)
     {
         $builder = $this->select('
                 horario_aulas.*,
@@ -138,7 +143,11 @@ class HorarioAulasModel extends Model
             ->join('turma', 'turma.codigo = horario_aulas.codigo_turma', 'left')
             ->join('salas', 'salas.codigo_sala = horario_aulas.sala_id', 'left')
             ->where('horario_aulas.user_nif', $idProfessor);
-        
+
+        if ($anoLetivoId) {
+            $builder->where('horario_aulas.ano_letivo_id', $anoLetivoId);
+        }
+
         if ($diaSemana) {
             $builder->where('horario_aulas.dia_semana', $diaSemana);
         }

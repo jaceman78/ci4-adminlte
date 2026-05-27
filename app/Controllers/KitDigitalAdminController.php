@@ -419,14 +419,27 @@ class KitDigitalAdminController extends BaseController
     }
 
     /**
+     * Devolve tag <img> com o logo embutido em base64 para emails
+     */
+    private function getLogoImgTag(): string
+    {
+        $logoPath = FCPATH . 'adminlte/img/logo.png';
+        if (file_exists($logoPath)) {
+            $data = base64_encode(file_get_contents($logoPath));
+            $mime = mime_content_type($logoPath) ?: 'image/png';
+            return "<img src='data:{$mime};base64,{$data}' alt='Logo Escola' style='max-width:200px; height:auto;'>";
+        }
+        return '';
+    }
+
+    /**
      * Email de aviso de prazo de levantamento
      */
     private function sendPickupReminderEmail($record)
     {
         $email = \Config\Services::email();
         
-        // Caminho absoluto para o logo (FCPATH já é public/)
-        $logoPath = FCPATH . 'adminlte/img/logo.png';
+        $logoImg = $this->getLogoImgTag();
         
         $message = "
         <html>
@@ -436,12 +449,12 @@ class KitDigitalAdminController extends BaseController
             <p style='color: #d9534f;'><strong>⚠️ AVISO IMPORTANTE:</strong> O prazo para levantamento está a terminar. Se não proceder ao levantamento em tempo útil, perderá o direito ao Kit Digital.</p>
             <p>Deverá dirigir-se às instalações da Escola Secundária João de Barros para proceder ao levantamento.</p>
             <p><strong>Horário de atendimento da Escola Digital durante o período letivo:</strong><br>
-            Segundas e Terças-feiras entre as 14:00 e as 17:00<br>
+            Segundas e Terças-feiras entre as 14:30 e as 17:00<br>
             Local: Sala D012</p>
             <p>Agradecemos a vossa colaboração.</p>
             <p>Com os melhores cumprimentos,</p>
             <p><strong>António Neto<br>Escola Digital<br>Agrupamento de Escolas João de Barros</strong></p>
-            <p><img src='cid:logo_escola' alt='Logo Escola' style='max-width:200px; height:auto;'></p>
+            <p>{$logoImg}</p>
         </body>
         </html>
         ";
@@ -453,12 +466,6 @@ class KitDigitalAdminController extends BaseController
         }
         $email->setSubject('AVISO: Prazo de Levantamento do Kit Digital');
         $email->setMessage($message);
-        
-        // Anexar logo como imagem inline
-        if (file_exists($logoPath)) {
-            $cid = $email->setAttachmentCID($logoPath);
-            $email->attach($logoPath, 'inline', null, '', 'logo_escola');
-        }
 
         if (!$email->send()) {
             log_message('error', 'Erro ao enviar email de aviso de levantamento: ' . $email->printDebugger(['headers']));
@@ -473,8 +480,7 @@ class KitDigitalAdminController extends BaseController
     {
         $email = \Config\Services::email();
 
-        // Caminho absoluto para o logo (FCPATH já é public/)
-        $logoPath = FCPATH . 'adminlte/img/logo.png';
+        $logoImg = $this->getLogoImgTag();
         
         $message = "
         <html>
@@ -484,7 +490,7 @@ class KitDigitalAdminController extends BaseController
             <p>Recordamos que o equipamento se encontra em regime de comodato e deve ser mantido em bom estado de conservação.</p>
             <p>Com os melhores cumprimentos,</p>
             <p><strong>António Neto<br>Escola Digital<br>Agrupamento de Escolas João de Barros</strong></p>
-            <p><img src='cid:logo_escola' alt='Logo Escola' style='max-width:200px; height:auto;'></p>
+            <p>{$logoImg}</p>
         </body>
         </html>
         ";
@@ -496,12 +502,6 @@ class KitDigitalAdminController extends BaseController
         }
         $email->setSubject('Kit Digital - Entrega Efetuada');
         $email->setMessage($message);
-        
-        // Anexar logo como imagem inline
-        if (file_exists($logoPath)) {
-            $cid = $email->setAttachmentCID($logoPath);
-            $email->attach($logoPath, 'inline', null, '', 'logo_escola');
-        }
 
         if (!$email->send()) {
             log_message('error', 'Erro ao enviar email de término: ' . $email->printDebugger(['headers']));
@@ -515,18 +515,17 @@ class KitDigitalAdminController extends BaseController
     {
         $email = \Config\Services::email();
         
-        // Caminho absoluto para o logo (FCPATH já é public/)
-        $logoPath = FCPATH . 'adminlte/img/logo.png';
+        $logoImg = $this->getLogoImgTag();
         
         $message = "
         <html>
         <body style='font-family: Arial, sans-serif;'>
             <p>Exmo Encarregado de Educação,</p>
             <p>O kit digital destinado ao seu educando <strong>{$record['nome']}</strong> já se encontra disponível. Deverá dirigir-se às instalações da Escola Secundária João de Barros para levantamento do Kit digital.</p>
-            <p>O horário de atendimento da Escola Digital durante o período letivo é às segundas e terças feiras entre as 14:00 e as 17:00 na sala D012.</p>
+            <p>O horário de atendimento da Escola Digital durante o período letivo é às segundas e terças feiras entre as 14:30 e as 17:00 na sala D012.</p>
             <p>Com os melhores cumprimentos,</p>
             <p><strong>António Neto<br>Escola Digital<br>Agrupamento de Escolas João de Barros</strong></p>
-            <p><img src='cid:logo_escola' alt='Logo Escola' style='max-width:200px; height:auto;'></p>
+            <p>{$logoImg}</p>
         </body>
         </html>
         ";
@@ -536,12 +535,6 @@ class KitDigitalAdminController extends BaseController
         $email->setCC($record['email_aluno']);
         $email->setSubject('Kit Digital Disponível para Levantamento');
         $email->setMessage($message);
-        
-        // Anexar logo como imagem inline
-        if (file_exists($logoPath)) {
-            $cid = $email->setAttachmentCID($logoPath);
-            $email->attach($logoPath, 'inline', null, '', 'logo_escola');
-        }
 
         if (!$email->send()) {
             log_message('error', 'Erro ao enviar email de aprovação: ' . $email->printDebugger(['headers']));
@@ -555,8 +548,7 @@ class KitDigitalAdminController extends BaseController
     {
         $email = \Config\Services::email();
         
-        // Caminho absoluto para o logo (FCPATH já é public/)
-        $logoPath = FCPATH . 'adminlte/img/logo.png';
+        $logoImg = $this->getLogoImgTag();
 
         $message = "
         <html>
@@ -567,7 +559,7 @@ class KitDigitalAdminController extends BaseController
             <p>Para mais esclarecimentos, contacte a Escola Digital.</p>
             <p>Com os melhores cumprimentos,</p>
             <p><strong>António Neto<br>Escola Digital<br>Agrupamento de Escolas João de Barros</strong></p>
-            <p><img src='cid:logo_escola' alt='Logo Escola' style='max-width:200px; height:auto;'></p>
+            <p>{$logoImg}</p>
         </body>
         </html>
         ";
@@ -577,12 +569,6 @@ class KitDigitalAdminController extends BaseController
         $email->setCC($record['email_aluno']);
         $email->setSubject('Kit Digital - Pedido Rejeitado');
         $email->setMessage($message);
-        
-        // Anexar logo como imagem inline
-        if (file_exists($logoPath)) {
-            $cid = $email->setAttachmentCID($logoPath);
-            $email->attach($logoPath, 'inline', null, '', 'logo_escola');
-        }
 
         if (!$email->send()) {
             log_message('error', 'Erro ao enviar email de rejeição: ' . $email->printDebugger(['headers']));

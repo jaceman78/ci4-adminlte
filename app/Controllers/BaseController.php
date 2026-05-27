@@ -57,6 +57,20 @@ abstract class BaseController extends Controller
     }
 
     /**
+     * Devolve os dados do utilizador efetivo:
+     * - Se existe uma impersonificação ativa, devolve ImpersonatedUserData
+     * - Caso contrário, devolve LoggedUserData (identidade real)
+     *
+     * IMPORTANTE: Nunca usar este método para logs — usar sempre LoggedUserData diretamente.
+     */
+    protected function getEffectiveUser(): array
+    {
+        return session()->get('ImpersonatedUserData')
+            ?? session()->get('LoggedUserData')
+            ?? [];
+    }
+
+    /**
      * Verifica se o utilizador tem permissões para aceder à área de Sec. Exames
      * Apenas níveis 4, 8 e 9
      * 

@@ -44,7 +44,7 @@
                             <p><strong>Duração:</strong> <?= $sessao['duracao_minutos'] ?> minutos</p>
                         </div>
                     </div>
-                    <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC'])): ?>
+                    <?php if (!in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais'])): ?>
                     <?php
                     $totalVigilantesNecessarios = 0;
                     $totalVigilantesAlocados = 0;
@@ -76,7 +76,13 @@
                         'Apoio TIC' => [
                             'titulo' => 'Apoio TIC',
                             'descricao' => 'Convoque a equipa de apoio TIC necessária. Sem limite de convocações.'
-                        ]
+                        ],
+                        'Estrutura de Apoio' => [
+                            'titulo' => 'Estrutura de Apoio',
+                            'descricao' => 'Convoque a estrutura de apoio necessária. Sem limite de convocações.'                        ],
+                        'Verificação de Materiais' => [
+                            'titulo' => 'Verificação de Materiais',
+                            'descricao' => 'Convoque professores para verificar materiais. Sem limite de convocatões.'                        ]
                     ];
                     $info = $labelsEspeciais[$sessao['tipo_prova']] ?? ['titulo' => 'Sessão Especial', 'descricao' => 'Sem limite de convocações.'];
                     ?>
@@ -116,7 +122,7 @@
                                         $vigilantesNecessarios = $sala['vigilantes_necessarios'];
                                         
                                         // Para sessões especiais, não usar cores de status (completo/incompleto)
-                                        $isTipoEspecial = in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC']);
+                                        $isTipoEspecial = in_array($sessao['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais']);
                                         if ($isTipoEspecial) {
                                             $cardBorderColor = 'border-info';
                                             $headerBgColor = 'bg-info';
@@ -145,6 +151,8 @@
                                                     'Suplentes' => 'suplentes',
                                                     'Verificacao Calculadoras' => 'professores',
                                                     'Apoio TIC' => 'técnicos',
+                                                    'Estrutura de Apoio' => 'elementos',
+                                                    'Verificação de Materiais' => 'professores',
                                                     default => 'pessoas'
                                                 };
                                                 ?>
@@ -164,7 +172,9 @@
                                             $infoSalas = [
                                                 'Suplentes' => 'Sala de espera de suplentes',
                                                 'Verificacao Calculadoras' => 'Sala de verificação de calculadoras',
-                                                'Apoio TIC' => 'Sala de apoio TIC'
+                                                'Apoio TIC' => 'Sala de apoio TIC',
+                                                'Estrutura de Apoio' => 'Sala de estrutura de apoio',
+                                                'Verificação de Materiais' => 'Sala de verificação de materiais'
                                             ];
                                             ?>
                                             <p class="mb-2 text-muted">
@@ -247,13 +257,16 @@
                                                 </div>
                                                 <div class="flex-grow-1">
                                                     <strong><?= esc($prof['name']) ?></strong>
-                                                    <?php if (!empty($prof['grupo_id']) || isset($prof['total_vigilancias'])): ?>
+                                                    <?php if (!empty($prof['grupo_id']) || isset($prof['total_vigilancias']) || isset($prof['total_suplencias'])): ?>
                                                         <span class="text-muted">
                                                             <?php if (!empty($prof['grupo_id'])): ?>
                                                                 (<?= esc($prof['grupo_id']) ?>)
                                                             <?php endif; ?>
-                                                            <?php if (isset($prof['total_vigilancias'])): ?>
+                                                            <?php if (isset($prof['total_vigilancias']) && $prof['total_vigilancias'] > 0): ?>
                                                                 - (<?= (int)$prof['total_vigilancias'] ?> vigilâncias)
+                                                            <?php endif; ?>
+                                                            <?php if (isset($prof['total_suplencias']) && $prof['total_suplencias'] > 0): ?>
+                                                                (<?= (int)$prof['total_suplencias'] ?> suplências)
                                                             <?php endif; ?>
                                                         </span>
                                                     <?php endif; ?>

@@ -93,6 +93,12 @@ class LoginController extends BaseController
             'status'     => 1,
         ];
 
+        // Só sobrescreve o nome com o do Google quando o utilizador é novo
+        // ou ainda não tem nome definido localmente.
+        if ($existingUser && !empty($existingUser['name'])) {
+            unset($userdata['name']);
+        }
+
         // Só sobrescreve a imagem de perfil com a do Google
         // quando o utilizador é novo ou ainda não tem imagem local definida.
         $googlePicture = $googleUser->getPicture();

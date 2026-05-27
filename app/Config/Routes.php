@@ -80,6 +80,11 @@ $routes->get('teste-toasts', function() {
     return view('teste_toasts');
 });
 
+// Rota para teste de upload de imagens (correção erro 403)
+$routes->get('teste-upload-imagens', function() {
+    return view('teste_upload_imagens');
+});
+
 // Rotas de debug (apenas desenvolvimento)
 $routes->get('debug/session', 'DebugController::checkSession');
 $routes->get('debug/fix-session', 'DebugController::fixSession');
@@ -113,6 +118,15 @@ $routes->group('perfil', function($routes) {
 $routes->get('logout', 'LoginController::logout');
 
 // ---------------------------
+// 🎭 Impersonificação (nível 7+)
+// ---------------------------
+$routes->group('impersonation', ['filter' => 'auth'], function($routes) {
+    $routes->post('start/(:num)', 'ImpersonationController::start/$1');
+    $routes->get('stop',          'ImpersonationController::stop');
+    $routes->get('search',        'ImpersonationController::search');
+});
+
+// ---------------------------
 // 📊 Dashboard Personalizado
 // ---------------------------
 $routes->group('dashboard', function($routes) {
@@ -122,7 +136,27 @@ $routes->group('dashboard', function($routes) {
 });
 
 // ---------------------------
-// 👥 Gestão de Utilizadores (CRUD)
+// 🔧 Sistema de Manutenção (Nível 9)
+// ---------------------------
+$routes->group('manutencao', function($routes) {
+    $routes->get('admin', 'ManutencaoController::admin'); // Página de administração (nível 9)
+    $routes->post('ativar', 'ManutencaoController::ativar'); // Ativar manutenção (AJAX)
+    $routes->post('desativar', 'ManutencaoController::desativar'); // Desativar manutenção (AJAX)
+    $routes->post('atualizar', 'ManutencaoController::atualizar'); // Atualizar configuração (AJAX)
+    $routes->get('aviso', 'ManutencaoController::aviso'); // Página pública de aviso
+});
+
+// ---------------------------
+// � Notificações In-App
+// ---------------------------
+$routes->group('notificacoes', function($routes) {
+    $routes->get('nao-lidas', 'NotificationController::naoLidas');
+    $routes->post('marcar-lida/(:num)', 'NotificationController::marcarLida/$1');
+    $routes->post('marcar-todas-lidas', 'NotificationController::marcarTodasLidas');
+});
+
+// ---------------------------
+// �👥 Gestão de Utilizadores (CRUD)
 // ---------------------------
 // Adicione no topo se ainda não tiver:
 // use App\Controllers\UserController;
@@ -440,6 +474,9 @@ $routes->group('sugestoes', function($routes) {
     $routes->post('responder/(:num)', 'SugestoesController::responder/$1');   // Responder sugestão (admin)
     $routes->post('alterarEstado/(:num)', 'SugestoesController::alterarEstado/$1'); // Alterar estado (admin)
     $routes->post('excluir/(:num)', 'SugestoesController::excluir/$1');       // Excluir sugestão (admin)
+    $routes->get('anexos/(:num)', 'SugestoesController::getAnexos/$1');       // Listar anexos de uma sugestão
+    $routes->get('anexo/download/(:num)', 'SugestoesController::downloadAnexo/$1'); // Download de anexo
+    $routes->post('anexo/delete/(:num)', 'SugestoesController::deleteAnexo/$1'); // Deletar anexo (admin)
 });
 
 // Rotas para Gestão de Blocos Horários
@@ -476,11 +513,96 @@ $routes->group('anos-letivos', function($routes) {
     $routes->post('ativar/(:num)', 'AnosLetivosController::ativar/$1');
 });
 
+// ---------------------------
+// 🏖️ Gestão de Férias
+// ---------------------------
+$routes->group('ferias', function($routes) {
+    // PROFESSORES - Visualização e Marcação (Level 1)
+    $routes->get('/', 'FeriasController::index');                              // Página principal (meus dias/pedidos)
+    $routes->get('marcar', 'FeriasController::marcar');                        // Página para marcar férias
+    $routes->post('submeter', 'FeriasController::submeterPedido');             // Submeter novo pedido
+    $routes->get('submeter', function() {
+        return service('response')->setJSON([
+            'error' => 'Método não permitido. Use POST para submeter pedidos de férias.',
+            'status' => 405
+        ])->setStatusCode(405);
+    });
+    $routes->get('debug-status', 'FeriasController::debugStatus');             // DEBUG: Verificar estado (REMOVER APÓS DEBUG)
+    $routes->post('calcular-dias-uteis', 'FeriasController::calcularDiasUteis'); // Calcular dias úteis (AJAX)
+    $routes->get('obter-feriados', 'FeriasController::obterFeriados');         // Obter lista de feriados (AJAX)
+    $routes->get('meus-pedidos', 'FeriasController::meusPedidos');             // Histórico de pedidos
+    $routes->get('meus-documentos', 'FeriasController::meusDocumentos');       // Documentos PDF
+    $routes->get('download/(:num)', 'FeriasController::downloadDocumento/$1'); // Download PDF gerado
+    $routes->get('download-assinado/(:num)', 'FeriasController::downloadDocumentoAssinado/$1'); // Download PDF assinado
+    $routes->post('upload-documento/(:num)', 'FeriasController::uploadDocumentoAssinado/$1'); // Upload assinado
+    $routes->get('download-acumulacao/(:num)', 'FeriasController::downloadDocumentoAcumulacao/$1'); // Download PDF acumulação
+    $routes->get('download-acumulacao-assinado/(:num)', 'FeriasController::downloadDocumentoAcumulacaoAssinado/$1'); // Download PDF acumulação assinado
+    $routes->post('upload-acumulacao-assinado/(:num)', 'FeriasController::uploadDocumentoAcumulacaoAssinado/$1'); // Upload acumulação assinada
+    $routes->post('remarcar/(:num)', 'FeriasController::solicitarRemarcacao/$1'); // Solicitar remarcação
+    $routes->post('confirmar-remarcacao/(:num)', 'FeriasController::confirmarRemarcacao/$1'); // Professor confirma remarcação (após aprovação secretaria)
+    $routes->post('cancelar/(:num)', 'FeriasController::cancelarPedido/$1'); // Cancelar pedido pendente
+    
+    // SECRETARIA - Gestão (Level 3+)
+    $routes->get('secretaria', 'FeriasController::secretaria');                // Dashboard secretaria
+    $routes->get('gerir-professor/(:num)', 'FeriasController::gerirProfessor/$1'); // Página gestão completa professor
+    $routes->post('atualizar-dados-professor/(:num)', 'FeriasController::atualizarDadosProfessor/$1'); // Atualizar dados obrigatórios professor (AJAX)
+    $routes->get('atribuir', 'FeriasController::atribuir');                    // Página atribuir dias
+    $routes->post('salvar-atribuicao', 'FeriasController::salvarAtribuicao'); // Salvar atribuição
+    $routes->post('marcar-secretaria/(:num)', 'FeriasController::marcarFeriasSecretaria/$1'); // Secretaria marca férias por professor (AJAX)
+    $routes->post('editar-periodo-secretaria/(:num)', 'FeriasController::editarPedidoSecretaria/$1'); // Editar pedido criado pela secretaria (AJAX)
+    $routes->post('eliminar-periodo-secretaria/(:num)', 'FeriasController::eliminarPedidoSecretaria/$1'); // Eliminar pedido criado pela secretaria (AJAX)
+    $routes->post('interromper-ferias/(:num)', 'FeriasController::interromperFerias/$1'); // Interromper férias aprovadas (AJAX)
+    $routes->post('enviar-email-atribuicao/(:num)', 'FeriasController::enviarEmailAtribuicao/$1'); // Enviar email notificação
+    $routes->get('get-configuracao', 'FeriasController::getConfiguracao');    // Obter configuração do período (AJAX)
+    $routes->post('salvar-configuracao', 'FeriasController::salvarConfiguracao'); // Salvar configuração do período
+    $routes->get('pedidos-pendentes', 'FeriasController::pedidosPendentes');  // Pedidos pendentes
+    $routes->get('todos-pedidos', 'FeriasController::todosPedidos');          // Todos os pedidos
+    $routes->get('download-zip-assinados', 'FeriasController::downloadZipAssinados'); // Download ZIP de PDFs assinados
+    $routes->get('relatorios', 'FeriasController::relatorios');               // Relatórios
+    $routes->get('relatorio-absentismo', 'FeriasController::relatorioAbsentismo'); // Relatório de Absentismo
+    $routes->get('mapa-ferias', 'FeriasController::mapaFerias');              // Mapa de Férias (calendário visual)
+    $routes->get('feriados', 'FeriasController::feriados');                   // Gestão de feriados
+    $routes->get('utilizadores', 'FeriasController::utilizadores');           // Gestão de utilizadores (secretaria)
+    $routes->post('atualizar-utilizador', 'FeriasController::atualizarUtilizador'); // Atualizar dados do utilizador
+    $routes->get('logs', 'FeriasController::logs');                           // Logs do sistema
+    $routes->get('detalhes/(:num)', 'FeriasController::detalhesPedido/$1');  // Obter detalhes do pedido (AJAX)
+    $routes->post('aprovar/(:num)', 'FeriasController::aprovarPedido/$1');   // Aprovar pedido
+    $routes->post('rejeitar/(:num)', 'FeriasController::rejeitarPedido/$1'); // Rejeitar pedido
+    $routes->post('aprovar-remarcacao/(:num)', 'FeriasController::aprovarRemarcacao/$1'); // Aprovar remarcação
+    $routes->post('rejeitar-remarcacao/(:num)', 'FeriasController::rejeitarRemarcacao/$1'); // Rejeitar remarcação
+    $routes->post('regenerar-pdf/(:num)', 'FeriasController::regenerarPDF/$1'); // Regenerar PDF (pedidos aprovados não assinados)
+    $routes->get('download-remarcacao/(:num)', 'FeriasController::downloadRemarcacao/$1'); // Download PDF Alteração de Férias
+    $routes->get('download-remarcacao-assinado/(:num)', 'FeriasController::downloadRemarcacaoAssinado/$1'); // Download PDF Alteração assinado
+    $routes->post('upload-remarcacao-assinado/(:num)', 'FeriasController::uploadDocumentoRemarcacaoAssinado/$1'); // Upload Alteração assinada
+    $routes->post('regenerar-pdf-remarcacao/(:num)', 'FeriasController::regenerarPDFRemarcacao/$1'); // Regenerar PDF Alteração de Férias
+    $routes->post('registar-despacho-acumulacao/(:num)', 'FeriasController::registarDespachoAcumulacao/$1'); // Registar despacho acumulação (secretaria)
+    $routes->post('regenerar-pdf-acumulacao/(:num)', 'FeriasController::regenerarPDFAcumulacao/$1'); // Regenerar PDF acumulação
+    
+    // API/AJAX - Gestão de Faltas (Level 3+)
+    $routes->post('faltas/registar', 'FeriasController::faltasRegistar');     // Registar nova falta (AJAX)
+    $routes->get('faltas-por-dia', 'FeriasController::faltasPorDia');         // Detalhe faltas por dia (AJAX popover)
+    $routes->post('faltas/atualizar/(:num)', 'FeriasController::faltasAtualizar/$1'); // Atualizar falta (AJAX)
+    $routes->delete('faltas/eliminar/(:num)', 'FeriasController::faltasEliminar/$1'); // Eliminar falta (AJAX)
+    
+    // API/AJAX - Feriados (Level 3+)
+    $routes->post('adicionar-feriado', 'FeriasController::adicionarFeriado');   // Adicionar feriado personalizado
+    $routes->delete('remover-feriado/(:num)', 'FeriasController::removerFeriado/$1'); // Remover feriado
+    $routes->post('gerar-feriados-ano', 'FeriasController::gerarFeriadosAno'); // Gerar feriados automáticos
+    
+    // API/AJAX - Cálculos
+    $routes->post('calcular-dias', 'FeriasController::calcularDiasUteis');    // Calcular dias úteis
+    $routes->get('feriados/(:num)', 'FeriasController::getFeriados/$1');      // Obter feriados de um ano
+});
+
 // Rotas para obter dados para selects em modais
 $routes->get("equipamentos/all", "EquipamentosController::all");
 $routes->get("salas/all", "SalaController::all");
 $routes->get("tipos-avaria/all", "TiposAvariaController::all");
 $routes->get("users/technicians", "UserController::getTechnicians");
+$routes->get("api/anos-letivos", "FeriasController::apiAnosLetivos");
+$routes->get("api/professores", "FeriasController::apiProfessores");
+$routes->get("api/categorias-professores", "FeriasController::apiCategoriasProfessores");
+$routes->get("api/escolas", "FeriasController::apiEscolas");
 
 // ---------------------------
 // 🔑 Gestão de Chaves de Acesso para Empresas (Super Admin)

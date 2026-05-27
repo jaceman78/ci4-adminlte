@@ -96,11 +96,10 @@ class TurmasController extends BaseController
                 $nome = $data['nome'] ?? $data['abreviatura'] ?? '';
                 $ano = $data['ano'] ?? '';
                 log_activity(
-                    $userId,
                     'turmas',
                     'create',
-                    "Criou turma '{$nome}' (Código: {$codigo}, Ano: {$ano})",
                     $turmaId,
+                    "Criou turma '{$nome}' (Código: {$codigo}, Ano: {$ano})",
                     null,
                     $data
                 );
@@ -159,11 +158,10 @@ class TurmasController extends BaseController
                 }
                 
                 log_activity(
-                    $userId,
                     'turmas',
                     'update',
-                    $descricao,
                     $id,
+                    $descricao,
                     $dadosAnteriores,
                     $data
                 );
@@ -206,11 +204,10 @@ class TurmasController extends BaseController
                 $ano = $turma['ano'] ?? '';
                 
                 log_activity(
-                    $userId,
                     'turmas',
                     'delete',
-                    "Eliminou turma '{$nome}' (Código: {$codigo}, Ano: {$ano})",
                     $id,
+                    "Eliminou turma '{$nome}' (Código: {$codigo}, Ano: {$ano})",
                     $turma,
                     null
                 );

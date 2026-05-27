@@ -88,15 +88,17 @@
                                     <option value="Prova Final">Prova Final</option>
                                     <option value="MODa">MODa</option>
                                     <option value="Apoio TIC">Apoio TIC</option>
+                                    <option value="Estrutura de Apoio">Estrutura de Apoio</option>
                                     <option value="Verificacao Calculadoras">Verificação Calculadoras</option>
                                     <option value="Suplentes">Suplentes</option>
+                                    <option value="Verificação de Materiais">Verificação de Materiais</option>
                                 </select>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="anoEscolaridade" class="form-label">Ano de Escolaridade <span class="text-danger">*</span></label>
-                                <select class="form-select" id="anoEscolaridade" name="ano_escolaridade" required>
+                            <div class="mb-3" id="anoEscolaridadeGroup">
+                                <label for="anoEscolaridade" class="form-label">Ano de Escolaridade <span class="text-danger" id="anoEscolaridadeRequired">*</span></label>
+                                <select class="form-select" id="anoEscolaridade" name="ano_escolaridade">
                                     <option value="">Selecione...</option>
                                     <option value="4">4º ano</option>
                                     <option value="6">6º ano</option>
@@ -104,6 +106,7 @@
                                     <option value="11">11º ano</option>
                                     <option value="12">12º ano</option>
                                 </select>
+                                <small class="text-muted d-none" id="anoEscolaridadeInfo"><i class="bi bi-info-circle"></i> Não aplicável para este tipo de prova.</small>
                             </div>
                         </div>
                     </div>
@@ -135,7 +138,22 @@
 
 <?= $this->section('scripts') ?>
 <script>
+// Tipos de prova sem ano de escolaridade
+var tiposSemAno = ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais'];
+
+function toggleAnoEscolaridade(tipo) {
+    var semAno = tiposSemAno.indexOf(tipo) !== -1;
+    $('#anoEscolaridade').prop('required', !semAno).val(semAno ? '' : $('#anoEscolaridade').val());
+    $('#anoEscolaridadeRequired').toggleClass('d-none', semAno);
+    $('#anoEscolaridadeInfo').toggleClass('d-none', !semAno);
+    $('#anoEscolaridade').prop('disabled', semAno);
+}
+
 $(document).ready(function() {
+    $('#tipoProva').on('change', function() {
+        toggleAnoEscolaridade($(this).val());
+    });
+
     // Inicializar DataTable
     var table = $('#examesTable').DataTable({
         processing: true,
@@ -208,6 +226,7 @@ $(document).ready(function() {
         $('#exameForm')[0].reset();
         $('#exameId').val('');
         $('#exameModalLabel').text('Novo Exame');
+        toggleAnoEscolaridade('');
     });
 });
 
@@ -229,6 +248,7 @@ function editExame(id) {
                 $('#codigoProva').val(exame.codigo_prova);
                 $('#nomeProva').val(exame.nome_prova);
                 $('#tipoProva').val(exame.tipo_prova);
+                toggleAnoEscolaridade(exame.tipo_prova);
                 $('#anoEscolaridade').val(exame.ano_escolaridade);
                 $('#ativo').val(exame.ativo);
                 $('#exameModalLabel').text('Editar Exame');

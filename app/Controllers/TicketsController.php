@@ -38,7 +38,7 @@ class TicketsController extends BaseController
         $this->email = new Email();
         
         // Carregar helper de estados
-        helper(['estado']);
+        helper(['estado', 'notification']);
     }
 
     // --- Vistas --- //
@@ -70,6 +70,11 @@ class TicketsController extends BaseController
         }
 
         $userId = session()->get('user_id'); // ID do utilizador logado
+        // Quando em impersonificação, usar o ID do utilizador efetivo
+        $effectiveUser = $this->getEffectiveUser();
+        if (!empty($effectiveUser['id'])) {
+            $userId = $effectiveUser['id'];
+        }
         $data = [
             'title' => 'Meus Tickets'
         ];
@@ -117,7 +122,8 @@ class TicketsController extends BaseController
         }
 
         // Verificar se o utilizador tem permissão para ver este ticket
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
         $userLevel = session()->get('level');
         
         // Pode ver se: é o criador, é o atribuído, ou é técnico/admin (level >= 5)
@@ -167,7 +173,9 @@ class TicketsController extends BaseController
         }
 
         // Obter ID do utilizador da sessão (compatível com LoginController)
-        $userId = session()->get('user_id');
+        // Quando em impersonificação, usar o ID do utilizador efetivo
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
         if (!$userId) {
             log_message('error', 'Tentativa de criar ticket sem autenticação');
             return $this->failUnauthorized('Utilizador não autenticado. Por favor, faça login novamente.');
@@ -212,6 +220,21 @@ class TicketsController extends BaseController
                     log_message('warning', 'Falha ao enviar email de confirmação para ticket #' . $ticketId . ': ' . $e->getMessage());
                 }
                 
+                // Notificar técnicos (level 5+) sobre novo ticket
+                try {
+                    notificar_utilizadores_por_level(
+                        [5, 6, 7, 8, 9],
+                        'tickets',
+                        'warning',
+                        'Novo ticket de avaria',
+                        'Foi criado o ticket #' . $ticketId . ': ' . mb_substr($data['descricao'], 0, 80),
+                        base_url('tickets/view/' . $ticketId),
+                        (int) $userId
+                    );
+                } catch (\Exception $e) {
+                    log_message('warning', 'Erro ao notificar técnicos sobre novo ticket: ' . $e->getMessage());
+                }
+
                 return $this->respondCreated(['message' => 'Ticket criado com sucesso!', 'ticketId' => $ticketId]);
                 
             } catch (\Exception $e) {
@@ -251,7 +274,8 @@ class TicketsController extends BaseController
             }
 
             // Apenas o criador pode editar se o estado for 'novo', ou admins (nível 8+)
-            $userId = session()->get('user_id');
+            $effectiveUser = $this->getEffectiveUser();
+            $userId = $effectiveUser['id'] ?? session()->get('user_id');
             $userLevel = (int) session()->get('level') ?? 0;
             
             $isOwner = $ticket['user_id'] == $userId && $ticket['estado'] == 'novo';
@@ -296,14 +320,32 @@ class TicketsController extends BaseController
 
             if ($this->ticketsModel->update($id, $data)) {
                 $ticketDetails = $this->ticketsModel->getTicketDetails($id);
-                
+
+                // Notificar o criador do ticket sobre mudança de estado (se alterado por outro utilizador)
+                $novoEstado = $data['estado'] ?? null;
+                if ($novoEstado && $novoEstado !== $ticket['estado'] && $ticket['user_id'] != $userId) {
+                    try {
+                        $estadoLabel = ucfirst(str_replace('_', ' ', $novoEstado));
+                        criar_notificacao(
+                            (int) $ticket['user_id'],
+                            'tickets',
+                            $novoEstado === 'reparado' ? 'success' : 'info',
+                            'Ticket #' . $id . ' atualizado',
+                            'O estado do seu ticket #' . $id . ' foi alterado para: ' . $estadoLabel,
+                            base_url('tickets/view/' . $id)
+                        );
+                    } catch (\Exception $e) {
+                        log_message('warning', 'Erro ao notificar criação de alteração de ticket: ' . $e->getMessage());
+                    }
+                }
+
                 // Tentar enviar email de atualização (não bloqueia se falhar)
                 try {
                     $this->sendTicketUpdateEmail($ticketDetails);
                 } catch (\Exception $e) {
                     log_message('warning', 'Falha ao enviar email de atualização: ' . $e->getMessage());
                 }
-                
+
                 return $this->respond([
                     'status' => 200,
                     'message' => 'Ticket atualizado com sucesso!'
@@ -328,7 +370,8 @@ class TicketsController extends BaseController
             return $this->failNotFound('Ticket não encontrado.');
         }
 
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
         $userLevel = session()->get('level') ?? 0;
         
         // Verificar se o ticket está reparado
@@ -373,7 +416,8 @@ class TicketsController extends BaseController
         }
 
         // Verificar se o utilizador tem permissão para ver este ticket
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
         $userLevel = session()->get('level');
         
         // Pode ver se: é o criador, é o atribuído, ou é técnico/admin (level >= 5)
@@ -399,7 +443,8 @@ class TicketsController extends BaseController
             return $this->failUnauthorized('Acesso não autorizado.');
         }
 
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
         if (!$userId) {
             return $this->failUnauthorized('Utilizador não autenticado.');
         }
@@ -849,11 +894,10 @@ class TicketsController extends BaseController
         if ($this->ticketsModel->update($ticketId, ['prioridade' => $prioridade])) {
             // Log de atividade
             log_activity(
-                (int) session()->get('user_id'),
                 'Tickets',
                 'Atualizar Prioridade',
-                'Prioridade do ticket #' . $ticketId . ' alterada para ' . $prioridade,
                 $ticketId,
+                'Prioridade do ticket #' . $ticketId . ' alterada para ' . $prioridade,
                 ['prioridade_anterior' => $ticket['prioridade']],
                 ['prioridade_nova' => $prioridade]
             );

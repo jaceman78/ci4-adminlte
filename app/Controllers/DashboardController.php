@@ -7,6 +7,7 @@ use App\Models\UserModel;
 use App\Models\EquipamentosModel;
 use App\Models\HorarioAulasModel;
 use App\Models\PermutaModel;
+use App\Models\AnoLetivoModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class DashboardController extends BaseController
@@ -16,6 +17,7 @@ class DashboardController extends BaseController
     protected $equipamentosModel;
     protected $horarioModel;
     protected $permutaModel;
+    protected $anoLetivoModel;
 
     public function __construct()
     {
@@ -24,6 +26,7 @@ class DashboardController extends BaseController
         $this->equipamentosModel = new EquipamentosModel();
         $this->horarioModel = new HorarioAulasModel();
         $this->permutaModel = new PermutaModel();
+        $this->anoLetivoModel = new AnoLetivoModel();
         helper(['log_helper', 'estado']);
     }
 
@@ -66,8 +69,8 @@ class DashboardController extends BaseController
      */
     public function userDashboard()
     {
-        $userId = session()->get('id');
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
+        $userId   = $userData['id'] ?? session()->get('id');
         $userLevel = $userData['level'] ?? (session()->get('level') ?? 0);
         $userNif = $userData['NIF'] ?? null;
 
@@ -96,12 +99,31 @@ class DashboardController extends BaseController
                 ->countAllResults(),
         ];
 
-        // Convocatórias para vigilâncias (todas)
-        $convocatorias = [];
+        // Convocatórias para vigilâncias (apenas ano letivo activo)
         $convocatoriaModel = new \App\Models\ConvocatoriaModel();
-        $convocatorias = $convocatoriaModel->getByProfessor($userId, false);
+        $anoAtivo = $this->anoLetivoModel->getAnoAtivo();
+        $anoLetivoId = $anoAtivo['id_anoletivo'] ?? null;
+        $todasConvocatorias = $convocatoriaModel->getByProfessor($userId, false, $anoLetivoId);
 
-        // Permutas pendentes onde o utilizador é o substituto (precisa aceitar/recusar)
+        // Separar futuras (>= hoje) das passadas (< hoje, últimos 30 dias)
+        $hojeConv = date('Y-m-d');
+        $limitePassadas = date('Y-m-d', strtotime('-30 days'));
+        $convocatoriasFuturas = [];
+        $convocatoriasPassadas = [];
+        foreach ($todasConvocatorias as $convItem) {
+            $dataConvItem = date('Y-m-d', strtotime($convItem['data_exame']));
+            if ($dataConvItem >= $hojeConv) {
+                $convocatoriasFuturas[] = $convItem;
+            } elseif ($dataConvItem >= $limitePassadas) {
+                $convocatoriasPassadas[] = $convItem;
+            }
+        }
+        // Passadas: ordem decrescente (mais recente primeiro)
+        usort($convocatoriasPassadas, static function ($a, $b) {
+            return strcmp($b['data_exame'], $a['data_exame']);
+        });
+
+        // Permutas pendentes onde o utilizador é o substituto
         $permutasPendentesSubstituto = [];
         $permutasVigilanciaModel = new \App\Models\PermutasVigilanciaModel();
         $permutasPendentesSubstituto = $permutasVigilanciaModel->getPermutasPendentesSubstituto($userId);
@@ -112,7 +134,7 @@ class DashboardController extends BaseController
             $hoje = new \DateTimeImmutable('today');
             $hojeStr = $hoje->format('Y-m-d');
 
-            $todasPermutas = $this->permutaModel->getPermutasProfessor($userNif, null);
+            $todasPermutas = $this->permutaModel->getPermutasProfessor($userNif, null, $anoLetivoId);
 
             foreach ($todasPermutas as $permuta) {
                 // Considerar apenas permutas ainda ativas (pendentes ou aprovadas)
@@ -168,7 +190,8 @@ class DashboardController extends BaseController
             'tickets' => $meusTickets,
             'stats' => $stats,
             'permutas_futuras' => $permutasFuturas,
-            'convocatorias' => $convocatorias ?? [],
+            'convocatoriasFuturas' => $convocatoriasFuturas,
+            'convocatoriasPassadas' => $convocatoriasPassadas,
             'permutas_pendentes_substituto' => $permutasPendentesSubstituto,
         ];
 
@@ -180,8 +203,8 @@ class DashboardController extends BaseController
      */
     public function tecnicoDashboard()
     {
-        $userId = session()->get('id');
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
+        $userId   = $userData['id'] ?? session()->get('id');
         $userNif = $userData['NIF'] ?? null;
 
         // Tickets atribuídos ao técnico
@@ -232,10 +255,12 @@ class DashboardController extends BaseController
         $permutasRecentes = [];
         if ($userNif) {
             $permutaModel = new \App\Models\PermutaModel();
-            $permutasStats = $permutaModel->getEstatisticasProfessor($userNif);
+            $anoAtivoT = $this->anoLetivoModel->getAnoAtivo();
+            $anoLetivoIdT = $anoAtivoT['id_anoletivo'] ?? null;
+            $permutasStats = $permutaModel->getEstatisticasProfessor($userNif, $anoLetivoIdT);
             
             // Permutas recentes (últimas 5)
-            $permutasRecentes = $permutaModel->getPermutasProfessor($userNif, null);
+            $permutasRecentes = $permutaModel->getPermutasProfessor($userNif, null, $anoLetivoIdT);
             $permutasRecentes = array_slice($permutasRecentes, 0, 5);
         }
 
@@ -251,10 +276,29 @@ class DashboardController extends BaseController
         // Equipamentos mais problemáticos (top 5)
         $equipamentosProblematicos = $this->getProblematicEquipments($userId);
 
-        // Convocatórias para vigilâncias (todas)
-        $convocatorias = [];
+        // Convocatórias para vigilâncias (apenas ano letivo activo) - tecnicoDashboard
         $convocatoriaModel = new \App\Models\ConvocatoriaModel();
-        $convocatorias = $convocatoriaModel->getByProfessor($userId, false);
+        $anoAtivoTec = $this->anoLetivoModel->getAnoAtivo();
+        $anoLetivoIdTec = $anoAtivoTec['id_anoletivo'] ?? null;
+        $todasConvocatoriasTec = $convocatoriaModel->getByProfessor($userId, false, $anoLetivoIdTec);
+
+        // Separar futuras (>= hoje) das passadas (< hoje, últimos 30 dias)
+        $hojeConvTec = date('Y-m-d');
+        $limitePassadasTec = date('Y-m-d', strtotime('-30 days'));
+        $convocatoriasFuturas = [];
+        $convocatoriasPassadas = [];
+        foreach ($todasConvocatoriasTec as $convItem) {
+            $dataConvItem = date('Y-m-d', strtotime($convItem['data_exame']));
+            if ($dataConvItem >= $hojeConvTec) {
+                $convocatoriasFuturas[] = $convItem;
+            } elseif ($dataConvItem >= $limitePassadasTec) {
+                $convocatoriasPassadas[] = $convItem;
+            }
+        }
+        // Passadas: ordem decrescente (mais recente primeiro)
+        usort($convocatoriasPassadas, static function ($a, $b) {
+            return strcmp($b['data_exame'], $a['data_exame']);
+        });
 
         // Permutas pendentes onde o utilizador é o substituto
         $permutasVigilanciaModel = new \App\Models\PermutasVigilanciaModel();
@@ -273,7 +317,8 @@ class DashboardController extends BaseController
             'tickets_por_localizacao' => $ticketsPorLocalizacao,
             'tipos_avaria_comuns' => $tiposAvariaComuns,
             'equipamentos_problematicos' => $equipamentosProblematicos,
-            'convocatorias' => $convocatorias,
+            'convocatoriasFuturas' => $convocatoriasFuturas,
+            'convocatoriasPassadas' => $convocatoriasPassadas,
             'permutas_pendentes_substituto' => $permutasPendentesSubstituto
         ];
 
@@ -285,7 +330,7 @@ class DashboardController extends BaseController
      */
     public function adminDashboard()
     {
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
 
         // Estatísticas Gerais do Sistema
         $stats = $this->getAdminStats();
@@ -334,11 +379,29 @@ class DashboardController extends BaseController
         // Equipamentos mais problemáticos
         $equipamentosProblematicos = $this->getAdminProblematicEquipments();
 
-        // Convocatórias para vigilâncias (todas)
+        // Convocatórias para vigilâncias (apenas ano letivo activo) - adminDashboard
         $userId = session()->get('id');
-        $convocatorias = [];
         $convocatoriaModel = new \App\Models\ConvocatoriaModel();
-        $convocatorias = $convocatoriaModel->getByProfessor($userId, false);
+        $anoAtivoAdm = $this->anoLetivoModel->getAnoAtivo();
+        $anoLetivoIdAdm = $anoAtivoAdm['id_anoletivo'] ?? null;
+        $todasConvocatoriasAdm = $convocatoriaModel->getByProfessor($userId, false, $anoLetivoIdAdm);
+
+        // Separar futuras (>= hoje) das passadas (< hoje, últimos 30 dias)
+        $hojeConvAdm = date('Y-m-d');
+        $limitePassadasAdm = date('Y-m-d', strtotime('-30 days'));
+        $convocatoriasFuturas = [];
+        $convocatoriasPassadas = [];
+        foreach ($todasConvocatoriasAdm as $convItem) {
+            $dataConvItem = date('Y-m-d', strtotime($convItem['data_exame']));
+            if ($dataConvItem >= $hojeConvAdm) {
+                $convocatoriasFuturas[] = $convItem;
+            } elseif ($dataConvItem >= $limitePassadasAdm) {
+                $convocatoriasPassadas[] = $convItem;
+            }
+        }
+        usort($convocatoriasPassadas, static function ($a, $b) {
+            return strcmp($b['data_exame'], $a['data_exame']);
+        });
 
         // Permutas pendentes onde o utilizador é o substituto
         $permutasVigilanciaModel = new \App\Models\PermutasVigilanciaModel();
@@ -357,7 +420,8 @@ class DashboardController extends BaseController
             'escolas_mais_tickets' => $escolasComMaisTickets,
             'tipos_avaria_frequentes' => $tiposAvariaFrequentes,
             'equipamentos_problematicos' => $equipamentosProblematicos,
-            'convocatorias' => $convocatorias,
+            'convocatoriasFuturas' => $convocatoriasFuturas,
+            'convocatoriasPassadas' => $convocatoriasPassadas,
             'permutas_pendentes_substituto' => $permutasPendentesSubstituto
         ];
 
@@ -369,13 +433,31 @@ class DashboardController extends BaseController
      */
     public function superAdminDashboard()
     {
-        $userData = session()->get('LoggedUserData');
+        $userData = $this->getEffectiveUser();
 
-        // Convocatórias para vigilâncias (todas)
-        $userId = session()->get('id');
-        $convocatorias = [];
+        // Convocatórias para vigilâncias (apenas ano letivo activo) - superAdminDashboard
+        $userId = $userData['id'] ?? session()->get('id');
         $convocatoriaModel = new \App\Models\ConvocatoriaModel();
-        $convocatorias = $convocatoriaModel->getByProfessor($userId, false);
+        $anoAtivoSA = $this->anoLetivoModel->getAnoAtivo();
+        $anoLetivoIdSA = $anoAtivoSA['id_anoletivo'] ?? null;
+        $todasConvocatoriasSA = $convocatoriaModel->getByProfessor($userId, false, $anoLetivoIdSA);
+
+        // Separar futuras (>= hoje) das passadas (< hoje, últimos 30 dias)
+        $hojeConvSA = date('Y-m-d');
+        $limitePassadasSA = date('Y-m-d', strtotime('-30 days'));
+        $convocatoriasFuturas = [];
+        $convocatoriasPassadas = [];
+        foreach ($todasConvocatoriasSA as $convItem) {
+            $dataConvItem = date('Y-m-d', strtotime($convItem['data_exame']));
+            if ($dataConvItem >= $hojeConvSA) {
+                $convocatoriasFuturas[] = $convItem;
+            } elseif ($dataConvItem >= $limitePassadasSA) {
+                $convocatoriasPassadas[] = $convItem;
+            }
+        }
+        usort($convocatoriasPassadas, static function ($a, $b) {
+            return strcmp($b['data_exame'], $a['data_exame']);
+        });
 
         // Permutas pendentes onde o utilizador é o substituto
         $permutasVigilanciaModel = new \App\Models\PermutasVigilanciaModel();
@@ -385,7 +467,8 @@ class DashboardController extends BaseController
         $data = [
             'title' => 'Dashboard - Super Administrador',
             'user' => $userData,
-            'convocatorias' => $convocatorias,
+            'convocatoriasFuturas' => $convocatoriasFuturas,
+            'convocatoriasPassadas' => $convocatoriasPassadas,
             'permutas_pendentes_substituto' => $permutasPendentesSubstituto,
         ];
 

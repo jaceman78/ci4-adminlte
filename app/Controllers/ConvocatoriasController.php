@@ -25,6 +25,7 @@ class ConvocatoriasController extends BaseController
         $this->convocatoriaModel = new ConvocatoriaModel();
         $this->userModel = new UserModel();
         $this->exameModel = new ExameModel();
+        helper('notification');
     }
 
     /**
@@ -42,6 +43,22 @@ class ConvocatoriasController extends BaseController
         // Buscar informações completas da sessão
         $sessaoCompleta = $this->sessaoExameModel->getSessaoComExame($sessaoExameId);
         
+        // Determinar a função esperada baseada no tipo de prova
+        $funcaoEsperada = 'Vigilante'; // Padrão
+        if (isset($sessaoCompleta['tipo_prova'])) {
+            if ($sessaoCompleta['tipo_prova'] === 'Apoio TIC') {
+                $funcaoEsperada = 'Apoio TIC';
+            } elseif ($sessaoCompleta['tipo_prova'] === 'Estrutura de Apoio') {
+                $funcaoEsperada = 'Estrutura de Apoio';
+            } elseif ($sessaoCompleta['tipo_prova'] === 'Verificacao Calculadoras' || $sessaoCompleta['tipo_prova'] === 'Verificação Calculadoras') {
+                $funcaoEsperada = 'Verificar Calculadoras';
+            } elseif ($sessaoCompleta['tipo_prova'] === 'Verificação de Materiais') {
+                $funcaoEsperada = 'Verificar Materiais';
+            } elseif ($sessaoCompleta['tipo_prova'] === 'Suplentes') {
+                $funcaoEsperada = 'Suplente';
+            }
+        }
+        
         // Buscar salas alocadas com estatísticas
         $salasAlocadas = $this->sessaoExameSalaModel->getSalasComEstatisticas($sessaoExameId);
 
@@ -49,20 +66,29 @@ class ConvocatoriasController extends BaseController
         // Assumindo que professores têm role_id específico
         $professores = $this->userModel
             ->select('user.id, user.name, user.email, user.grupo_id, 
-                (SELECT COUNT(*) FROM convocatoria 
-                 WHERE convocatoria.user_id = user.id 
-                 AND convocatoria.funcao = "Vigilante") as total_vigilancias')
+                (SELECT COUNT(*) FROM convocatoria c
+                 INNER JOIN sessao_exame se ON se.id = c.sessao_exame_id
+                 INNER JOIN exame e ON e.id = se.exame_id
+                 WHERE c.user_id = user.id 
+                 AND c.funcao = "Vigilante"
+                 AND e.tipo_prova != "Suplentes") as total_vigilancias,
+                (SELECT COUNT(*) FROM convocatoria c
+                 INNER JOIN sessao_exame se ON se.id = c.sessao_exame_id
+                 INNER JOIN exame e ON e.id = se.exame_id
+                 WHERE c.user_id = user.id 
+                 AND c.funcao = "Vigilante"
+                 AND e.tipo_prova = "Suplentes") as total_suplencias')
             ->where('user.status', 1)
             ->orderBy('user.name', 'ASC')
             ->findAll();
 
-        // Buscar convocatórias já existentes desta sessão
+        // Buscar convocatórias já existentes desta sessão (filtrando pela função esperada)
         $convocatoriasExistentes = $this->convocatoriaModel
             ->select('convocatoria.*, user.name as user_nome, sessao_exame_sala.id as sala_id')
             ->join('user', 'user.id = convocatoria.user_id')
             ->join('sessao_exame_sala', 'sessao_exame_sala.id = convocatoria.sessao_exame_sala_id', 'left')
             ->where('convocatoria.sessao_exame_id', $sessaoExameId)
-            ->where('convocatoria.funcao', 'Vigilante')
+            ->where('convocatoria.funcao', $funcaoEsperada)
             ->findAll();
 
         // Organizar convocatórias por sala
@@ -108,11 +134,32 @@ class ConvocatoriasController extends BaseController
             ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
         }
 
-        // Verificar se já está convocado para esta sessão
+        // Verificar tipo de exame para determinar a função correta
+        $sessao = $this->sessaoExameModel->find($sessaoExameId);
+        $exame = $this->exameModel->find($sessao['exame_id']);
+        
+        // Determinar a função baseada no tipo de prova
+        $funcao = 'Vigilante'; // Padrão
+        if ($exame) {
+            $tipoProva = $exame['tipo_prova'];
+            if ($tipoProva === 'Apoio TIC') {
+                $funcao = 'Apoio TIC';
+            } elseif ($tipoProva === 'Estrutura de Apoio') {
+                $funcao = 'Estrutura de Apoio';
+            } elseif ($tipoProva === 'Verificacao Calculadoras' || $tipoProva === 'Verificação Calculadoras') {
+                $funcao = 'Verificar Calculadoras';
+            } elseif ($tipoProva === 'Verificação de Materiais') {
+                $funcao = 'Verificar Materiais';
+            } elseif ($tipoProva === 'Suplentes') {
+                $funcao = 'Suplente';
+            }
+        }
+
+        // Verificar se já está convocado para esta sessão (com a função correta)
         $jaConvocado = $this->convocatoriaModel
             ->where('sessao_exame_id', $sessaoExameId)
             ->where('user_id', $userId)
-            ->where('funcao', 'Vigilante')
+            ->where('funcao', $funcao)
             ->first();
 
         if ($jaConvocado) {
@@ -122,19 +169,16 @@ class ConvocatoriasController extends BaseController
             ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
         }
 
-        // Verificar tipo de exame para determinar se há limite de vigilantes
-        $sessao = $this->sessaoExameModel->find($sessaoExameId);
-        $exame = $this->exameModel->find($sessao['exame_id']);
         // Sessões especiais não têm limite de vigilantes
-        $semLimite = ($exame && in_array($exame['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Apoio TIC']));
+        $semLimite = ($exame && in_array($exame['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Verificação Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais']));
 
-        // Para sessões especiais (suplentes/verificação calculadoras/apoio TIC), não há limite de vigilantes
+        // Para sessões normais, verificar limite de vigilantes na sala
         if (!$semLimite) {
             // Verificar se a sala já atingiu o número de vigilantes necessários
             $sala = $this->sessaoExameSalaModel->find($sessaoExameSalaId);
             $vigilantesNaSala = $this->convocatoriaModel
                 ->where('sessao_exame_sala_id', $sessaoExameSalaId)
-                ->where('funcao', 'Vigilante')
+                ->where('funcao', $funcao)
                 ->countAllResults();
 
             if ($vigilantesNaSala >= $sala['vigilantes_necessarios']) {
@@ -150,14 +194,32 @@ class ConvocatoriasController extends BaseController
             'sessao_exame_id' => $sessaoExameId,
             'user_id' => $userId,
             'sessao_exame_sala_id' => $sessaoExameSalaId,
-            'funcao' => 'Vigilante',
+            'funcao' => $funcao, // Função determinada pelo tipo de prova
             'estado_confirmacao' => 'Pendente'
         ];
 
         if ($this->convocatoriaModel->insert($convocatoriaData)) {
             // Buscar dados do professor para retornar
             $professor = $this->userModel->find($userId);
-            
+
+            // Notificar o professor convocado
+            try {
+                $nomeProva  = $exame['nome_prova'] ?? 'exame';
+                $dataExame  = isset($sessao['data_exame']) ? date('d/m/Y', strtotime($sessao['data_exame'])) : '';
+                $horaExame  = isset($sessao['hora_exame']) ? substr($sessao['hora_exame'], 0, 5) : '';
+                $detalhe    = trim($dataExame . ($horaExame ? ' às ' . $horaExame : ''));
+                criar_notificacao(
+                    (int) $userId,
+                    'convocatorias',
+                    'warning',
+                    'Nova convocatória de vigilância',
+                    'Foi convocado(a) como ' . $funcao . ' para o exame "' . $nomeProva . '"' . ($detalhe ? ' (' . $detalhe . ')' : '') . '.',
+                    base_url('dashboard')
+                );
+            } catch (\Exception $e) {
+                log_message('warning', 'Erro ao notificar professor sobre convocatória: ' . $e->getMessage());
+            }
+
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Vigilante adicionado com sucesso.',
@@ -191,6 +253,24 @@ class ConvocatoriasController extends BaseController
         }
 
         if ($this->convocatoriaModel->delete($convocatoriaId)) {
+            // Notificar o professor que a convocatória foi cancelada
+            try {
+                $sessao = $this->sessaoExameModel->find($convocatoria['sessao_exame_id']);
+                $exame  = $sessao ? $this->exameModel->find($sessao['exame_id']) : null;
+                $nomeProva = $exame['nome_prova'] ?? 'exame';
+                $dataExame = isset($sessao['data_exame']) ? date('d/m/Y', strtotime($sessao['data_exame'])) : '';
+                criar_notificacao(
+                    (int) $convocatoria['user_id'],
+                    'convocatorias',
+                    'danger',
+                    'Convocatória cancelada',
+                    'A sua convocatória como ' . ($convocatoria['funcao'] ?? 'vigilante') . ' para o exame "' . $nomeProva . '"' . ($dataExame ? ' (' . $dataExame . ')' : '') . ' foi cancelada.',
+                    base_url('dashboard')
+                );
+            } catch (\Exception $e) {
+                log_message('warning', 'Erro ao notificar professor sobre cancelamento de convocatória: ' . $e->getMessage());
+            }
+
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Vigilante removido com sucesso.'

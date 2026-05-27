@@ -101,56 +101,6 @@
 </section>
 
 <!-- Technology Stack -->
-<section class="bg-light py-5">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <h3 class="fw-bold mb-4 text-center">Tecnologia</h3>
-                <p class="text-center text-muted mb-4">Desenvolvido com tecnologias modernas e robustas</p>
-                
-                <div class="row g-3 text-center">
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm p-3">
-                            <h6 class="fw-bold mb-1">CodeIgniter 4</h6>
-                            <small class="text-muted">Framework PHP</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm p-3">
-                            <h6 class="fw-bold mb-1">Bootstrap 5</h6>
-                            <small class="text-muted">Framework CSS</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm p-3">
-                            <h6 class="fw-bold mb-1">MySQL</h6>
-                            <small class="text-muted">Base de Dados</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm p-3">
-                            <h6 class="fw-bold mb-1">Google OAuth</h6>
-                            <small class="text-muted">Autenticação</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm p-3">
-                            <h6 class="fw-bold mb-1">DataTables</h6>
-                            <small class="text-muted">Gestão de Dados</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm p-3">
-                            <h6 class="fw-bold mb-1">SweetAlert2</h6>
-                            <small class="text-muted">Notificações</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
 <!-- Navegação simples -->
 <section class="py-5">
     <div class="container">

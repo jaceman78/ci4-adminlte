@@ -33,8 +33,8 @@ class ExameModel extends Model
         'id' => 'permit_empty|is_natural_no_zero',
         'codigo_prova' => 'required|max_length[10]|is_unique[exame.codigo_prova,id,{id}]',
         'nome_prova' => 'required|max_length[100]',
-        'tipo_prova' => 'required|in_list[Exame Nacional,Prova Final,MODa]',
-        'ano_escolaridade' => 'required|integer|greater_than[0]|less_than[13]',
+        'tipo_prova' => 'required|in_list[Exame Nacional,Prova Final,MODa,Suplentes,Verificacao Calculadoras,Apoio TIC,Estrutura de Apoio,Verificação de Materiais]',
+        'ano_escolaridade' => 'permit_empty|integer|greater_than[0]|less_than[13]',
     ];
 
     protected $validationMessages = [

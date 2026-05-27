@@ -39,6 +39,7 @@
                                     <th>Título</th>
                                     <th>Prioridade</th>
                                     <th>Estado</th>
+                                    <th>Anexos</th>
                                     <th>Data</th>
                                     <th style="width: 150px;">Ações</th>
                                 </tr>
@@ -95,6 +96,15 @@
                     <div class="col-12">
                         <strong>Descrição:</strong><br>
                         <div id="detalhes-descricao" style="white-space: pre-wrap;"></div>
+                    </div>
+                </div>
+                <div id="anexos-container" style="display: none;">
+                    <hr>
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <strong>Anexos:</strong>
+                            <div id="detalhes-anexos" class="mt-2"></div>
+                        </div>
                     </div>
                 </div>
                 <div id="resposta-container" style="display: none;">
@@ -212,6 +222,18 @@ $(document).ready(function() {
                 }
             },
             { 
+                data: 'num_anexos',
+                orderable: false,
+                render: function(data, type, row) {
+                    if (data > 0) {
+                        return `<span class="badge bg-primary btn-ver-anexos" style="cursor: pointer;" data-id="${row.id}" title="Clique para ver ${data} anexo(s)">
+                                    <i class="fas fa-paperclip"></i> ${data}
+                                </span>`;
+                    }
+                    return '<span class="text-muted">-</span>';
+                }
+            },
+            { 
                 data: 'created_at',
                 render: function(data) {
                     if (!data) return 'N/A';
@@ -239,7 +261,27 @@ $(document).ready(function() {
         ],
         order: [[0, 'desc']],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json'
+            "sEmptyTable": "Sem dados disponíveis na tabela",
+            "sInfo": "A mostrar _START_ até _END_ de _TOTAL_ registos",
+            "sInfoEmpty": "A mostrar 0 até 0 de 0 registos",
+            "sInfoFiltered": "(filtrado de _MAX_ registos no total)",
+            "sInfoPostFix": "",
+            "sInfoThousands": ",",
+            "sLengthMenu": "Mostrar _MENU_ registos",
+            "sLoadingRecords": "A carregar...",
+            "sProcessing": "A processar...",
+            "sSearch": "Pesquisar:",
+            "sZeroRecords": "Não foram encontrados resultados",
+            "oPaginate": {
+                "sFirst": "Primeiro",
+                "sPrevious": "Anterior",
+                "sNext": "Seguinte",
+                "sLast": "Último"
+            },
+            "oAria": {
+                "sSortAscending": ": ativar para ordenar a coluna de forma ascendente",
+                "sSortDescending": ": ativar para ordenar a coluna de forma descendente"
+            }
         }
     });
 
@@ -247,7 +289,18 @@ $(document).ready(function() {
     $('#sugestoesTable').on('click', '.btn-ver', function() {
         const id = $(this).data('id');
         const row = table.rows().data().toArray().find(r => r.id == id);
-        
+        mostrarDetalhes(row);
+    });
+
+    // Ver anexos - abre modal de detalhes
+    $('#sugestoesTable').on('click', '.btn-ver-anexos', function() {
+        const id = $(this).data('id');
+        const row = table.rows().data().toArray().find(r => r.id == id);
+        mostrarDetalhes(row);
+    });
+
+    // Função para mostrar detalhes da sugestão
+    function mostrarDetalhes(row) {
         $('#detalhes-id').text(row.id);
         $('#detalhes-usuario').text(row.user_nome || 'N/A');
         $('#detalhes-email').text(row.user_email || 'N/A');
@@ -277,9 +330,59 @@ $(document).ready(function() {
         $('#detalhes-titulo').text(row.titulo);
         $('#detalhes-descricao').text(row.descricao);
         
+        // Carregar anexos
+        if (row.num_anexos > 0) {
+            $.ajax({
+                url: '<?= base_url('sugestoes/anexos') ?>/' + row.id,
+                method: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.data.length > 0) {
+                        let anexosHtml = '<div class="list-group">';
+                        response.data.forEach(function(anexo) {
+                            const iconClass = getFileIcon(anexo.tipo_mime);
+                            const fileSize = formatBytes(anexo.tamanho);
+                            anexosHtml += `
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="${iconClass} me-2"></i>
+                                        <span>${anexo.nome_original}</span>
+                                        <small class="text-muted ms-2">(${fileSize})</small>
+                                    </div>
+                                    <div>
+                                        <a href="<?= base_url('sugestoes/anexo/download') ?>/${anexo.id}" 
+                                           class="btn btn-sm btn-info me-1" 
+                                           title="Download">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-danger btn-excluir-anexo" 
+                                                data-id="${anexo.id}" 
+                                                data-sugestao-id="${row.id}"
+                                                title="Excluir">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        anexosHtml += '</div>';
+                        $('#detalhes-anexos').html(anexosHtml);
+                        $('#anexos-container').show();
+                    } else {
+                        $('#anexos-container').hide();
+                    }
+                },
+                error: function() {
+                    $('#anexos-container').hide();
+                }
+            });
+        } else {
+            $('#anexos-container').hide();
+        }
+        
         if (row.resposta) {
             $('#detalhes-resposta').text(row.resposta);
-            $('#detalhes-respondedor').text(row.respondedor_name || 'N/A');
+            $('#detalhes-respondedor').text(row.respondedor_nome || 'N/A');
             $('#detalhes-data-resposta').text(row.respondido_em ? new Date(row.respondido_em).toLocaleString('pt-PT') : 'N/A');
             $('#resposta-container').show();
         } else {
@@ -289,7 +392,7 @@ $(document).ready(function() {
         // Abrir modal usando Bootstrap 5
         var modalDetalhes = new bootstrap.Modal(document.getElementById('modalDetalhes'));
         modalDetalhes.show();
-    });
+    }
 
     // Responder
     $('#sugestoesTable').on('click', '.btn-responder', function() {
@@ -383,6 +486,111 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Excluir anexo
+    $(document).on('click', '.btn-excluir-anexo', function() {
+        const anexoId = $(this).data('id');
+        const sugestaoId = $(this).data('sugestao-id');
+        
+        Swal.fire({
+            title: 'Excluir anexo?',
+            text: "Esta ação não pode ser revertida!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sim, excluir!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '<?= base_url('sugestoes/anexo/delete') ?>/' + anexoId,
+                    method: 'POST',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire('Excluído!', response.message, 'success');
+                            // Recarregar anexos
+                            $.ajax({
+                                url: '<?= base_url('sugestoes/anexos') ?>/' + sugestaoId,
+                                method: 'GET',
+                                dataType: 'json',
+                                success: function(resp) {
+                                    if (resp.success && resp.data.length > 0) {
+                                        let anexosHtml = '<div class="list-group">';
+                                        resp.data.forEach(function(anexo) {
+                                            const iconClass = getFileIcon(anexo.tipo_mime);
+                                            const fileSize = formatBytes(anexo.tamanho);
+                                            anexosHtml += `
+                                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <i class="${iconClass} me-2"></i>
+                                                        <span>${anexo.nome_original}</span>
+                                                        <small class="text-muted ms-2">(${fileSize})</small>
+                                                    </div>
+                                                    <div>
+                                                        <a href="<?= base_url('sugestoes/anexo/download') ?>/${anexo.id}" 
+                                                           class="btn btn-sm btn-info me-1" 
+                                                           title="Download">
+                                                            <i class="fas fa-download"></i>
+                                                        </a>
+                                                        <button class="btn btn-sm btn-danger btn-excluir-anexo" 
+                                                                data-id="${anexo.id}" 
+                                                                data-sugestao-id="${sugestaoId}"
+                                                                title="Excluir">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        });
+                                        anexosHtml += '</div>';
+                                        $('#detalhes-anexos').html(anexosHtml);
+                                        $('#anexos-container').show();
+                                    } else {
+                                        $('#anexos-container').hide();
+                                    }
+                                    // Recarregar tabela para atualizar contador
+                                    table.ajax.reload(null, false);
+                                }
+                            });
+                        } else {
+                            Swal.fire('Erro!', response.message, 'error');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Erro!', 'Erro ao excluir anexo', 'error');
+                    }
+                });
+            }
+        });
+    });
+
+    // Função para obter ícone do arquivo baseado no MIME type
+    function getFileIcon(mimeType) {
+        if (!mimeType) return 'fas fa-file';
+        
+        if (mimeType.startsWith('image/')) return 'fas fa-file-image text-primary';
+        if (mimeType.includes('pdf')) return 'fas fa-file-pdf text-danger';
+        if (mimeType.includes('word') || mimeType.includes('document')) return 'fas fa-file-word text-primary';
+        if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'fas fa-file-excel text-success';
+        if (mimeType.includes('text')) return 'fas fa-file-alt text-secondary';
+        
+        return 'fas fa-file';
+    }
+
+    // Função para formatar bytes
+    function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
 });
 </script>
 <?= $this->endSection() ?>

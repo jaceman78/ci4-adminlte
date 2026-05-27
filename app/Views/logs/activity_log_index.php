@@ -386,7 +386,7 @@ $(document).ready(function() {
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
         language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-PT.json'
+            url: '<?= base_url('assets/datatables/pt-PT.json') ?>'
         },
         responsive: true,
         autoWidth: false,
@@ -535,7 +535,7 @@ $("#viewLogUser").html(log.user_name ?
     "<strong>" + log.user_name + "</strong> <small>" + (log.user_email || "") + "</small>" : 
     "<span class=\"text-muted\">Sistema</span>"
 );
-                $("#viewLogModulo").html("<span class=\"badge bg-primary text-dark\">" + log.modulo.charAt(0).toUpperCase() + log.modulo.slice(1) + "</span>");
+                $("#viewLogModulo").html("<span class=\"badge bg-primary text-white\">"+log.modulo.charAt(0).toUpperCase()+log.modulo.slice(1)+"</span>");
                 $("#viewLogAcao").html("<span class=\"badge bg-info text-dark\">" + log.acao.charAt(0).toUpperCase() + log.acao.slice(1) + "</span>");
                 $("#viewLogRegistroId").text(log.registro_id || "N/A");
                 $("#viewLogDataHora").text(new Date(log.criado_em).toLocaleString("pt-PT"));

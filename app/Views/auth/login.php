@@ -20,142 +20,253 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
     <style>
-      .service-card {
-        border: none;
-        border-radius: 8px;
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-      .service-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      }
-      .service-icon {
-        width: 50px;
-        height: 50px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 10px;
+      * { box-sizing: border-box; }
+
+      body.login-page {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
-        color: white;
+        padding: 1rem;
+        font-family: 'Source Sans Pro', sans-serif;
+      }
+
+      .login-wrapper {
+        display: flex;
+        width: 100%;
+        max-width: 960px;
+        min-height: 580px;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+      }
+
+      /* ── Coluna esquerda — Login ── */
+      .login-left {
+        flex: 0 0 340px;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 2.5rem 2rem;
+      }
+
+      .login-left .brand img {
+        height: 56px;
+        margin-bottom: .5rem;
+      }
+      .login-left .brand h1 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin: 0;
+      }
+      .login-left .brand p {
+        font-size: .8rem;
+        color: #888;
+        margin: 0 0 1.5rem;
+      }
+
+      .login-left .google-btn-wrap {
+        margin-bottom: 1.2rem;
+      }
+      .login-left .google-btn-wrap .btn,
+      .login-left .google-btn-wrap a {
+        width: 100%;
+      }
+
+      .login-left .login-notice {
+        background: #f0f4ff;
+        border-radius: 10px;
+        padding: .75rem 1rem;
+        font-size: .8rem;
+        color: #444;
+        margin-bottom: 1rem;
+      }
+      .login-left .login-notice a { color: #0f3460; font-weight: 600; }
+
+      .login-left .footer-links {
+        font-size: .72rem;
+        color: #aaa;
+        text-align: center;
+        margin-top: auto;
+        padding-top: 1rem;
+      }
+      .login-left .footer-links a { color: #888; }
+
+      /* ── Coluna direita — Funcionalidades ── */
+      .login-right {
+        flex: 1;
+        background: rgba(255,255,255,0.05);
+        backdrop-filter: blur(10px);
+        padding: 2rem 1.8rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .login-right .features-title {
+        color: rgba(255,255,255,0.55);
+        font-size: .7rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 1rem;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: .75rem;
+      }
+
+      .feature-item {
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: .85rem .9rem;
+        transition: background .2s, transform .2s;
+        cursor: default;
+      }
+      .feature-item:hover {
+        background: rgba(255,255,255,0.13);
+        transform: translateY(-2px);
+      }
+
+      .feature-item .fi-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: #fff;
+        margin-bottom: .5rem;
+      }
+
+      .feature-item h6 {
+        color: #fff;
+        font-size: .82rem;
+        font-weight: 700;
+        margin: 0 0 .15rem;
+      }
+      .feature-item small {
+        color: rgba(255,255,255,0.5);
+        font-size: .7rem;
+        line-height: 1.3;
+        display: block;
+      }
+
+      /* Responsive: empilhar em ecrãs pequenos */
+      @media (max-width: 700px) {
+        .login-wrapper { flex-direction: column; min-height: auto; }
+        .login-left { flex: none; }
+        .features-grid { grid-template-columns: 1fr 1fr; }
+        .login-right { padding: 1.5rem; }
       }
     </style>
 </head>
 <body class="hold-transition login-page">
-<div class="login-box">
-  <div class="login-logo">
-    <b>Login</b>ESJB
-  </div>
-  <div class="card">
-    <div class="card-body login-card-body">
-      <p class="login-box-msg">Entre com a sua conta Google</p>
 
-      <!-- Mensagens de flash -->
-      <?php if(session()->getFlashdata('Error')): ?>
-        <div class="alert alert-danger"><?= session()->getFlashdata('Error') ?></div>
-      <?php endif; ?>
-      <?php if(session()->getFlashdata('Success')): ?>
-        <div class="alert alert-success"><?= session()->getFlashdata('Success') ?></div>
-      <?php endif; ?>
+<div class="login-wrapper">
 
-      <!-- Botão Google -->
+  <!-- ── Coluna esquerda: Login ── -->
+  <div class="login-left">
+    <div class="brand mb-3">
+      <h1><b>ESJB</b></h1>
+      <p>Escola João de Barros &mdash; Área Restrita</p>
+    </div>
+
+    <?php if(session()->getFlashdata('Error')): ?>
+      <div class="alert alert-danger py-2 small"><?= session()->getFlashdata('Error') ?></div>
+    <?php endif; ?>
+    <?php if(session()->getFlashdata('Success')): ?>
+      <div class="alert alert-success py-2 small"><?= session()->getFlashdata('Success') ?></div>
+    <?php endif; ?>
+
+    <div class="google-btn-wrap">
       <?= $googleButton ?>
-      
-      <!-- Aviso Área Pública -->
-      <div class="alert alert-info mt-3 mb-3">
-        <div class="d-flex align-items-center">
-          <i class="bi bi-info-circle me-2" style="font-size: 1.2rem;"></i>
-          <div class="flex-grow-1">
-            <strong>Não tem credenciais?</strong>
-            <p class="mb-0 small">Esta é a área restrita para funcionários. Para aceder aos serviços públicos, visite:</p>
-          </div>
-        </div>
-        <div class="text-center mt-2">
-          <?php 
-            // Determinar URL da área pública
-            $currentHost = $_SERVER['HTTP_HOST'] ?? '';
-            
-            // Se estamos em localhost/desenvolvimento, usar /public
-            if (strpos($currentHost, 'localhost') !== false || strpos($currentHost, '127.0.0.1') !== false) {
-              $publicUrl = site_url('public');
-            } else {
-              // Em produção, usar subdomínio público
-              $publicHost = getenv('PUBLIC_HOST') ?: env('PUBLIC_HOST', 'public.escoladigital.cloud');
-              $publicUrl = 'https://' . $publicHost;
-            }
-          ?>
-          <a href="<?= $publicUrl ?>" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-globe"></i> Aceder à Área Pública
-          </a>
-        </div>
-      </div>
-      
-      <!-- Links de Privacidade e Termos -->
-      <div class="text-center mt-4">
-        <small class="text-muted">
-          Ao fazer login, concorda com a nossa<br>
-          <a href="<?= site_url('privacy') ?>" target="_blank" class="text-primary">Política de Privacidade</a> e 
-          <a href="<?= site_url('privacy/terms') ?>" target="_blank" class="text-primary">Termos de Serviço</a>
-        </small>
-      </div>
     </div>
-    <!-- /.card-body -->
-    
-    <div class="card-footer text-center">
-      <small class="text-muted">
-        © <?= date('Y') ?> Agrupamento de Escolas João de Barros
-      </small>
+
+    <?php
+      $currentHost = $_SERVER['HTTP_HOST'] ?? '';
+      if (strpos($currentHost, 'localhost') !== false || strpos($currentHost, '127.0.0.1') !== false) {
+        $publicUrl = site_url('public');
+      } else {
+        $publicHost = getenv('PUBLIC_HOST') ?: env('PUBLIC_HOST', 'public.escoladigital.cloud');
+        $publicUrl = 'https://' . $publicHost;
+      }
+    ?>
+    <div class="login-notice">
+      <i class="bi bi-info-circle me-1"></i>
+      <strong>Não tem credenciais?</strong> Visite a <a href="<?= $publicUrl ?>">Área Pública</a> para aceder aos serviços sem login.
+    </div>
+
+    <div class="footer-links">
+      © <?= date('Y') ?> Agrupamento de Escolas João de Barros<br>
+      <a href="<?= site_url('privacy') ?>">Privacidade</a> &middot;
+      <a href="<?= site_url('privacy/terms') ?>">Termos</a>
     </div>
   </div>
-  <!-- /.card -->
 
-    <!-- Service Cards -->
-    <div class="mt-4">
-      <div class="row g-3">
-        <div class="col-12">
-          <div class="card service-card shadow-sm">
-            <div class="card-body d-flex align-items-center p-3">
-              <div class="service-icon me-3">
-                <i class="bi bi-arrow-left-right"></i>
-              </div>
-              <div>
-                <h6 class="mb-1 fw-bold">Permutas de Aulas</h6>
-                <small class="text-muted">Gestão de permutas entre professores</small>
-              </div>
-            </div>
-          </div>
+  <!-- ── Coluna direita: Funcionalidades ── -->
+  <div class="login-right">
+    <p class="features-title">Funcionalidades disponíveis</p>
+    <div class="features-grid">
+
+      <div class="feature-item">
+        <div class="fi-icon" style="background:linear-gradient(135deg,#667eea,#764ba2);">
+          <i class="bi bi-arrow-left-right"></i>
         </div>
-      
-        <div class="col-12">
-          <div class="card service-card shadow-sm">
-            <div class="card-body d-flex align-items-center p-3">
-              <div class="service-icon me-3">
-                <i class="bi bi-headset"></i>
-              </div>
-              <div>
-                <h6 class="mb-1 fw-bold">Sistema de Tickets</h6>
-                <small class="text-muted">Suporte técnico e acompanhamento</small>
-              </div>
-            </div>
-          </div>
-        </div>
-      
-        <div class="col-12">
-          <div class="card service-card shadow-sm">
-            <div class="card-body d-flex align-items-center p-3">
-              <div class="service-icon me-3">
-                <i class="bi bi-lightbulb"></i>
-              </div>
-              <div>
-                <h6 class="mb-1 fw-bold">Caixa de Sugestões</h6>
-                <small class="text-muted">Partilhe as suas ideias</small>
-              </div>
-            </div>
-          </div>
-        </div>
+        <h6>Permutas de Aulas</h6>
+        <small>Gestão de permutas entre professores</small>
       </div>
+
+      <div class="feature-item">
+        <div class="fi-icon" style="background:linear-gradient(135deg,#f093fb,#f5576c);">
+          <i class="bi bi-headset"></i>
+        </div>
+        <h6>Sistema de Tickets</h6>
+        <small>Suporte técnico e acompanhamento</small>
+      </div>
+
+      <div class="feature-item">
+        <div class="fi-icon" style="background:linear-gradient(135deg,#4facfe,#00f2fe);">
+          <i class="bi bi-lightbulb"></i>
+        </div>
+        <h6>Caixa de Sugestões</h6>
+        <small>Partilhe as suas ideias</small>
+      </div>
+
+      <div class="feature-item">
+        <div class="fi-icon" style="background:linear-gradient(135deg,#43e97b,#38f9d7);">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+        <h6>Marcação de Férias</h6>
+        <small>Gestão e marcação de períodos de férias</small>
+      </div>
+
+      <div class="feature-item">
+        <div class="fi-icon" style="background:linear-gradient(135deg,#fa709a,#fee140);">
+          <i class="bi bi-clipboard2-check"></i>
+        </div>
+        <h6>Convocatórias Exames</h6>
+        <small>Gestão de convocatórias para vigilância</small>
+      </div>
+
+      <div class="feature-item">
+        <div class="fi-icon" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb);">
+          <i class="bi bi-map"></i>
+        </div>
+        <h6>Visitas de Estudo</h6>
+        <small>Organização e acompanhamento de visitas</small>
+      </div>
+
     </div>
+  </div>
+
+</div>
 </div>
 
 <!-- Dependências JS -->

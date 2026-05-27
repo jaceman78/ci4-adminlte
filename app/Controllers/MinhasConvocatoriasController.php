@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\ConvocatoriaModel;
 use App\Models\SessaoExameModel;
 use App\Models\ExameModel;
+use App\Models\AnoLetivoModel;
 
 /**
  * Controller exemplo para gestão de convocatórias
@@ -16,12 +17,14 @@ class MinhasConvocatoriasController extends BaseController
     protected $convocatoriaModel;
     protected $sessaoExameModel;
     protected $exameModel;
+    protected $anoLetivoModel;
 
     public function __construct()
     {
         $this->convocatoriaModel = new ConvocatoriaModel();
         $this->sessaoExameModel = new SessaoExameModel();
         $this->exameModel = new ExameModel();
+        $this->anoLetivoModel = new AnoLetivoModel();
     }
 
     /**
@@ -34,10 +37,13 @@ class MinhasConvocatoriasController extends BaseController
             return redirect()->to('/login')->with('error', 'Por favor, faça login.');
         }
 
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
 
-        // Buscar convocatórias do professor
-        $convocatorias = $this->convocatoriaModel->getByProfessor($userId, true);
+        // Buscar convocatórias do professor filtradas pelo ano letivo activo
+        $anoAtivo = $this->anoLetivoModel->getAnoAtivo();
+        $anoLetivoId = $anoAtivo['id_anoletivo'] ?? null;
+        $convocatorias = $this->convocatoriaModel->getByProfessor($userId, true, $anoLetivoId);
 
         // Separar por estado
         $pendentes = [];
@@ -74,7 +80,8 @@ class MinhasConvocatoriasController extends BaseController
             return redirect()->to('/login');
         }
 
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
         $convocatoria = $this->convocatoriaModel->getWithDetails($id);
 
         // Verificar se a convocatória pertence ao professor
@@ -103,7 +110,8 @@ class MinhasConvocatoriasController extends BaseController
             ]);
         }
 
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
         $convocatoriaId = $this->request->getPost('convocatoria_id');
         $observacoes = $this->request->getPost('observacoes');
 
@@ -156,7 +164,8 @@ class MinhasConvocatoriasController extends BaseController
             ]);
         }
 
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
         $convocatoriaId = $this->request->getPost('convocatoria_id');
         $observacoes = $this->request->getPost('observacoes');
 
@@ -214,7 +223,8 @@ class MinhasConvocatoriasController extends BaseController
             return redirect()->to('/login');
         }
 
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
 
         // Buscar convocatórias dos próximos 60 dias
         $dataInicio = date('Y-m-d');
@@ -269,7 +279,8 @@ class MinhasConvocatoriasController extends BaseController
             ]);
         }
 
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
         $convocatorias = $this->convocatoriaModel->getByProfessor($userId, true);
 
         return $this->response->setJSON([
@@ -288,7 +299,8 @@ class MinhasConvocatoriasController extends BaseController
             return $this->response->setJSON(['count' => 0]);
         }
 
-        $userId = session()->get('user_id');
+        $effectiveUser = $this->getEffectiveUser();
+        $userId = $effectiveUser['id'] ?? session()->get('user_id');
         $pendentes = $this->convocatoriaModel->getPendentes($userId);
 
         return $this->response->setJSON([

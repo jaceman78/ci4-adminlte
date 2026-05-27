@@ -77,18 +77,26 @@ class SessaoExameSalaModel extends Model
         $sessaoExameId = $data['data']['sessao_exame_id'] ?? null;
         
         if ($sessaoExameId) {
-            // Buscar o tipo de exame e a fase através da sessão
+            // Buscar o tipo de exame, fase e ano_escolaridade através da sessão
             $db = \Config\Database::connect();
             $builder = $db->table('sessao_exame se')
-                ->select('e.tipo_prova, se.fase')
+                ->select('e.tipo_prova, e.ano_escolaridade, se.fase')
                 ->join('exame e', 'e.id = se.exame_id')
                 ->where('se.id', $sessaoExameId);
             
             $result = $builder->get()->getRowArray();
             
             if ($result) {
+                // Sessões especiais (Suplentes, Verificação Calculadoras, Apoio TIC, Estrutura de Apoio, Verificação de Materiais): sem limite fixo
+                if (in_array($result['tipo_prova'], ['Suplentes', 'Verificacao Calculadoras', 'Verificação Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Verificação de Materiais'])) {
+                    $data['data']['vigilantes_necessarios'] = 99;
+                }
                 // Prova Ensaio: SEMPRE 1 vigilante por sala
-                if ($result['fase'] === 'Prova Ensaio') {
+                elseif ($result['fase'] === 'Prova Ensaio') {
+                    $data['data']['vigilantes_necessarios'] = 1;
+                }
+                // 4º ano: 1 vigilante por sala
+                elseif ((int) $result['ano_escolaridade'] === 4) {
                     $data['data']['vigilantes_necessarios'] = 1;
                 }
                 // MODa: 1 vigilante por 20 alunos (mínimo 1)
@@ -129,7 +137,7 @@ class SessaoExameSalaModel extends Model
     {
         $sala = $this->select('sessao_exame_sala.*')
             ->select('salas.codigo_sala as sala_nome')
-            ->select('(SELECT COUNT(*) FROM convocatoria WHERE sessao_exame_sala_id = sessao_exame_sala.id AND funcao = "Vigilante" AND deleted_at IS NULL) as vigilantes_alocados')
+            ->select('(SELECT COUNT(*) FROM convocatoria WHERE sessao_exame_sala_id = sessao_exame_sala.id AND deleted_at IS NULL) as vigilantes_alocados')
             ->join('salas', 'salas.id = sessao_exame_sala.sala_id')
             ->find($salaId);
 
@@ -147,10 +155,10 @@ class SessaoExameSalaModel extends Model
     {
         return $this->select('sessao_exame_sala.*')
             ->select('salas.codigo_sala as sala_nome')
-            ->select('(SELECT COUNT(*) FROM convocatoria WHERE sessao_exame_sala_id = sessao_exame_sala.id AND funcao = "Vigilante" AND deleted_at IS NULL) as vigilantes_alocados')
+            ->select('(SELECT COUNT(*) FROM convocatoria WHERE sessao_exame_sala_id = sessao_exame_sala.id AND deleted_at IS NULL) as vigilantes_alocados')
             ->select('CASE 
-                WHEN exame.tipo_prova IN (\'Suplentes\', \'Verificacao Calculadoras\', \'Apoio TIC\') THEN 0
-                ELSE GREATEST(0, sessao_exame_sala.vigilantes_necessarios - (SELECT COUNT(*) FROM convocatoria WHERE sessao_exame_sala_id = sessao_exame_sala.id AND funcao = "Vigilante" AND deleted_at IS NULL))
+                WHEN exame.tipo_prova IN (\'Suplentes\', \'Verificacao Calculadoras\', \'Apoio TIC\', \'Estrutura de Apoio\', \'Verificação de Materiais\') THEN 0
+                ELSE GREATEST(0, sessao_exame_sala.vigilantes_necessarios - (SELECT COUNT(*) FROM convocatoria WHERE sessao_exame_sala_id = sessao_exame_sala.id AND deleted_at IS NULL))
             END as vigilantes_em_falta')
             ->join('salas', 'salas.id = sessao_exame_sala.sala_id')
             ->join('sessao_exame', 'sessao_exame.id = sessao_exame_sala.sessao_exame_id')

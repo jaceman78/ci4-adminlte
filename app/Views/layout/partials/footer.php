@@ -14,7 +14,7 @@
           Copyright &copy; 2025-2025++&nbsp;
           <a href="#" id="teamPhotoLink" class="text-decoration-none">HardWork550</a>.
         </strong>
-        Todos os direitos reservados.  Versão 0.2.7
+        Todos os direitos reservados.  Versão 0.3.0
         <!--end::Copyright-->
       </footer>
       <!--end::Footer-->
@@ -97,21 +97,69 @@
 (function() {
   if (typeof jQuery !== 'undefined') {
     $(document).ready(function() {
+      // Preview de anexos
+      $('#sugestao_anexos').on('change', function() {
+        const files = this.files;
+        const preview = $('#preview_anexos');
+        preview.empty();
+        
+        if (files.length > 5) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Atenção',
+            text: 'Máximo de 5 ficheiros permitido. Os restantes serão ignorados.'
+          });
+        }
+        
+        for (let i = 0; i < Math.min(files.length, 5); i++) {
+          const file = files[i];
+          const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+          
+          if (file.size > 5 * 1024 * 1024) {
+            preview.append(`
+              <div class="alert alert-danger alert-dismissible fade show py-1 px-2 mb-1" role="alert">
+                <small><i class="fas fa-exclamation-triangle"></i> <strong>${file.name}</strong> (${sizeMB}MB) - Ficheiro muito grande (máx. 5MB)</small>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            `);
+          } else {
+            preview.append(`
+              <div class="alert alert-success alert-dismissible fade show py-1 px-2 mb-1" role="alert">
+                <small><i class="fas fa-file"></i> <strong>${file.name}</strong> (${sizeMB}MB)</small>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            `);
+          }
+        }
+      });
+      
       $('#formSugestao').on('submit', function(e) {
         e.preventDefault();
         
-        const formData = {
-          categoria: $('#sugestao_categoria').val(),
-          prioridade: $('#sugestao_prioridade').val(),
-          titulo: $('#sugestao_titulo').val(),
-          descricao: $('#sugestao_descricao').val(),
-          <?= csrf_token() ?>: '<?= csrf_hash() ?>'
-        };
+        // Usar FormData para suportar upload de ficheiros
+        const formData = new FormData();
+        formData.append('categoria', $('#sugestao_categoria').val());
+        formData.append('prioridade', $('#sugestao_prioridade').val());
+        formData.append('titulo', $('#sugestao_titulo').val());
+        formData.append('descricao', $('#sugestao_descricao').val());
+        formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+        
+        // Adicionar ficheiros (máximo 5)
+        const files = $('#sugestao_anexos')[0].files;
+        let validFiles = 0;
+        for (let i = 0; i < files.length && validFiles < 5; i++) {
+          if (files[i].size <= 5 * 1024 * 1024) { // 5MB
+            formData.append('anexos[]', files[i]);
+            validFiles++;
+          }
+        }
 
         $.ajax({
           url: '<?= base_url('sugestoes/salvar') ?>',
           method: 'POST',
           data: formData,
+          processData: false,  // Importante para FormData
+          contentType: false,  // Importante para FormData
           dataType: 'json',
           success: function(response) {
             if (response.success) {
@@ -141,10 +189,12 @@
                 
                 // Limpar formulário e fechar modal
                 $('#formSugestao')[0].reset();
+                $('#preview_anexos').empty();
                 modal.hide();
               } else {
                 // Fallback se não houver modal
                 $('#formSugestao')[0].reset();
+                $('#preview_anexos').empty();
                 if (typeof Swal !== 'undefined') {
                   Swal.fire({
                     icon: 'success',

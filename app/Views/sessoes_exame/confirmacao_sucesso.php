@@ -114,8 +114,40 @@
             <?php endif; ?>
 
             <div class="alert-info-custom mt-4">
+                <?php
+                // Local de comparecimento:
+                // - Coordenação da Escola: Para 6º ano (vigilantes, suplentes, equipas de apoio, verificação calculadoras)
+                //   OU para equipas de apoio/suplentes em dias com provas do 6º ano
+                // - Secretariado de Exames: Para outros anos
+                
+                // Verificar se é equipa de apoio ou suplentes
+                $ehEquipaEspecial = isset($convocatoria['tipo_prova']) && in_array($convocatoria['tipo_prova'], ['Verificacao Calculadoras', 'Apoio TIC', 'Estrutura de Apoio', 'Suplentes', 'Verificação de Materiais']);
+                
+                if (isset($convocatoria['tipo_prova']) && ($convocatoria['tipo_prova'] === 'MODa' || $convocatoria['tipo_prova'] === 'ModA')) {
+                    $localComparecimento = 'Escola Básica de Corroios, na Sala de Apoio ao Secretariado de Exames';
+                } elseif ($convocatoria['ano_escolaridade'] == 4) {
+                    $localComparecimento = 'Estrutura de Apoio';
+                } elseif ($ehEquipaEspecial && isset($temProva4AnoNoDia) && $temProva4AnoNoDia) {
+                    $localComparecimento = 'Estrutura de Apoio';
+                } elseif ($convocatoria['ano_escolaridade'] == 6) {
+                    // Prova é do 6º ano
+                    $localComparecimento = 'Coordenação da Escola';
+                } elseif ($ehEquipaEspecial && isset($temProva6AnoNoDia) && $temProva6AnoNoDia) {
+                    // Equipa de apoio/suplentes em dia com prova do 6º ano
+                    $localComparecimento = 'Coordenação da Escola';
+                } else {
+                    // Outros casos
+                    $localComparecimento = 'Secretariado de Exames';
+                }
+                ?>
                 <strong><i class="bi bi-info-circle me-2"></i>Lembrete Importante:</strong>
-                <p class="mb-0 mt-2">Deverá comparecer com <strong>30 minutos de antecedência</strong> ao horário de início do exame.</p>
+                <?php
+                $ehProva = ($convocatoria['fase'] === 'Prova Ensaio')
+                        || in_array($convocatoria['tipo_prova'] ?? '', ['MODa', 'ModA'])
+                        || in_array($convocatoria['ano_escolaridade'] ?? 0, [4, 6]);
+                $textoEventoLocal = $ehProva ? 'prova' : 'exame';
+                ?>
+                <p class="mb-0 mt-2">Deverá comparecer na <strong><?= $localComparecimento ?></strong> com <strong>45 minutos de antecedência</strong> ao horário de início da <?= $textoEventoLocal ?>.</p>
             </div>
 
             <div class="text-center mt-4">

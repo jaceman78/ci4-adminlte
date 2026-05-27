@@ -113,7 +113,7 @@ class ActivityLogController extends BaseController
         foreach ($result['data'] as $log) {
             // Badge do módulo
             $moduloBadges = [
-                'users' => 'bg-primary text-dark',
+                'users' => 'bg-primary text-white',
                 'escolas' => 'bg-success text-dark',
                 'salas' => 'bg-info text-dark',
                 'auth' => 'bg-warning text-dark',
@@ -121,19 +121,19 @@ class ActivityLogController extends BaseController
                 'logs' => 'bg-dark text-white',
                 'datatable_query' => 'bg-info text-dark',
                 // GESTÃO LETIVA
-                'turmas' => 'bg-primary text-dark',
+                'turmas' => 'bg-primary text-white',
                 'disciplinas' => 'bg-success text-dark',
                 'horarios' => 'bg-info text-dark',
                 'blocos' => 'bg-warning text-dark',
                 'tipologias' => 'bg-secondary text-white',
-                'anos_letivos' => 'bg-primary text-dark'
+                'anos_letivos' => 'bg-primary text-white'
             ];
             $moduloBadge = '<span class="badge ' . ($moduloBadges[$log['modulo']] ?? 'bg-light text-dark') . '">' . ucfirst($log['modulo']) . '</span>';
 
             // Badge da ação
             $acaoBadges = [
                 'create' => 'bg-success text-dark',
-                'update' => 'bg-primary text-dark',
+                'update' => 'bg-primary text-white',
                 'delete' => 'bg-danger text-white',
                 'view' => 'bg-info text-dark',
                 'login' => 'bg-success text-dark',
@@ -146,6 +146,9 @@ class ActivityLogController extends BaseController
 
             // Nome do utilizador
             $userName = $log['user_name'] ?? null;
+            if ($userName !== null) {
+                $userName = mb_convert_encoding((string)$userName, 'UTF-8', 'UTF-8');
+            }
             $oauthId = $log['oauth_id'] ?? null;
 
             if ($userName) {
@@ -156,10 +159,11 @@ class ActivityLogController extends BaseController
                 $displayUser = '<span class="text-muted">Sistema</span>';
             }
 
-            // Descrição truncada
-            $descricao = strlen($log['descricao']) > 80 
-                ? substr($log['descricao'], 0, 80) . '...' 
-                : $log['descricao'];
+            // Descrição truncada — sanitizar UTF-8 e usar mb_substr para não cortar bytes
+            $descricao = mb_convert_encoding((string)($log['descricao'] ?? ''), 'UTF-8', 'UTF-8');
+            $descricao = mb_strlen($descricao) > 80
+                ? mb_substr($descricao, 0, 80) . '...'
+                : $descricao;
 
             // Ações
             $actions = '

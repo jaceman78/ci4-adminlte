@@ -20,6 +20,7 @@ class ConvocatoriaModel extends Model
         'estado_confirmacao',
         'presenca',
         'data_confirmacao',
+        'email_enviado_em',
         'observacoes',
         'created_at',
         'updated_at'
@@ -36,7 +37,7 @@ class ConvocatoriaModel extends Model
         'sessao_exame_id' => 'required|integer|is_not_unique[sessao_exame.id]',
         'user_id' => 'required|integer|is_not_unique[user.id]',
         'sessao_exame_sala_id' => 'permit_empty|integer',
-        'funcao' => 'required|in_list[Vigilante,Suplente,Coadjuvante,Júri,Verificar Calculadoras,Apoio TIC]',
+        'funcao' => 'required|in_list[Vigilante,Suplente,Coadjuvante,Júri,Verificar Calculadoras,Apoio TIC,Estrutura de Apoio,Verificar Materiais]',
         'estado_confirmacao' => 'permit_empty|in_list[Pendente,Confirmado,Rejeitado]',
     ];
 
@@ -71,6 +72,7 @@ class ConvocatoriaModel extends Model
             user.NIF as professor_nif,
             salas.codigo_sala,
             salas.descricao as sala_descricao,
+            escolas.nome as escola_nome,
             sessao_exame.data_exame,
             sessao_exame.hora_exame,
             sessao_exame.duracao_minutos,
@@ -84,16 +86,19 @@ class ConvocatoriaModel extends Model
         ->join('user', 'user.id = convocatoria.user_id', 'left')
         ->join('sessao_exame_sala', 'sessao_exame_sala.id = convocatoria.sessao_exame_sala_id', 'left')
         ->join('salas', 'salas.id = sessao_exame_sala.sala_id', 'left')
+        ->join('escolas', 'escolas.id = salas.escola_id', 'left')
         ->join('sessao_exame', 'sessao_exame.id = convocatoria.sessao_exame_id', 'left')
         ->join('exame', 'exame.id = sessao_exame.exame_id', 'left');
         
         if ($id !== null) {
-            return $this->find($id);
+            $row = $this->find($id);
+            return $row ? $this->corrigirFuncaoRow($row) : null;
         }
         
-        return $this->orderBy('sessao_exame.data_exame', 'ASC')
+        $rows = $this->orderBy('sessao_exame.data_exame', 'ASC')
                     ->orderBy('sessao_exame.hora_exame', 'ASC')
                     ->findAll();
+        return $this->corrigirFuncaoRows($rows);
     }
 
     /**
@@ -101,7 +106,7 @@ class ConvocatoriaModel extends Model
      */
     public function getBySessao($sessaoId)
     {
-        return $this->select('
+        $this->select('
             convocatoria.*,
             user.name as professor_nome,
             user.email as professor_email,
@@ -109,6 +114,8 @@ class ConvocatoriaModel extends Model
             user.NIF as professor_nif,
             salas.codigo_sala,
             salas.descricao as sala_descricao,
+            salas.escola_id,
+            escolas.nome as escola_nome,
             sessao_exame.data_exame,
             sessao_exame.hora_exame,
             sessao_exame.duracao_minutos,
@@ -122,18 +129,20 @@ class ConvocatoriaModel extends Model
         ->join('user', 'user.id = convocatoria.user_id', 'left')
         ->join('sessao_exame_sala', 'sessao_exame_sala.id = convocatoria.sessao_exame_sala_id', 'left')
         ->join('salas', 'salas.id = sessao_exame_sala.sala_id', 'left')
+        ->join('escolas', 'escolas.id = salas.escola_id', 'left')
         ->join('sessao_exame', 'sessao_exame.id = convocatoria.sessao_exame_id', 'left')
         ->join('exame', 'exame.id = sessao_exame.exame_id', 'left')
         ->where('convocatoria.sessao_exame_id', $sessaoId)
         ->orderBy('convocatoria.funcao', 'ASC')
-        ->orderBy('user.name', 'ASC')
-        ->findAll();
+        ->orderBy('user.name', 'ASC');
+
+        return $this->corrigirFuncaoRows($this->findAll());
     }
 
     /**
      * Busca convocatórias de um professor
      */
-    public function getByProfessor($userId, $apenasAtivas = true)
+    public function getByProfessor($userId, $apenasAtivas = true, $anoLetivoId = null)
     {
         $this->select('
             convocatoria.*,
@@ -141,11 +150,13 @@ class ConvocatoriaModel extends Model
             sessao_exame.hora_exame,
             sessao_exame.duracao_minutos,
             sessao_exame.fase,
+            sessao_exame.ano_letivo_id,
             exame.codigo_prova,
             exame.nome_prova,
             exame.tipo_prova,
             salas.codigo_sala,
             salas.descricao as sala_descricao,
+            escolas.nome as escola_nome,
             permutas_vigilancia.id as permuta_id,
             permutas_vigilancia.estado as permuta_estado
         ')
@@ -153,17 +164,24 @@ class ConvocatoriaModel extends Model
         ->join('exame', 'exame.id = sessao_exame.exame_id', 'left')
         ->join('sessao_exame_sala', 'sessao_exame_sala.id = convocatoria.sessao_exame_sala_id', 'left')
         ->join('salas', 'salas.id = sessao_exame_sala.sala_id', 'left')
+        ->join('escolas', 'escolas.id = salas.escola_id', 'left')
         ->join('permutas_vigilancia', 'permutas_vigilancia.convocatoria_id = convocatoria.id AND permutas_vigilancia.estado NOT IN ("CANCELADO", "RECUSADO")', 'left')
-        ->where('convocatoria.user_id', $userId);
+        ->where('convocatoria.user_id', $userId)
+        ->where('convocatoria.email_enviado_em IS NOT NULL'); // Apenas convocatórias com email enviado
+
+        if ($anoLetivoId) {
+            $this->where('sessao_exame.ano_letivo_id', $anoLetivoId);
+        }
         
         if ($apenasAtivas) {
             $this->where('sessao_exame.data_exame >=', date('Y-m-d'))
                  ->where('sessao_exame.ativo', 1);
         }
         
-        return $this->orderBy('sessao_exame.data_exame', 'ASC')
+        $rows = $this->orderBy('sessao_exame.data_exame', 'ASC')
                     ->orderBy('sessao_exame.hora_exame', 'ASC')
                     ->findAll();
+        return $this->corrigirFuncaoRows($rows);
     }
 
     /**
@@ -188,6 +206,7 @@ class ConvocatoriaModel extends Model
         ->join('sessao_exame_sala', 'sessao_exame_sala.id = convocatoria.sessao_exame_sala_id', 'left')
         ->join('salas', 'salas.id = sessao_exame_sala.sala_id', 'left')
         ->where('convocatoria.estado_confirmacao', 'Pendente')
+        ->where('convocatoria.email_enviado_em IS NOT NULL') // Apenas convocatórias com email enviado
         ->where('sessao_exame.ativo', 1);
         
         if ($userId) {
@@ -338,8 +357,9 @@ class ConvocatoriaModel extends Model
             ->join('convocatoria c', 'c.sessao_exame_id = se.id')
             ->where('se.ativo', 1)
             ->groupBy('se.id')
-            ->orderBy('se.data_exame', 'DESC')
-            ->orderBy('se.hora_exame', 'DESC');
+            ->orderBy('CASE WHEN se.data_exame >= CURDATE() THEN 0 ELSE 1 END', 'ASC', false)
+            ->orderBy('se.data_exame', 'ASC')
+            ->orderBy('se.hora_exame', 'ASC');
 
         // Filtros opcionais
         if (!empty($filtros['data_inicio'])) {
@@ -409,6 +429,50 @@ class ConvocatoriaModel extends Model
             ->orderBy('convocatoria.funcao', 'ASC')
             ->orderBy('user.name', 'ASC')
             ->findAll();
+    }
+
+    /**
+     * Corrige a funcao de convocatórias antigas que foram gravadas como 'Vigilante'
+     * quando deveriam ser 'Apoio TIC' ou 'Verificar Calculadoras'.
+     * Compara o tipo_prova do exame para determinar a funcao correta.
+     */
+    protected function corrigirFuncaoRows(array $rows): array
+    {
+        foreach ($rows as &$row) {
+            if (($row['funcao'] ?? '') === 'Vigilante') {
+                $tipo = $row['tipo_prova'] ?? '';
+                if ($tipo === 'Apoio TIC') {
+                    $row['funcao'] = 'Apoio TIC';
+                } elseif ($tipo === 'Estrutura de Apoio') {
+                    $row['funcao'] = 'Estrutura de Apoio';
+                } elseif (in_array($tipo, ['Verificacao Calculadoras', 'Verificação Calculadoras'])) {
+                    $row['funcao'] = 'Verificar Calculadoras';
+                } elseif ($tipo === 'Verificação de Materiais') {
+                    $row['funcao'] = 'Verificar Materiais';
+                }
+            }
+        }
+        return $rows;
+    }
+
+    /**
+     * Versão para linha única (array associativo)
+     */
+    protected function corrigirFuncaoRow(array $row): array
+    {
+        if (($row['funcao'] ?? '') === 'Vigilante') {
+            $tipo = $row['tipo_prova'] ?? '';
+            if ($tipo === 'Apoio TIC') {
+                $row['funcao'] = 'Apoio TIC';
+            } elseif ($tipo === 'Estrutura de Apoio') {
+                $row['funcao'] = 'Estrutura de Apoio';
+            } elseif (in_array($tipo, ['Verificacao Calculadoras', 'Verificação Calculadoras'])) {
+                $row['funcao'] = 'Verificar Calculadoras';
+            } elseif ($tipo === 'Verificação de Materiais') {
+                $row['funcao'] = 'Verificar Materiais';
+            }
+        }
+        return $row;
     }
 
     /**
